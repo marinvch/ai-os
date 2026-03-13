@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.js.map
+*.d.ts
+tsconfig.tsbuildinfo
+
+# Test output — generated files written to target repos
+.ai-os/
+.github/copilot-instructions.md.bak
