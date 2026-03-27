@@ -12,7 +12,7 @@ Run once in any repo. AI OS scans the codebase, detects your stack, and generate
 | Context docs         | `.ai-os/context/`                                 | Token-efficient stack, architecture, conventions docs                              |
 | MCP tools            | `.github/copilot/mcp.json` + `.ai-os/mcp-server/` | 10 tools for code search, schema reading, route listing                            |
 | Agents               | `.github/agents/*.agent.md`                       | Stack-specific chat agents (framework expert, DB expert, auth, payments, explorer) |
-| Skills               | `.github/copilot/skills/*.md`                     | Per-library how-to playbooks (Next.js, tRPC, Prisma, Stripe, etc.)                 |
+| Skills               | `.github/copilot/skills/ai-os-*.md`               | AI OS-named per-library playbooks (Next.js, tRPC, Prisma, Stripe, etc.)            |
 | Slash commands       | `.github/copilot/prompts.json`                    | `/new-page`, `/new-trpc-procedure`, `/new-model`, `/rag-query`, etc.               |
 
 ## Requirements
@@ -22,6 +22,20 @@ Run once in any repo. AI OS scans the codebase, detects your stack, and generate
 - GitHub Copilot (VS Code extension)
 
 ## Install on any repo
+
+### Fast bootstrap (paste in any target repo terminal)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/marinvch/ai-os/master/bootstrap.sh | bash
+```
+
+With options:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/marinvch/ai-os/master/bootstrap.sh | bash -s -- --refresh-existing --install-skill-creator --install-find-skills
+```
+
+### Local clone workflow
 
 ```bash
 # Clone ai-os somewhere on your machine (once)
@@ -36,16 +50,23 @@ bash ~/ai-os/install.sh --cwd /path/to/your/repo
 # Optional: also install Anthropic's skill-creator globally (via Git Bash)
 bash ~/ai-os/install.sh --install-skill-creator
 
+# Optional: also install Vercel's find-skills globally (via Git Bash)
+bash ~/ai-os/install.sh --install-find-skills
+
+# Optional: install both skills in one run
+bash ~/ai-os/install.sh --install-skill-creator --install-find-skills
+
 # Optional: refresh existing generated AI OS artifacts
 bash ~/ai-os/install.sh --refresh-existing
 ```
 
-## Optional skill install: skill-creator
+## Optional skill installs
 
-AI OS can install the official `skill-creator` skill from `anthropics/skills`.
+AI OS can install the official `skill-creator` and `find-skills` skills.
 
 ```bash
 npx -y skills add https://github.com/anthropics/skills --skill skill-creator -g -a github-copilot -y
+npx -y skills add https://github.com/vercel-labs/skills --skill find-skills -g -a github-copilot -y
 ```
 
 Notes:
@@ -87,6 +108,8 @@ To also update existing generated agents, skills, prompts, and MCP config from l
 
 - `bash install.sh --refresh-existing`
 - `npm run generate:refresh -- --cwd /path/to/target-repo`
+
+Generated skill files are AI OS-specific and now follow `ai-os-*.md` naming.
 
 ## Development
 

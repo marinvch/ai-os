@@ -31,12 +31,12 @@ function buildSkillSpecs(stack: DetectedStack, cwd: string): SkillSpec[] {
 
   // Next.js
   if (frameworks.some(f => f.includes('next'))) {
-    add('nextjs.md', 'nextjs-patterns.md');
+    add('nextjs.md', 'ai-os-nextjs-patterns.md');
   }
 
   // React (non-Next.js to avoid duplicate)
   if (frameworks.some(f => f.includes('react')) && !frameworks.some(f => f.includes('next'))) {
-    add('react.md', 'react-patterns.md');
+    add('react.md', 'ai-os-react-patterns.md');
   }
 
   // tRPC
@@ -44,7 +44,7 @@ function buildSkillSpecs(stack: DetectedStack, cwd: string): SkillSpec[] {
     const trpcRouterFile = fs.existsSync(path.join(cwd, 'src/trpc/index.ts'))
       ? 'src/trpc/index.ts'
       : 'src/server/trpc.ts';
-    add('trpc.md', 'trpc-patterns.md', { '{{TRPC_ROUTER_FILE}}': trpcRouterFile });
+    add('trpc.md', 'ai-os-trpc-patterns.md', { '{{TRPC_ROUTER_FILE}}': trpcRouterFile });
   }
 
   // Prisma
@@ -52,7 +52,7 @@ function buildSkillSpecs(stack: DetectedStack, cwd: string): SkillSpec[] {
     const schemaFile = fs.existsSync(path.join(cwd, 'prisma/schema.prisma'))
       ? 'prisma/schema.prisma'
       : 'schema.prisma';
-    add('prisma.md', 'prisma-patterns.md', { '{{SCHEMA_FILE}}': schemaFile });
+    add('prisma.md', 'ai-os-prisma-patterns.md', { '{{SCHEMA_FILE}}': schemaFile });
   }
 
   // Stripe
@@ -60,7 +60,7 @@ function buildSkillSpecs(stack: DetectedStack, cwd: string): SkillSpec[] {
     const plansFile = fs.existsSync(path.join(cwd, 'src/constants/stripe.ts'))
       ? 'src/constants/stripe.ts'
       : 'src/lib/stripe.ts';
-    add('stripe.md', 'billing-stripe.md', {
+    add('stripe.md', 'ai-os-billing-stripe.md', {
       '{{PLANS_FILE}}': plansFile,
       '{{STRIPE_LIB_FILE}}': fs.existsSync(path.join(cwd, 'src/lib/stripe.ts')) ? 'src/lib/stripe.ts' : plansFile,
       '{{WEBHOOK_FILE}}': 'src/app/api/webhooks/stripe/route.ts',
@@ -72,32 +72,32 @@ function buildSkillSpecs(stack: DetectedStack, cwd: string): SkillSpec[] {
     const authFile = fs.existsSync(path.join(cwd, 'src/app/api/auth/[...nextauth]/authOptions.ts'))
       ? 'src/app/api/auth/[...nextauth]/authOptions.ts'
       : 'src/lib/auth.ts';
-    add('auth-nextauth.md', 'auth-flow.md', { '{{AUTH_CONFIG_FILE}}': authFile });
+    add('auth-nextauth.md', 'ai-os-auth-flow.md', { '{{AUTH_CONFIG_FILE}}': authFile });
   }
 
   // Supabase
   if (packages.includes('@supabase/supabase-js')) {
-    add('supabase.md', 'supabase-patterns.md');
+    add('supabase.md', 'ai-os-supabase-patterns.md');
   }
 
   // pgvector / RAG
   if (packages.includes('langchain') || packages.includes('@langchain/community') || packages.includes('pgvector')) {
-    add('rag-pgvector.md', 'rag-pipeline.md');
+    add('rag-pgvector.md', 'ai-os-rag-pipeline.md');
   }
 
   // Express
   if (frameworks.some(f => f.includes('express'))) {
-    add('express.md', 'express-api.md');
+    add('express.md', 'ai-os-express-api.md');
   }
 
   // FastAPI / Django
   if (frameworks.some(f => f.includes('fastapi'))) {
-    add('python-fastapi.md', 'fastapi-patterns.md');
+    add('python-fastapi.md', 'ai-os-fastapi-patterns.md');
   }
 
   // Go
   if (Object.keys(stack.languages).some(l => l.toLowerCase() === 'go')) {
-    add('go.md', 'go-patterns.md');
+    add('go.md', 'ai-os-go-patterns.md');
   }
 
   return specs;

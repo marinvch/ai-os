@@ -29,6 +29,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # ── Determine target repo root ────────────────────────────────────────────────
 TARGET_DIR=""
 INSTALL_SKILL_CREATOR=false
+INSTALL_FIND_SKILLS=false
 REFRESH_EXISTING=false
 
 while [[ $# -gt 0 ]]; do
@@ -43,6 +44,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --install-skill-creator)
       INSTALL_SKILL_CREATOR=true
+      shift
+      ;;
+    --install-find-skills)
+      INSTALL_FIND_SKILLS=true
       shift
       ;;
     --refresh-existing)
@@ -114,6 +119,23 @@ if [[ "$INSTALL_SKILL_CREATOR" == "true" ]]; then
   else
     echo -e "  ${YELLOW}⚠ skill-creator install failed. Continuing AI OS install.${RESET}"
     echo -e "  ${YELLOW}  Retry later:${RESET} npx -y skills add https://github.com/anthropics/skills --skill skill-creator -g -a github-copilot -y"
+  fi
+
+  echo ""
+fi
+
+# ── Optional: install find-skills via Skills CLI ────────────────────────────
+if [[ "$INSTALL_FIND_SKILLS" == "true" ]]; then
+  echo -e "  ${CYAN}→ Installing skill: vercel-labs/skills@find-skills...${RESET}"
+
+  if ! command -v npx &>/dev/null; then
+    echo -e "  ${YELLOW}⚠ npx not found. Skipping skill installation.${RESET}"
+    echo -e "  ${YELLOW}  You can run later:${RESET} npx -y skills add https://github.com/vercel-labs/skills --skill find-skills -g -a github-copilot -y"
+  elif npx -y skills add https://github.com/vercel-labs/skills --skill find-skills -g -a github-copilot -y; then
+    echo -e "  ${GREEN}✓ find-skills installed globally${RESET}"
+  else
+    echo -e "  ${YELLOW}⚠ find-skills install failed. Continuing AI OS install.${RESET}"
+    echo -e "  ${YELLOW}  Retry later:${RESET} npx -y skills add https://github.com/vercel-labs/skills --skill find-skills -g -a github-copilot -y"
   fi
 
   echo ""
@@ -224,6 +246,7 @@ echo -e "  1. Open this repo in VS Code with GitHub Copilot extension installed"
 echo -e "  2. Copilot will use ${CYAN}.github/copilot-instructions.md${RESET} automatically"
 echo -e "  3. MCP tools are registered in ${CYAN}.github/copilot/mcp.json${RESET}"
 echo -e "  4. Project context is in ${CYAN}.ai-os/context/${RESET}"
+echo -e "  5. AI OS skills are generated in ${CYAN}.github/copilot/skills/${RESET} with ai-os-* naming"
 echo ""
 echo -e "  ${YELLOW}Tip:${RESET} Re-run install.sh anytime to refresh context after major refactors."
 echo ""
