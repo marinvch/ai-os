@@ -138,7 +138,11 @@ interface McpJson {
   tools?: McpTool[];
 }
 
-export function generateMcpJson(stack: DetectedStack, outputDir: string): void {
+interface GenerateMcpOptions {
+  refreshExisting?: boolean;
+}
+
+export function generateMcpJson(stack: DetectedStack, outputDir: string, _options?: GenerateMcpOptions): void {
   const mcpServerPath = path.join('.ai-os', 'mcp-server', 'index.js').replace(/\\/g, '/');
 
   const allTools = [...BASE_MCP_TOOLS, ...buildStackTools(stack)];

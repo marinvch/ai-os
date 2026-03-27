@@ -13,7 +13,9 @@
     "build": "tsc",
     "dev": "tsx src/generate.ts",
     "generate": "tsx src/generate.ts",
-    "generate:dry": "tsx src/generate.ts --dry-run"
+    "generate:dry": "tsx src/generate.ts --dry-run",
+    "generate:refresh": "tsx src/generate.ts --refresh-existing",
+    "install:skill-creator": "npx -y skills add https://github.com/anthropics/skills --skill skill-creator -g -a github-copilot -y"
   },
   "dependencies": {
     "@github/copilot-sdk": "^0.1.8"

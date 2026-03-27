@@ -103,7 +103,15 @@ function buildSkillSpecs(stack: DetectedStack, cwd: string): SkillSpec[] {
   return specs;
 }
 
-export async function generateSkills(stack: DetectedStack, cwd: string): Promise<string[]> {
+interface GenerateSkillsOptions {
+  refreshExisting?: boolean;
+}
+
+async function generateSkillsWithOptions(
+  stack: DetectedStack,
+  cwd: string,
+  options: GenerateSkillsOptions,
+): Promise<string[]> {
   const skillsDir = path.join(cwd, SKILLS_DIR);
   fs.mkdirSync(skillsDir, { recursive: true });
 
@@ -113,8 +121,8 @@ export async function generateSkills(stack: DetectedStack, cwd: string): Promise
   for (const spec of specs) {
     const outputPath = path.join(skillsDir, spec.outputFile);
 
-    // Skip if file already exists — never overwrite hand-crafted skills
-    if (fs.existsSync(outputPath)) {
+    // In safe mode, never overwrite existing skills.
+    if (fs.existsSync(outputPath) && !options.refreshExisting) {
       continue;
     }
 
@@ -129,4 +137,12 @@ export async function generateSkills(stack: DetectedStack, cwd: string): Promise
   }
 
   return generated;
+}
+
+export async function generateSkills(
+  stack: DetectedStack,
+  cwd: string,
+  options?: GenerateSkillsOptions,
+): Promise<string[]> {
+  return generateSkillsWithOptions(stack, cwd, { refreshExisting: options?.refreshExisting ?? false });
 }

@@ -8,21 +8,30 @@ import { generateAgents } from './generators/agents.js';
 import { generateSkills } from './generators/skills.js';
 import { generatePrompts } from './generators/prompts.js';
 
-function parseArgs(): { cwd: string; dryRun: boolean } {
+type GenerateMode = 'safe' | 'refresh-existing';
+
+function parseArgs(): { cwd: string; dryRun: boolean; mode: GenerateMode } {
   const args = process.argv.slice(2);
   let cwd = process.cwd();
   let dryRun = false;
+  let mode: GenerateMode = 'safe';
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--cwd' && args[i + 1]) {
       cwd = path.resolve(args[i + 1]);
       i++;
+    } else if (args[i] === '--cwd' && !args[i + 1]) {
+      throw new Error('--cwd requires a path value');
+    } else if (args[i]?.startsWith('--cwd=')) {
+      cwd = path.resolve(args[i].slice('--cwd='.length));
     } else if (args[i] === '--dry-run') {
       dryRun = true;
+    } else if (args[i] === '--refresh-existing') {
+      mode = 'refresh-existing';
     }
   }
 
-  return { cwd, dryRun };
+  return { cwd, dryRun, mode };
 }
 
 function printBanner(): void {
@@ -51,7 +60,7 @@ function printSummary(
   console.log('  Generated files:');
   console.log(`  ✅ .github/copilot-instructions.md`);
   console.log(`  ✅ .github/copilot/mcp.json (${5 + 5} tools)`);
-  console.log(`  ✅ .ai-os/context/ (stack, architecture, conventions)`);
+  console.log(`  ✅ .ai-os/context/ (stack, architecture, conventions, existing-ai-context)`);
 
   if (agents.length > 0) {
     console.log(`  ✅ .github/agents/ → ${agents.length} new agent(s):`);
@@ -82,8 +91,9 @@ function printSummary(
 async function main(): Promise<void> {
   printBanner();
 
-  const { cwd, dryRun } = parseArgs();
+  const { cwd, dryRun, mode } = parseArgs();
   console.log(`  📂 Scanning: ${cwd}`);
+  console.log(`  🔧 Mode: ${mode}`);
   console.log('');
 
   const stack = analyze(cwd);
@@ -96,13 +106,13 @@ async function main(): Promise<void> {
 
   // Phase 1: Core context files
   generateContextDocs(stack, cwd);
-  generateInstructions(stack, cwd);
-  generateMcpJson(stack, cwd);
+  generateInstructions(stack, cwd, { refreshExisting: mode === 'refresh-existing' });
+  generateMcpJson(stack, cwd, { refreshExisting: mode === 'refresh-existing' });
 
   // Phase 2: Agents, Skills, Prompts
-  const agents = await generateAgents(stack, cwd);
-  const skills = await generateSkills(stack, cwd);
-  const promptsAdded = await generatePrompts(stack, cwd);
+  const agents = await generateAgents(stack, cwd, { refreshExisting: mode === 'refresh-existing' });
+  const skills = await generateSkills(stack, cwd, { refreshExisting: mode === 'refresh-existing' });
+  const promptsAdded = await generatePrompts(stack, cwd, { refreshExisting: mode === 'refresh-existing' });
 
   printSummary(stack, cwd, agents, skills, promptsAdded);
 }

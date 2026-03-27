@@ -15,12 +15,41 @@ interface AgentSpec {
   replacements: Record<string, string>;
 }
 
+function toBulletList(items: string[]): string {
+  if (items.length === 0) return '- _No items detected yet_';
+  return items.map(item => `- ${item}`).join('\n');
+}
+
+function buildFrameworkRules(stack: DetectedStack): string {
+  const frameworkNames = stack.frameworks.map(f => f.name.toLowerCase());
+  const rules: string[] = [];
+
+  if (frameworkNames.some(name => name.includes('next'))) {
+    rules.push('- Keep Server Components as default and isolate client-only code behind `\'use client\'` boundaries');
+    rules.push('- Route handlers should validate input and return typed JSON responses');
+  }
+
+  if (frameworkNames.some(name => name.includes('react'))) {
+    rules.push('- Keep components focused; extract data and business logic to hooks/util modules');
+  }
+
+  if (stack.patterns.hasTypeScript) {
+    rules.push('- Keep strict typing; avoid `any` unless there is a documented boundary reason');
+  }
+
+  if (rules.length === 0) {
+    rules.push('- Follow conventions from `.ai-os/context/conventions.md` for naming, structure, and safety checks');
+  }
+
+  return rules.join('\n');
+}
+
 function buildAgentSpecs(stack: DetectedStack, cwd: string): AgentSpec[] {
   const specs: AgentSpec[] = [];
   const projectName = path.basename(cwd);
   const frameworks = stack.frameworks.map(f => f.name);
   const packages = stack.allDependencies;
-  const primaryLang = Object.entries(stack.languages).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'TypeScript';
+  const primaryLang = stack.languages[0]?.name ?? 'TypeScript';
   const hasPrisma = packages.some(p => p.includes('prisma'));
   const hasAuth = packages.some(p => ['next-auth', 'nextauth', 'passport', 'django.contrib.auth', 'flask-login'].some(a => p.toLowerCase().includes(a)));
   const hasStripe = packages.some(p => p.toLowerCase().includes('stripe'));
@@ -28,6 +57,14 @@ function buildAgentSpecs(stack: DetectedStack, cwd: string): AgentSpec[] {
   const hasReact = frameworks.some(f => ['react', 'next', 'remix', 'gatsby'].some(k => f.toLowerCase().includes(k)));
   const primaryFramework = frameworks[0] ?? primaryLang;
   const frameworkLabel = hasNextjs ? 'Next.js' : primaryFramework;
+  const frameworkList = frameworks.length > 0 ? frameworks.join(', ') : primaryLang;
+
+  const stackSummary = [
+    `Primary language: ${primaryLang}`,
+    `Frameworks: ${frameworkList}`,
+    `Package manager: ${stack.patterns.packageManager}`,
+    `TypeScript: ${stack.patterns.hasTypeScript ? 'Yes' : 'No'}`,
+  ];
 
   const keyFiles = [
     'src/trpc/index.ts',
@@ -36,6 +73,9 @@ function buildAgentSpecs(stack: DetectedStack, cwd: string): AgentSpec[] {
     'src/components/ChatInterface.tsx',
     'prisma/schema.prisma',
   ].filter(f => fs.existsSync(path.join(cwd, f)));
+
+  const keyFilesList = toBulletList(keyFiles.map(file => `\`${file}\``));
+  const keyEntryPoints = toBulletList((keyFiles.slice(0, 4).length > 0 ? keyFiles.slice(0, 4) : ['src/']).map(file => `\`${file}\``));
 
   const templateDir = new URL('../templates/agents', import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1');
 
@@ -48,10 +88,16 @@ function buildAgentSpecs(stack: DetectedStack, cwd: string): AgentSpec[] {
     argumentHint: 'What artifact to update or create (e.g. "update skills", "add agent for auth")',
     replacements: {
       '{{PROJECT_NAME}}': projectName,
-      '{{FRAMEWORKS}}': frameworkLabel,
+      '{{FRAMEWORK}}': frameworkLabel,
+      '{{FRAMEWORK_LIST}}': frameworkList,
       '{{CONVENTIONS_FILE}}': '.ai-os/context/conventions.md',
       '{{STACK_FILE}}': '.ai-os/context/stack.md',
       '{{ARCHITECTURE_FILE}}': '.ai-os/context/architecture.md',
+      '{{CONVENTIONS_SUMMARY}}': toBulletList([
+        'Treat `.ai-os/context/conventions.md` as source of truth for naming and structure',
+        'Prefer safe, incremental edits with clear rollback points',
+        'Refresh AI artifacts after architecture or workflow changes',
+      ]),
     },
   });
 
@@ -63,11 +109,15 @@ function buildAgentSpecs(stack: DetectedStack, cwd: string): AgentSpec[] {
     description: `Expert ${frameworkLabel} developer specializing in ${primaryLang} patterns for ${projectName}.`,
     argumentHint: 'Describe the feature, bug or refactor you need help with',
     replacements: {
+      '{{PROJECT_NAME}}': projectName,
       '{{FRAMEWORK}}': frameworkLabel,
-      '{{STACK_SUMMARY}}': frameworks.slice(0, 4).join(', '),
-      '{{PRIMARY_LANG}}': primaryLang,
-      '{{KEY_FILES}}': keyFiles.join(', ') || 'See .ai-os/context/architecture.md',
-      '{{RULES_FILE}}': '.ai-os/context/conventions.md',
+      '{{STACK_SUMMARY}}': toBulletList(stackSummary),
+      '{{KEY_FILES_LIST}}': keyFilesList,
+      '{{CONVENTIONS_FILE}}': '.ai-os/context/conventions.md',
+      '{{ARCHITECTURE_FILE}}': '.ai-os/context/architecture.md',
+      '{{STACK_FILE}}': '.ai-os/context/stack.md',
+      '{{BUILD_COMMAND}}': stack.patterns.packageManager === 'npm' ? 'npm run build' : `${stack.patterns.packageManager} build`,
+      '{{FRAMEWORK_RULES}}': buildFrameworkRules(stack),
     },
   });
 
@@ -80,8 +130,8 @@ function buildAgentSpecs(stack: DetectedStack, cwd: string): AgentSpec[] {
     argumentHint: 'Ask about any feature, file, or pattern (e.g. "how does auth work?")',
     replacements: {
       '{{PROJECT_NAME}}': projectName,
-      '{{STACK_SUMMARY}}': frameworks.slice(0, 4).join(', '),
-      '{{ENTRY_POINTS}}': keyFiles.slice(0, 3).join(', ') || 'src/',
+      '{{STACK_SUMMARY}}': toBulletList(stackSummary),
+      '{{KEY_ENTRY_POINTS}}': keyEntryPoints,
     },
   });
 
@@ -97,11 +147,15 @@ function buildAgentSpecs(stack: DetectedStack, cwd: string): AgentSpec[] {
       description: `Prisma ORM expert for ${projectName} — schema design, migrations, query optimization.`,
       argumentHint: 'Describe the DB change, schema question, or query you need',
       replacements: {
+        '{{PROJECT_NAME}}': projectName,
         '{{ORM}}': 'Prisma',
-        '{{DB}}': 'PostgreSQL (Supabase)',
+        '{{DATABASE}}': 'PostgreSQL (Supabase)',
         '{{SCHEMA_FILE}}': schemaFile,
-        '{{MIGRATE_CMD}}': 'npx prisma migrate dev --name <name>',
-        '{{GENERATE_CMD}}': 'npx prisma generate',
+        '{{MIGRATIONS_DIR}}': 'prisma/migrations',
+        '{{STACK_SUMMARY}}': toBulletList(stackSummary),
+        '{{MIGRATE_COMMAND}}': 'npx prisma migrate dev --name <name>',
+        '{{GENERATE_COMMAND}}': 'npx prisma generate',
+        '{{RAW_SQL_FILE}}': 'src/server/db/raw-sql.ts',
       },
     });
   }
@@ -117,10 +171,16 @@ function buildAgentSpecs(stack: DetectedStack, cwd: string): AgentSpec[] {
       description: `${authProvider} expert for ${projectName} — providers, sessions, route protection.`,
       argumentHint: 'Describe the auth feature, provider, or protection you need',
       replacements: {
+        '{{PROJECT_NAME}}': projectName,
         '{{AUTH_PROVIDER}}': authProvider,
         '{{AUTH_STRATEGY}}': 'JWT',
         '{{AUTH_CONFIG_FILE}}': authFile,
-        '{{SESSION_HELPER}}': 'getServerSession() from src/lib/auth.ts',
+        '{{AUTH_SESSION_HELPER}}': 'getServerSession() from src/lib/auth.ts',
+        '{{AUTH_DESCRIPTION}}': toBulletList([
+          'Server routes and protected pages read identity from the validated session only',
+          'Authorization checks must happen on the server boundary before data access',
+          'Provider setup and callback behavior should remain centralized in the auth config file',
+        ]),
       },
     });
   }
@@ -137,10 +197,17 @@ function buildAgentSpecs(stack: DetectedStack, cwd: string): AgentSpec[] {
       description: `Stripe billing expert for ${projectName} — subscriptions, webhooks, plan enforcement.`,
       argumentHint: 'Describe the billing feature, webhook, or plan change you need',
       replacements: {
+        '{{PROJECT_NAME}}': projectName,
         '{{PAYMENT_PROVIDER}}': 'Stripe',
         '{{PLANS_FILE}}': plansFile,
         '{{WEBHOOK_FILE}}': 'src/app/api/webhooks/stripe/route.ts',
         '{{STRIPE_LIB_FILE}}': 'src/lib/stripe.ts',
+        '{{CHECKOUT_PROCEDURE}}': 'createCheckoutSession / createBillingPortalSession',
+        '{{BILLING_DESCRIPTION}}': toBulletList([
+          'Plan metadata is source-of-truth for feature gating',
+          'Webhook processing updates subscription state in persistent storage',
+          'Checkout and billing portal links should be generated server-side only',
+        ]),
       },
     });
   }
@@ -156,17 +223,25 @@ function injectReplacements(template: string, replacements: Record<string, strin
   return result;
 }
 
-export async function generateAgents(stack: DetectedStack, cwd: string): Promise<string[]> {
+interface GenerateAgentsOptions {
+  refreshExisting?: boolean;
+}
+
+async function generateAgentsWithOptions(
+  stack: DetectedStack,
+  cwd: string,
+  options: GenerateAgentsOptions,
+): Promise<string[]> {
   const agentsDir = path.join(cwd, AGENTS_DIR);
   fs.mkdirSync(agentsDir, { recursive: true });
 
   // Build a set of "concepts" already covered by existing agent files
   const existingFiles = fs.existsSync(agentsDir)
-    ? fs.readdirSync(agentsDir).map(f => f.toLowerCase())
+    ? fs.readdirSync(agentsDir).map((f: string) => f.toLowerCase())
     : [];
 
   function conceptCovered(keywords: string[]): boolean {
-    return existingFiles.some(f => keywords.some(k => f.includes(k)));
+    return existingFiles.some((f: string) => keywords.some((k: string) => f.includes(k)));
   }
 
   const specs = buildAgentSpecs(stack, cwd);
@@ -175,13 +250,14 @@ export async function generateAgents(stack: DetectedStack, cwd: string): Promise
   for (const spec of specs) {
     const outputPath = path.join(agentsDir, spec.outputFile);
 
-    // Skip if exact file exists
-    if (fs.existsSync(outputPath)) continue;
+    // In safe mode, skip existing files.
+    if (fs.existsSync(outputPath) && !options.refreshExisting) continue;
 
-    // Skip if a conceptually equivalent agent already exists
-    // (detect by keywords in the output filename)
-    const baseKeywords = spec.outputFile.replace('.agent.md', '').split('-').filter(w => w.length > 3);
-    if (conceptCovered(baseKeywords)) continue;
+    // In safe mode, skip conceptually equivalent existing agents.
+    if (!options.refreshExisting) {
+      const baseKeywords = spec.outputFile.replace('.agent.md', '').split('-').filter(w => w.length > 3);
+      if (conceptCovered(baseKeywords)) continue;
+    }
 
     if (!fs.existsSync(spec.templateFile)) {
       console.warn(`  ⚠ Agent template not found: ${spec.templateFile}`);
@@ -203,9 +279,22 @@ export async function generateAgents(stack: DetectedStack, cwd: string): Promise
     // Inject template placeholders
     content = injectReplacements(content, spec.replacements);
 
+    const unresolved = content.match(/{{[^}]+}}/g);
+    if (unresolved && unresolved.length > 0) {
+      console.warn(`  ⚠ Unresolved placeholders in ${spec.outputFile}: ${Array.from(new Set(unresolved)).join(', ')}`);
+    }
+
     fs.writeFileSync(outputPath, content, 'utf-8');
     generated.push(spec.outputFile);
   }
 
   return generated;
+}
+
+export async function generateAgents(
+  stack: DetectedStack,
+  cwd: string,
+  options?: GenerateAgentsOptions,
+): Promise<string[]> {
+  return generateAgentsWithOptions(stack, cwd, { refreshExisting: options?.refreshExisting ?? false });
 }

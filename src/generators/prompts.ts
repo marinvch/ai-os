@@ -168,7 +168,11 @@ Then:
   return prompts;
 }
 
-export async function generatePrompts(stack: DetectedStack, cwd: string): Promise<number> {
+interface GeneratePromptsOptions {
+  refreshExisting?: boolean;
+}
+
+export async function generatePrompts(stack: DetectedStack, cwd: string, options?: GeneratePromptsOptions): Promise<number> {
   const promptsPath = path.join(cwd, PROMPTS_FILE);
   fs.mkdirSync(path.dirname(promptsPath), { recursive: true });
 
@@ -181,12 +185,36 @@ export async function generatePrompts(stack: DetectedStack, cwd: string): Promis
     }
   }
 
-  const existingIds = new Set(existing.prompts.map(p => p.id));
-  const newPrompts = buildPrompts(stack, cwd).filter(p => !existingIds.has(p.id));
+  const generatedPrompts = buildPrompts(stack, cwd);
+  let changed = 0;
 
-  if (newPrompts.length === 0) return 0;
+  if (options?.refreshExisting) {
+    const byId = new Map(existing.prompts.map(p => [p.id, p]));
+    for (const prompt of generatedPrompts) {
+      const prev = byId.get(prompt.id);
+      if (!prev) {
+        existing.prompts.push(prompt);
+        changed++;
+        continue;
+      }
 
-  existing.prompts = [...existing.prompts, ...newPrompts];
+      if (prev.title !== prompt.title || prev.description !== prompt.description || prev.prompt !== prompt.prompt) {
+        byId.set(prompt.id, prompt);
+        changed++;
+      }
+    }
+
+    existing.prompts = existing.prompts.map(p => byId.get(p.id) ?? p);
+  } else {
+    const existingIds = new Set(existing.prompts.map(p => p.id));
+    const newPrompts = generatedPrompts.filter(p => !existingIds.has(p.id));
+    if (newPrompts.length === 0) return 0;
+    existing.prompts = [...existing.prompts, ...newPrompts];
+    changed = newPrompts.length;
+  }
+
+  if (changed === 0) return 0;
+
   fs.writeFileSync(promptsPath, JSON.stringify(existing, null, 2), 'utf-8');
-  return newPrompts.length;
+  return changed;
 }

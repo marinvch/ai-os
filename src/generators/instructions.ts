@@ -53,7 +53,11 @@ function fillTemplate(template: string, stack: DetectedStack, frameworkOverlay: 
     .replace(/{{FRAMEWORK_OVERLAY}}/g, frameworkOverlay);
 }
 
-export function generateInstructions(stack: DetectedStack, outputDir: string): void {
+interface GenerateInstructionsOptions {
+  refreshExisting?: boolean;
+}
+
+export function generateInstructions(stack: DetectedStack, outputDir: string, _options?: GenerateInstructionsOptions): void {
   const base = readTemplate('base-instructions.md');
   if (!base) throw new Error('Base instructions template not found');
 

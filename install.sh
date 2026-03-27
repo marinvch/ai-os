@@ -28,10 +28,31 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ── Determine target repo root ────────────────────────────────────────────────
 TARGET_DIR=""
-for arg in "$@"; do
-  if [[ "$arg" == "--cwd="* ]]; then
-    TARGET_DIR="${arg#--cwd=}"
-  fi
+INSTALL_SKILL_CREATOR=false
+REFRESH_EXISTING=false
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --cwd)
+      TARGET_DIR="${2:-}"
+      shift 2
+      ;;
+    --cwd=*)
+      TARGET_DIR="${1#--cwd=}"
+      shift
+      ;;
+    --install-skill-creator)
+      INSTALL_SKILL_CREATOR=true
+      shift
+      ;;
+    --refresh-existing)
+      REFRESH_EXISTING=true
+      shift
+      ;;
+    *)
+      shift
+      ;;
+  esac
 done
 
 if [[ -z "$TARGET_DIR" ]]; then
@@ -81,6 +102,23 @@ fi
 echo -e "  ${GREEN}✓ npm $(npm --version)${RESET}"
 echo ""
 
+# ── Optional: install anthropics skill-creator via Skills CLI ───────────────
+if [[ "$INSTALL_SKILL_CREATOR" == "true" ]]; then
+  echo -e "  ${CYAN}→ Installing skill: anthropics/skills@skill-creator...${RESET}"
+
+  if ! command -v npx &>/dev/null; then
+    echo -e "  ${YELLOW}⚠ npx not found. Skipping skill installation.${RESET}"
+    echo -e "  ${YELLOW}  You can run later:${RESET} npx -y skills add https://github.com/anthropics/skills --skill skill-creator -g -a github-copilot -y"
+  elif npx -y skills add https://github.com/anthropics/skills --skill skill-creator -g -a github-copilot -y; then
+    echo -e "  ${GREEN}✓ skill-creator installed globally${RESET}"
+  else
+    echo -e "  ${YELLOW}⚠ skill-creator install failed. Continuing AI OS install.${RESET}"
+    echo -e "  ${YELLOW}  Retry later:${RESET} npx -y skills add https://github.com/anthropics/skills --skill skill-creator -g -a github-copilot -y"
+  fi
+
+  echo ""
+fi
+
 # ── Locate ai-os source ───────────────────────────────────────────────────────
 AIOS_SRC="$SCRIPT_DIR"
 if [[ ! -f "$AIOS_SRC/package.json" ]]; then
@@ -105,7 +143,12 @@ fi
 echo -e "  ${CYAN}→ Scanning codebase and generating context...${RESET}"
 echo ""
 
-(cd "$AIOS_SRC" && node --import tsx/esm src/generate.ts --cwd "$TARGET_DIR")
+GEN_ARGS=(--cwd "$TARGET_DIR")
+if [[ "$REFRESH_EXISTING" == "true" ]]; then
+  GEN_ARGS+=(--refresh-existing)
+fi
+
+(cd "$AIOS_SRC" && node --import tsx/esm src/generate.ts "${GEN_ARGS[@]}")
 
 # ── Copy MCP server to target repo ──────────────────────────────────────────
 MCP_SERVER_SRC="$AIOS_SRC/src/mcp-server"

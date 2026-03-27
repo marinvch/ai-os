@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "prompts": [
+    {
+      "id": "/explain-file",
+      "title": "Explain File",
+      "description": "Get a detailed explanation of a file in the codebase",
+      "prompt": "Explain the file I specify in detail.\nInclude:\n- Its purpose and responsibility in the architecture\n- Key exports and their signatures\n- Any important side effects or dependencies\n- How it connects to other parts of the system\n- Any gotchas or non-obvious behavior\nReference the project architecture in .ai-os/context/architecture.md as context."
+    },
+    {
+      "id": "/refactor-component",
+      "title": "Refactor Component",
+      "description": "Refactor a component following project conventions",
+      "prompt": "Refactor the component I specify following the project conventions.\nBefore touching anything:\n1. Read the component file completely\n2. List all imports and consumers (grep for the component name)\n3. Identify props, tRPC hooks, and state\nThen:\n- Apply the naming conventions from .ai-os/context/conventions.md\n- Extract business logic to lib/ if present in the component\n- Ensure TypeScript strict compliance (no any)\n- Verify all callers still compile after the refactor"
+    }
+  ]
+}
