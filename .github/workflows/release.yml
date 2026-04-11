@@ -1,0 +1,181 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - dev
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Detect & Publish Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Detect latest tag
+        id: latest_tag
+        run: |
+          TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "Latest tag: ${TAG}"
+
+      - name: Compute version bump from Conventional Commits
+        id: bump
+        run: |
+          LATEST_TAG="${{ steps.latest_tag.outputs.tag }}"
+
+          # Collect commit subjects since the latest tag.
+          # Fall back to all commits when the repo has no tags yet.
+          if git rev-parse "${LATEST_TAG}" >/dev/null 2>&1; then
+            COMMITS=$(git log "${LATEST_TAG}..HEAD" --pretty=format:"%H %s")
+          else
+            COMMITS=$(git log --pretty=format:"%H %s")
+          fi
+
+          echo "Commits since ${LATEST_TAG}:"
+          echo "${COMMITS}"
+
+          BUMP="none"
+
+          # BREAKING CHANGE footer or '!' after type takes priority
+          if echo "${COMMITS}" | grep -qE $'^[0-9a-f]+ [A-Za-z]+(\(.+\))?!:' \
+          || git log "${LATEST_TAG}..HEAD" --pretty=format:"%b" 2>/dev/null \
+               | grep -q "^BREAKING CHANGE:"; then
+            BUMP="major"
+          elif echo "${COMMITS}" | grep -qE $'^[0-9a-f]+ feat(\(.+\))?:'; then
+            BUMP="minor"
+          elif echo "${COMMITS}" | grep -qE $'^[0-9a-f]+ (fix|perf|refactor)(\(.+\))?:'; then
+            BUMP="patch"
+          fi
+
+          echo "Detected bump: ${BUMP}"
+          echo "bump=${BUMP}" >> "$GITHUB_OUTPUT"
+
+      - name: Compute next version
+        id: version
+        if: steps.bump.outputs.bump != 'none'
+        run: |
+          LATEST_TAG="${{ steps.latest_tag.outputs.tag }}"
+          BUMP="${{ steps.bump.outputs.bump }}"
+
+          # Strip leading 'v'
+          VERSION="${LATEST_TAG#v}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "${VERSION}"
+
+          MAJOR="${MAJOR:-0}"
+          MINOR="${MINOR:-0}"
+          PATCH="${PATCH:-0}"
+
+          case "${BUMP}" in
+            major) NEXT="$(( MAJOR + 1 )).0.0" ;;
+            minor) NEXT="${MAJOR}.$(( MINOR + 1 )).0" ;;
+            patch) NEXT="${MAJOR}.${MINOR}.$(( PATCH + 1 ))" ;;
+          esac
+
+          echo "next=${NEXT}" >> "$GITHUB_OUTPUT"
+          echo "Next version: v${NEXT}"
+
+      - name: Build release notes
+        id: notes
+        if: steps.bump.outputs.bump != 'none'
+        env:
+          REPO: ${{ github.repository }}
+        run: |
+          LATEST_TAG="${{ steps.latest_tag.outputs.tag }}"
+          NOTES_FILE="${RUNNER_TEMP}/release-notes.md"
+
+          if git rev-parse "${LATEST_TAG}" >/dev/null 2>&1; then
+            LOG_RANGE="${LATEST_TAG}..HEAD"
+          else
+            LOG_RANGE="HEAD"
+          fi
+
+          # Emit one bullet per commit; extract PR number when present in subject
+          while IFS= read -r line; do
+            SHA=$(echo "${line}" | awk '{print $1}')
+            MSG=$(echo "${line}" | cut -d' ' -f2-)
+            SHORT="${SHA:0:7}"
+            COMMIT_URL="https://github.com/${REPO}/commit/${SHA}"
+
+            # Detect "(#NNN)" pattern that GitHub adds to squash-merged PR titles
+            PR_NUM=$(echo "${MSG}" | grep -oE '\(#[0-9]+\)' | grep -oE '[0-9]+' | head -1)
+            if [ -n "${PR_NUM}" ]; then
+              PR_URL="https://github.com/${REPO}/pull/${PR_NUM}"
+              echo "- ${MSG} ([${SHORT}](${COMMIT_URL})) ([#${PR_NUM}](${PR_URL}))"
+            else
+              echo "- ${MSG} ([${SHORT}](${COMMIT_URL}))"
+            fi
+          done < <(git log "${LOG_RANGE}" --pretty=format:"%H %s") > "${NOTES_FILE}"
+
+          echo "notes_file=${NOTES_FILE}" >> "$GITHUB_OUTPUT"
+
+      # ── Dry-run (PR context) ─────────────────────────────────────────────────
+      - name: Dry run summary
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "╔══════════════════════════════════════╗"
+          echo "║          RELEASE DRY RUN             ║"
+          echo "╚══════════════════════════════════════╝"
+          echo ""
+          BUMP="${{ steps.bump.outputs.bump }}"
+          if [ "${BUMP}" = "none" ]; then
+            echo "ℹ️  No releasable changes detected since ${{ steps.latest_tag.outputs.tag }}."
+            echo "   Merge this PR when ready; a release will only be cut once a"
+            echo "   Conventional Commit (fix/feat/breaking) lands on dev."
+          else
+            echo "🏷️  Current tag : ${{ steps.latest_tag.outputs.tag }}"
+            echo "⬆️  Version bump: ${BUMP}"
+            echo "🚀  Next version: v${{ steps.version.outputs.next }}"
+            echo ""
+            echo "📋 Release notes:"
+            NOTES_FILE="${{ steps.notes.outputs.notes_file }}"
+            if [ -f "${NOTES_FILE}" ]; then cat "${NOTES_FILE}"; fi
+          fi
+
+      # ── Tag & Release (push to dev) ──────────────────────────────────────────
+      - name: Skip — no releasable changes
+        if: github.event_name == 'push' && steps.bump.outputs.bump == 'none'
+        run: |
+          echo "ℹ️  No Conventional Commits matching fix/feat/breaking found since"
+          echo "   ${{ steps.latest_tag.outputs.tag }}. Skipping release."
+
+      - name: Configure git identity
+        if: github.event_name == 'push' && steps.bump.outputs.bump != 'none'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create annotated tag
+        if: github.event_name == 'push' && steps.bump.outputs.bump != 'none'
+        run: |
+          TAG="v${{ steps.version.outputs.next }}"
+          git tag -a "${TAG}" -m "Release ${TAG}"
+          git push origin "${TAG}"
+          echo "✅ Pushed tag ${TAG}"
+
+      - name: Publish GitHub Release
+        if: github.event_name == 'push' && steps.bump.outputs.bump != 'none'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v${{ steps.version.outputs.next }}"
+          NOTES_FILE="${{ steps.notes.outputs.notes_file }}"
+
+          gh release create "${TAG}" \
+            --title "Release ${TAG}" \
+            --notes-file "${NOTES_FILE}" \
+            --target dev
+
+          echo "✅ GitHub Release ${TAG} published."
