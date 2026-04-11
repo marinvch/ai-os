@@ -58,7 +58,7 @@ function parseArgs(): { cwd: string; dryRun: boolean; mode: GenerateMode; action
 function printBanner(): void {
   console.log('');
   console.log('  ╔═══════════════════════════════════╗');
-  console.log('  ║          AI OS  v0.3.0            ║');
+  console.log('  ║          AI OS  v0.5.0            ║');
   console.log('  ║  Portable Copilot Context Engine  ║');
   console.log('  ╚═══════════════════════════════════╝');
   console.log('');

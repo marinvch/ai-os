@@ -3,6 +3,7 @@
 #  AI OS Installer — Portable Copilot Context Engine
 #  Install on any repository with: bash install.sh
 #  Requires: git bash, Node.js >= 20
+#  No Node.js? Use: bash install.sh --github-actions
 # =============================================================================
 
 set -euo pipefail
@@ -18,7 +19,7 @@ RESET='\033[0m'
 # ── Banner ───────────────────────────────────────────────────────────────────
 echo ""
 echo -e "${CYAN}${BOLD}  ╔═══════════════════════════════════╗${RESET}"
-echo -e "${CYAN}${BOLD}  ║          AI OS  v0.4.0            ║${RESET}"
+echo -e "${CYAN}${BOLD}  ║          AI OS  v0.5.0            ║${RESET}"
 echo -e "${CYAN}${BOLD}  ║  Portable Copilot Context Engine  ║${RESET}"
 echo -e "${CYAN}${BOLD}  ╚═══════════════════════════════════╝${RESET}"
 echo ""
@@ -33,6 +34,7 @@ INSTALL_FIND_SKILLS=false
 REFRESH_EXISTING=false
 CLEAN_UPDATE=false
 UNINSTALL=false
+GITHUB_ACTIONS_MODE=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -65,6 +67,10 @@ while [[ $# -gt 0 ]]; do
       UNINSTALL=true
       shift
       ;;
+    --github-actions)
+      GITHUB_ACTIONS_MODE=true
+      shift
+      ;;
     *)
       shift
       ;;
@@ -82,7 +88,86 @@ TARGET_DIR="$(cd "$TARGET_DIR" && pwd)"
 echo -e "  ${BOLD}Target repository:${RESET} $TARGET_DIR"
 echo ""
 
-# ── Uninstall mode (#12) ─────────────────────────────────────────────────────
+# ── GitHub Actions mode (no Node.js required) ────────────────────────────────
+if [[ "$GITHUB_ACTIONS_MODE" == "true" ]]; then
+  WORKFLOW_DIR="$TARGET_DIR/.github/workflows"
+  WORKFLOW_FILE="$WORKFLOW_DIR/ai-os-install.yml"
+  mkdir -p "$WORKFLOW_DIR"
+
+  cat > "$WORKFLOW_FILE" << 'WORKFLOW_EOF'
+# AI OS — GitHub Actions installer
+# Runs AI OS generator in CI — no local Node.js required.
+# Trigger: push to default branch, or manually via workflow_dispatch.
+# The generated context files will be committed back to the repository.
+name: AI OS — Generate Context
+
+on:
+  workflow_dispatch:
+    inputs:
+      refresh:
+        description: 'Refresh existing AI OS artifacts'
+        required: false
+        default: 'false'
+        type: boolean
+  push:
+    branches: [main, master]
+    paths:
+      - 'package.json'
+      - 'requirements.txt'
+      - 'pyproject.toml'
+      - 'go.mod'
+      - 'Cargo.toml'
+      - 'pom.xml'
+
+jobs:
+  ai-os:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Clone AI OS
+        run: git clone --depth 1 https://github.com/marinvch/ai-os.git /tmp/ai-os
+
+      - name: Install AI OS dependencies
+        run: cd /tmp/ai-os && npm install --prefer-offline --no-audit --no-fund
+
+      - name: Run AI OS generator
+        run: |
+          ARGS="--cwd ${{ github.workspace }}"
+          if [[ "${{ github.event.inputs.refresh }}" == "true" ]]; then
+            ARGS="$ARGS --refresh-existing"
+          fi
+          cd /tmp/ai-os && node --import tsx/esm src/generate.ts $ARGS
+
+      - name: Commit generated context
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .github/
+          git diff --staged --quiet || git commit -m "chore: update AI OS context artifacts [skip ci]"
+          git push
+WORKFLOW_EOF
+
+  echo -e "  ${GREEN}✓ GitHub Actions workflow created: .github/workflows/ai-os-install.yml${RESET}"
+  echo ""
+  echo -e "  ${BOLD}Next steps:${RESET}"
+  echo -e "  1. Commit and push: ${CYAN}git add .github/workflows/ai-os-install.yml && git commit -m 'chore: add AI OS workflow' && git push${RESET}"
+  echo -e "  2. Go to GitHub → Actions → 'AI OS — Generate Context' → Run workflow"
+  echo -e "  3. AI OS will run in GitHub Actions and commit the generated context back to your repo"
+  echo ""
+  echo -e "  ${YELLOW}Tip:${RESET} You can also trigger automatically on push to main/master when package.json or other manifests change."
+  echo ""
+  exit 0
+fi
+
+
 if [[ "$UNINSTALL" == "true" ]]; then
   MANIFEST="$TARGET_DIR/.github/ai-os/manifest.json"
   if [[ ! -f "$MANIFEST" ]]; then
@@ -157,10 +242,15 @@ echo -e "  ${GREEN}✓ Git repository detected${RESET}"
 
 # ── Check Node.js version ────────────────────────────────────────────────────
 if ! command -v node &>/dev/null; then
-  echo -e "  ${RED}✗ Node.js not found.${RESET}"
-  echo -e "  ${YELLOW}  AI OS requires Node.js >= 20 for its generator and MCP server.${RESET}"
-  echo -e "  ${YELLOW}  This is an AI OS prerequisite — your project does NOT need Node.js.${RESET}"
-  echo -e "  ${YELLOW}  Install: https://nodejs.org${RESET}"
+  echo -e "  ${YELLOW}⚠ Node.js not found.${RESET}"
+  echo -e "  ${YELLOW}  AI OS requires Node.js >= 20 for local install.${RESET}"
+  echo -e "  ${YELLOW}  Your project does NOT need Node.js — AI OS is the only dependency.${RESET}"
+  echo ""
+  echo -e "  ${BOLD}Option 1:${RESET} Install Node.js from ${CYAN}https://nodejs.org${RESET} then re-run this script."
+  echo -e "  ${BOLD}Option 2 (no Node.js required):${RESET} Use the GitHub Actions installer:"
+  echo -e "    ${CYAN}bash install.sh --github-actions${RESET}"
+  echo -e "    Then commit and push the generated workflow, and trigger it from GitHub Actions."
+  echo ""
   exit 1
 fi
 
