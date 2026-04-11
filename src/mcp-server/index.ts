@@ -1,14 +1,16 @@
-#!/usr/bin/env node
 /**
  * AI OS MCP Server — powered by GitHub Copilot SDK
  *
  * This server runs as a subprocess when GitHub Copilot calls any registered tool.
  * It provides project-specific context tools to minimize token usage and hallucinations.
  *
+ * Default mode: standalone JSON-RPC over stdio (no npm dependencies required).
+ * Pass --copilot to use the Copilot SDK client integration (requires @github/copilot-sdk).
+ *
  * Protocol: JSON-RPC over stdio (Copilot SDK protocol v3)
- * Requirements: Node.js >= 20, @github/copilot-sdk
+ * Requirements: Node.js >= 20
+ * Note: @github/copilot-sdk is only required when passing --copilot flag
  */
-import { CopilotClient } from '@github/copilot-sdk';
 import path from 'node:path';
 import { getAllMcpTools, type McpToolDefinition } from './tool-definitions.js';
 import {
@@ -147,6 +149,7 @@ async function main(): Promise<void> {
     return;
   }
 
+  // ── Copilot SDK mode (--copilot flag) ─────────────────────────────────────
   const health = validateRuntimeEnvironment();
   for (const message of health.messages) {
     logDiagnostic(message);
@@ -154,6 +157,25 @@ async function main(): Promise<void> {
 
   if (!health.ok) {
     throw new Error(`MCP runtime validation failed: ${health.messages.join(' | ')}`);
+  }
+
+  let CopilotClient: new () => {
+    start(): Promise<void>;
+    stop(): Promise<void>;
+    createSession(opts: {
+      model: string;
+      tools: Array<{ name: string; description: string; parameters: Record<string, unknown>; handler: (input: ToolInput) => Promise<string> }>;
+      onPermissionRequest: (_req: unknown) => { kind: 'approved' };
+    }): Promise<{ disconnect(): Promise<void> }>;
+  };
+
+  try {
+    const sdk = await import('@github/copilot-sdk');
+    CopilotClient = sdk.CopilotClient;
+  } catch {
+    console.error('[ai-os:mcp] @github/copilot-sdk is required for --copilot mode but was not found.');
+    console.error('[ai-os:mcp] Install it or omit --copilot to use standalone JSON-RPC mode.');
+    process.exit(1);
   }
 
   const client = new CopilotClient();
@@ -197,6 +219,13 @@ async function main(): Promise<void> {
  * Implements the MCP protocol subset needed for VS Code Copilot tool integration.
  */
 function runStandaloneMcp(): void {
+  // Ensure the process exits on SIGTERM/SIGINT so that the process.on('exit')
+  // handler in utils.ts can release the .memory.lock file.  Without these
+  // handlers Node.js would terminate via the default signal action which does
+  // NOT emit the 'exit' event, leaving a stale lock on disk.
+  process.on('SIGTERM', () => process.exit(0));
+  process.on('SIGINT', () => process.exit(0));
+
   let buffer = '';
 
   process.stdin.setEncoding('utf-8');
