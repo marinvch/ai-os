@@ -343,29 +343,17 @@ function checkMcpHealth(dir: string, fixtureName: string, results: CheckResult[]
     detail: typeof mcpConfig.version !== 'number' ? `version field is ${JSON.stringify(mcpConfig.version)}` : undefined,
   });
 
-  // The `generate` command writes a servers block with the ai-os MCP server entry.
-  // Check that entry is present and references the MCP server index.js.
-  const serverEntry = mcpConfig.servers?.['ai-os'];
-  if (serverEntry !== undefined) {
-    const argsIncludeIndexJs = serverEntry.args?.some(a => a.includes('index.js')) ?? false;
-    results.push({
-      fixture: fixtureName,
-      check: 'mcp.json ai-os server references index.js',
-      passed: argsIncludeIndexJs,
-      detail: argsIncludeIndexJs
-        ? undefined
-        : `Expected args to include 'index.js', got: ${JSON.stringify(serverEntry.args)}`,
-    });
-  } else {
-    // No servers block — this is only acceptable for the committed ai-os repo mcp.json
-    // which uses a tools-only format. For generated fixture directories this is a failure.
-    results.push({
-      fixture: fixtureName,
-      check: 'mcp.json ai-os server references index.js',
-      passed: false,
-      detail: 'No servers[\'ai-os\'] entry found in generated mcp.json',
-    });
-  }
+  // Since v0.4.1, the committed mcp.json intentionally has NO servers block —
+  // the server entry lives in the gitignored mcp.local.json (written by install.sh).
+  // Verify that the servers block is absent so the Copilot cloud agent is never broken.
+  results.push({
+    fixture: fixtureName,
+    check: 'mcp.json has no servers block (cloud-agent safe)',
+    passed: mcpConfig.servers === undefined,
+    detail: mcpConfig.servers !== undefined
+      ? `servers block must be absent from committed mcp.json but found: ${JSON.stringify(Object.keys(mcpConfig.servers))}`
+      : undefined,
+  });
 }
 
 function checkMemoryQuality(dir: string, fixtureName: string, results: CheckResult[]): void {

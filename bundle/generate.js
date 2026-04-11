@@ -1254,24 +1254,14 @@ function getMcpToolsForStack(stack) {
 
 // src/generators/mcp.ts
 function generateMcpJson(stack, outputDir, _options) {
-  const mcpServerPath = path7.join(".ai-os", "mcp-server", "index.js").replace(/\\/g, "/");
   const allTools = getMcpToolsForStack(stack);
-  const nodeCommand = process.env["AI_OS_NODE_PATH"] ?? "node";
-  const config = {
-    version: 1,
-    servers: {
-      "ai-os": {
-        type: "stdio",
-        command: nodeCommand,
-        args: [mcpServerPath],
-        env: {
-          AI_OS_ROOT: "."
-        }
-      }
-    }
-  };
+
+  // Committed file — no servers block so VCS-hosted copies and the Copilot cloud agent
+  // never try to spawn a stdio process that relies on local runtime artifacts.
+  // The local server entry is written separately by install.sh into mcp.local.json.
+  const committedConfig = { version: 1 };
   const mcpJsonPath = path7.join(outputDir, ".github", "copilot", "mcp.json");
-  writeIfChanged(mcpJsonPath, JSON.stringify(config, null, 2));
+  writeIfChanged(mcpJsonPath, JSON.stringify(committedConfig, null, 2));
   const toolsJsonPath = path7.join(outputDir, ".github", "ai-os", "tools.json");
   writeIfChanged(toolsJsonPath, JSON.stringify(allTools, null, 2));
   return [mcpJsonPath, toolsJsonPath];
