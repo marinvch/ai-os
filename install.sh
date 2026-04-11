@@ -278,7 +278,10 @@ echo ""
 # ── Install ai-os dependencies (into scripts/ai-os/node_modules) ─────────────
 echo -e "  ${CYAN}→ Installing dependencies...${RESET}"
 if [[ "$USE_BUN" == "true" ]]; then
-  (cd "$AIOS_SRC" && bun install --frozen-lockfile 2>&1 | tail -3) || (cd "$AIOS_SRC" && bun install 2>&1 | tail -3)
+  if ! (cd "$AIOS_SRC" && bun install --frozen-lockfile 2>&1 | tail -3); then
+    echo -e "  ${YELLOW}⚠ bun install --frozen-lockfile failed (lockfile may be outdated). Retrying without frozen lockfile...${RESET}"
+    (cd "$AIOS_SRC" && bun install 2>&1 | tail -3)
+  fi
 else
   (cd "$AIOS_SRC" && npm install --prefer-offline --no-audit --no-fund 2>&1 | tail -3)
 fi

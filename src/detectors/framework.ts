@@ -226,7 +226,6 @@ function detectBun(rootDir: string): DetectedFramework[] {
   // Detect "packageManager": "bun@..." in package.json
   interface PkgWithPackageManager {
     packageManager?: string;
-    scripts?: Record<string, string>;
   }
   const pkg = readJson<PkgWithPackageManager>(path.join(rootDir, 'package.json'));
   if (pkg?.packageManager?.startsWith('bun')) {
