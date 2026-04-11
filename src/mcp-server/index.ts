@@ -6,9 +6,9 @@
  * It provides project-specific context tools to minimize token usage and hallucinations.
  *
  * Protocol: JSON-RPC over stdio (Copilot SDK protocol v3)
- * Requirements: Node.js >= 20, @github/copilot-sdk
+ * Requirements: Node.js >= 20
+ * Note: @github/copilot-sdk is only required when passing --copilot flag
  */
-import { CopilotClient } from '@github/copilot-sdk';
 import path from 'node:path';
 import { getAllMcpTools, type McpToolDefinition } from './tool-definitions.js';
 import {
@@ -154,6 +154,25 @@ async function main(): Promise<void> {
 
   if (!health.ok) {
     throw new Error(`MCP runtime validation failed: ${health.messages.join(' | ')}`);
+  }
+
+  let CopilotClient: new () => {
+    start(): Promise<void>;
+    stop(): Promise<void>;
+    createSession(opts: {
+      model: string;
+      tools: Array<{ name: string; description: string; parameters: Record<string, unknown>; handler: (input: ToolInput) => Promise<string> }>;
+      onPermissionRequest: (_req: unknown) => { kind: 'approved' };
+    }): Promise<{ disconnect(): Promise<void> }>;
+  };
+
+  try {
+    const sdk = await import('@github/copilot-sdk');
+    CopilotClient = sdk.CopilotClient;
+  } catch {
+    console.error('[ai-os:mcp] @github/copilot-sdk is required for --copilot mode but was not found.');
+    console.error('[ai-os:mcp] Install it or omit --copilot to use standalone JSON-RPC mode.');
+    process.exit(1);
   }
 
   const client = new CopilotClient();
