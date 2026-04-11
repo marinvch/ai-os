@@ -23,7 +23,7 @@ Generated instructions also enforce strict behavior guardrails: ambiguity-first 
 
 ## Requirements
 
-- Node.js ≥ 20
+- Node.js ≥ 20 *(auto-installed by `install.sh` if absent — see below)*
 - Git
 - GitHub Copilot (VS Code extension)
 
@@ -104,6 +104,21 @@ Notes:
 | `get_memory_guidelines` | Repository memory protocol             |
 | `get_repo_memory`       | Retrieve durable project memory        |
 | `remember_repo_fact`    | Persist verified memory entries        |
+
+## Node.js auto-install
+
+`install.sh` detects when Node.js is absent and attempts a silent auto-install in this order:
+
+1. **nvm** (`~/.nvm/nvm.sh`) — most common on macOS/Linux/WSL
+2. **fnm** — fast version manager
+3. **volta** — toolchain manager
+4. **Homebrew** (`brew install node`) — macOS
+5. **apt-get** (NodeSource LTS) — Ubuntu/Debian/WSL
+6. **winget** — Windows Git Bash
+
+If none succeed, clear per-platform instructions are printed and the installer exits.
+
+Your **project** does not need Node.js — only the AI OS tooling does (generator + MCP server runtime).
 
 ## Re-running (idempotent)
 

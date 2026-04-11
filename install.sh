@@ -18,7 +18,7 @@ RESET='\033[0m'
 # ── Banner ───────────────────────────────────────────────────────────────────
 echo ""
 echo -e "${CYAN}${BOLD}  ╔═══════════════════════════════════╗${RESET}"
-echo -e "${CYAN}${BOLD}  ║          AI OS  v0.4.0            ║${RESET}"
+echo -e "${CYAN}${BOLD}  ║          AI OS  v0.4.1            ║${RESET}"
 echo -e "${CYAN}${BOLD}  ║  Portable Copilot Context Engine  ║${RESET}"
 echo -e "${CYAN}${BOLD}  ╚═══════════════════════════════════╝${RESET}"
 echo ""
@@ -157,11 +157,79 @@ echo -e "  ${GREEN}✓ Git repository detected${RESET}"
 
 # ── Check Node.js version ────────────────────────────────────────────────────
 if ! command -v node &>/dev/null; then
-  echo -e "  ${RED}✗ Node.js not found.${RESET}"
-  echo -e "  ${YELLOW}  AI OS requires Node.js >= 20 for its generator and MCP server.${RESET}"
-  echo -e "  ${YELLOW}  This is an AI OS prerequisite — your project does NOT need Node.js.${RESET}"
-  echo -e "  ${YELLOW}  Install: https://nodejs.org${RESET}"
-  exit 1
+  echo -e "  ${YELLOW}⚠ Node.js not found. Attempting auto-install...${RESET}"
+  echo -e "  ${YELLOW}  (AI OS needs Node.js >= 20 — your project does NOT need it.)${RESET}"
+  echo ""
+
+  _NODE_INSTALLED=false
+
+  # Try nvm (most common on macOS/Linux/WSL)
+  if [[ -f "$HOME/.nvm/nvm.sh" ]]; then
+    # shellcheck disable=SC1090
+    source "$HOME/.nvm/nvm.sh"
+    if nvm install --lts 2>/dev/null && nvm use --lts 2>/dev/null; then
+      _NODE_INSTALLED=true
+    fi
+  fi
+
+  # Try fnm
+  if [[ "$_NODE_INSTALLED" == "false" ]] && command -v fnm &>/dev/null; then
+    if fnm install --lts 2>/dev/null && fnm use lts-latest 2>/dev/null; then
+      _NODE_INSTALLED=true
+    fi
+  fi
+
+  # Try volta
+  if [[ "$_NODE_INSTALLED" == "false" ]] && command -v volta &>/dev/null; then
+    if volta install node 2>/dev/null; then
+      _NODE_INSTALLED=true
+    fi
+  fi
+
+  # Try Homebrew (macOS)
+  if [[ "$_NODE_INSTALLED" == "false" ]] && command -v brew &>/dev/null; then
+    echo -e "  ${CYAN}→ Installing Node.js via Homebrew...${RESET}"
+    if brew install node 2>/dev/null; then
+      _NODE_INSTALLED=true
+    fi
+  fi
+
+  # Try apt-get (Ubuntu/Debian/WSL)
+  # Note: download setup script first, then execute — output is shown so the user can review it.
+  if [[ "$_NODE_INSTALLED" == "false" ]] && command -v apt-get &>/dev/null; then
+    echo -e "  ${CYAN}→ Installing Node.js via apt-get (NodeSource LTS)...${RESET}"
+    echo -e "  ${YELLOW}  Downloading NodeSource setup script from https://deb.nodesource.com/setup_lts.x${RESET}"
+    _NODESOURCE_SCRIPT="$(mktemp /tmp/nodesource-setup-XXXXXX.sh)"
+    if curl -fsSL https://deb.nodesource.com/setup_lts.x -o "$_NODESOURCE_SCRIPT" \
+        && sudo -E bash "$_NODESOURCE_SCRIPT" \
+        && sudo apt-get install -y nodejs; then
+      _NODE_INSTALLED=true
+    fi
+    rm -f "$_NODESOURCE_SCRIPT"
+  fi
+
+  # Try winget (Windows Git Bash / MSYS2)
+  if [[ "$_NODE_INSTALLED" == "false" ]] && command -v winget &>/dev/null; then
+    echo -e "  ${CYAN}→ Installing Node.js via winget...${RESET}"
+    if winget install --id OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements 2>/dev/null; then
+      _NODE_INSTALLED=true
+    fi
+  fi
+
+  if [[ "$_NODE_INSTALLED" == "false" ]] || ! command -v node &>/dev/null; then
+    echo -e "  ${RED}✗ Node.js auto-install failed.${RESET}"
+    echo -e "  ${YELLOW}  AI OS requires Node.js >= 20. Install it, then re-run install.sh.${RESET}"
+    echo -e "  ${YELLOW}  Quick install options:${RESET}"
+    echo -e "  ${YELLOW}    macOS (Homebrew): brew install node${RESET}"
+    echo -e "  ${YELLOW}    Ubuntu/Debian:    curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - && sudo apt-get install -y nodejs${RESET}"
+    echo -e "  ${YELLOW}    Windows (winget): winget install OpenJS.NodeJS.LTS${RESET}"
+    echo -e "  ${YELLOW}    nvm (any):        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | bash && nvm install --lts${RESET}"
+    echo -e "  ${YELLOW}    Any platform:     https://nodejs.org${RESET}"
+    echo ""
+    exit 1
+  fi
+
+  echo -e "  ${GREEN}✓ Node.js installed via auto-install${RESET}"
 fi
 
 NODE_VERSION=$(node --version | sed 's/v//')
