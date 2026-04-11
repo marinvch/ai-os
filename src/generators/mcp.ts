@@ -29,7 +29,9 @@ interface CommittedMcpJson {
  */
 interface LocalMcpJson {
   version: number;
-  servers: Record<string, McpServerConfig>;
+  /** servers is intentionally omitted from the committed mcp.json — it lives only
+   *  in the gitignored mcp.local.json so the Copilot cloud agent is never broken. */
+  servers?: Record<string, McpServerConfig>;
 }
 
 interface GenerateMcpOptions {
@@ -51,5 +53,5 @@ export function generateMcpJson(stack: DetectedStack, outputDir: string, _option
   const toolsJsonPath = path.join(outputDir, '.github', 'ai-os', 'tools.json');
   writeIfChanged(toolsJsonPath, JSON.stringify(allTools, null, 2));
 
-  return [mcpJsonPath, toolsJsonPath];
+  return [mcpJsonPath, mcpLocalJsonPath, toolsJsonPath];
 }

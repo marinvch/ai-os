@@ -25,6 +25,19 @@ echo -e "${CYAN}${BOLD}  ║  Portable Copilot Context Engine  ║${RESET}"
 echo -e "${CYAN}${BOLD}  ╚═══════════════════════════════════╝${RESET}"
 echo ""
 
+# ── Git Bash / MSYS / MINGW detection on Windows ─────────────────────────────
+if [[ "${OSTYPE:-}" == "msys" || "${OSTYPE:-}" == "cygwin" || -n "${MSYSTEM:-}" ]]; then
+  if [[ "${MSYSTEM:-}" == "MINGW64" || "${MSYSTEM:-}" == "MINGW32" ]]; then
+    # Git Bash sets MSYSTEM to MINGW64/MINGW32 — this is the expected environment
+    echo -e "  ${GREEN}✓ Git Bash detected (${MSYSTEM})${RESET}"
+  else
+    # Running under MSYS2/Cygwin but not a standard Git Bash session — warn about path issues
+    echo -e "  ${YELLOW}⚠  Windows detected: running outside Git Bash may cause path issues.${RESET}"
+    echo -e "  ${YELLOW}   Open 'Git Bash' from the Start menu and re-run this script there.${RESET}"
+    echo ""
+  fi
+fi
+
 # ── Determine this script's location ─────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -84,6 +97,27 @@ TARGET_DIR="$(cd "$TARGET_DIR" && pwd)"
 echo -e "  ${BOLD}Target repository:${RESET} $TARGET_DIR"
 echo ""
 
+# ── Detect available JavaScript runtime (early, used by uninstall too) ───────
+RUNTIME_CMD=""
+RUNTIME_NAME=""
+USE_BUN=false
+
+if command -v node &>/dev/null; then
+  _NODE_VER=$(node --version 2>/dev/null | sed 's/v//')
+  _NODE_MAJOR=$(echo "$_NODE_VER" | cut -d. -f1)
+  if [[ "$_NODE_MAJOR" -ge 20 ]]; then
+    RUNTIME_CMD="node"
+    RUNTIME_NAME="Node.js v$_NODE_VER"
+  fi
+fi
+
+if [[ -z "$RUNTIME_CMD" ]] && command -v bun &>/dev/null; then
+  _BUN_VER=$(bun --version 2>/dev/null || echo "unknown")
+  RUNTIME_CMD="bun"
+  RUNTIME_NAME="Bun v$_BUN_VER"
+  USE_BUN=true
+fi
+
 # ── Uninstall mode (#12) ─────────────────────────────────────────────────────
 if [[ "$UNINSTALL" == "true" ]]; then
   MANIFEST="$TARGET_DIR/.github/ai-os/manifest.json"
@@ -98,11 +132,16 @@ if [[ "$UNINSTALL" == "true" ]]; then
   echo -e "  ${CYAN}$MANIFEST${RESET}"
   echo ""
 
-  # Read manifest file list with node (guaranteed to be available at this point)
-  FILES=$(node -e "
-    const m = JSON.parse(require('fs').readFileSync('$MANIFEST', 'utf8'));
-    console.log(m.files.join('\\n'));
-  " 2>/dev/null || true)
+  # Read manifest file list with available runtime
+  FILES=""
+  if [[ -n "$RUNTIME_CMD" ]]; then
+    FILES=$($RUNTIME_CMD -e "
+      const m = JSON.parse(require('fs').readFileSync('$MANIFEST', 'utf8'));
+      console.log(m.files.join('\\n'));
+    " 2>/dev/null || true)
+  elif command -v python3 &>/dev/null; then
+    FILES=$(python3 -c "import json; m=json.load(open('$MANIFEST')); print('\n'.join(m.get('files', [])))" 2>/dev/null || true)
+  fi
 
   if [[ -z "$FILES" ]]; then
     echo -e "  ${YELLOW}  Manifest is empty or unreadable — nothing to remove.${RESET}"
@@ -363,7 +402,7 @@ INSTALLED_MCP_VERSION=""
 MCP_SKIP_REASON=""
 
 if [[ -f "$MCP_RUNTIME_MANIFEST" ]]; then
-  INSTALLED_MCP_VERSION="$(node -e "const fs=require('fs');const p=process.argv[1];try{const m=JSON.parse(fs.readFileSync(p,'utf8'));process.stdout.write(String(m.sourceVersion||''));}catch{process.stdout.write('');}" "$MCP_RUNTIME_MANIFEST")"
+  INSTALLED_MCP_VERSION="$($RUNTIME_CMD -e "const fs=require('fs');const p=process.argv[1];try{const m=JSON.parse(fs.readFileSync(p,'utf8'));process.stdout.write(String(m.sourceVersion||''));}catch{process.stdout.write('');}" "$MCP_RUNTIME_MANIFEST")"
 
   if [[ "$INSTALLED_MCP_VERSION" == "$AIOS_VERSION" && "$REFRESH_EXISTING" != "true" && -f "$MCP_SERVER_DEST/index.js" ]]; then
     MCP_INSTALL_REQUIRED=false
@@ -419,7 +458,11 @@ if [[ "$MCP_INSTALL_REQUIRED" == "true" ]]; then
 EOF
 
     # Install MCP server dependencies
-    (cd "$MCP_SERVER_DEST" && npm install --prefer-offline --no-audit --no-fund 2>&1 | tail -3)
+    if [[ "$USE_BUN" == "true" ]]; then
+      (cd "$MCP_SERVER_DEST" && bun install 2>&1 | tail -3)
+    else
+      (cd "$MCP_SERVER_DEST" && npm install --prefer-offline --no-audit --no-fund 2>&1 | tail -3)
+    fi
 
     # Create a portable runtime launcher
     cat > "$MCP_SERVER_DEST/index.js" << 'EOF'
@@ -458,11 +501,11 @@ EOF
 }
 EOF
 
-  if AI_OS_ROOT="$TARGET_DIR" node "$MCP_SERVER_DEST/index.js" --healthcheck >/dev/null 2>&1; then
+  if AI_OS_ROOT="$TARGET_DIR" $RUNTIME_CMD "$MCP_SERVER_DEST/index.js" --healthcheck >/dev/null 2>&1; then
     echo -e "  ${GREEN}✓ MCP server installed and healthy${RESET}"
   else
     echo -e "  ${RED}✗ MCP server healthcheck failed after install.${RESET}"
-    echo -e "  ${YELLOW}  Run with diagnostics:${RESET} AI_OS_MCP_DEBUG=1 node .ai-os/mcp-server/index.js --healthcheck"
+    echo -e "  ${YELLOW}  Run with diagnostics:${RESET} AI_OS_MCP_DEBUG=1 $RUNTIME_CMD .ai-os/mcp-server/index.js --healthcheck"
     exit 1
   fi
 else

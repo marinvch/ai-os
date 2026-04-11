@@ -312,6 +312,28 @@ function checkMcpHealth(dir: string, fixtureName: string, results: CheckResult[]
     passed: hasVersion,
     detail: hasVersion ? undefined : `version: ${String(mcpConfig.version)}`,
   });
+
+  // Verify the local-only config carries the servers block instead.
+  const mcpLocalPath = path.join(dir, '.github/copilot/mcp.local.json');
+  if (fs.existsSync(mcpLocalPath)) {
+    let localConfig: { version?: number; servers?: Record<string, { command?: string; args?: string[] }> };
+    try {
+      localConfig = JSON.parse(fs.readFileSync(mcpLocalPath, 'utf-8')) as typeof localConfig;
+    } catch (err) {
+      results.push({ fixture: fixtureName, check: 'mcp.local.json is valid JSON', passed: false, detail: `Parse failed: ${err instanceof Error ? err.message : String(err)}` });
+      return;
+    }
+    results.push({ fixture: fixtureName, check: 'mcp.local.json is valid JSON', passed: true });
+
+    const serverEntry = localConfig.servers?.['ai-os'];
+    const argsIncludeIndexJs = serverEntry?.args?.some(a => a.includes('index.js')) ?? false;
+    results.push({
+      fixture: fixtureName,
+      check: 'mcp.local.json references .ai-os/mcp-server/index.js',
+      passed: argsIncludeIndexJs,
+      detail: argsIncludeIndexJs ? undefined : `args: ${JSON.stringify(serverEntry?.args)}`,
+    });
+  }
 }
 
 function checkMemoryQuality(dir: string, fixtureName: string, results: CheckResult[]): void {
