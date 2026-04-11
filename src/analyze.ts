@@ -277,19 +277,19 @@ function detectBuildCommands(rootDir: string): BuildCommands {
 
   // ── Go ────────────────────────────────────────────────────────────────────
   if (!commands.build && fs.existsSync(path.join(rootDir, 'go.mod'))) {
-    if (!commands.build) commands.build = 'go build ./...';
+    commands.build = 'go build ./...';
     if (!commands.test) commands.test = 'go test ./...';
   }
 
   // ── Rust / Cargo ─────────────────────────────────────────────────────────
   if (!commands.build && fs.existsSync(path.join(rootDir, 'Cargo.toml'))) {
-    if (!commands.build) commands.build = 'cargo build';
+    commands.build = 'cargo build';
     if (!commands.test) commands.test = 'cargo test';
   }
 
   // ── Java / Maven ─────────────────────────────────────────────────────────
   if (!commands.build && fs.existsSync(path.join(rootDir, 'pom.xml'))) {
-    if (!commands.build) commands.build = 'mvn compile';
+    commands.build = 'mvn compile';
     if (!commands.test) commands.test = 'mvn test';
   }
 
@@ -298,7 +298,7 @@ function detectBuildCommands(rootDir: string): BuildCommands {
     fs.existsSync(path.join(rootDir, 'build.gradle')) ||
     fs.existsSync(path.join(rootDir, 'build.gradle.kts'))
   )) {
-    if (!commands.build) commands.build = './gradlew build';
+    commands.build = './gradlew build';
     if (!commands.test) commands.test = './gradlew test';
   }
 

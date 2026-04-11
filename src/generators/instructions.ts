@@ -36,21 +36,21 @@ function buildBuildCommandsSection(stack: DetectedStack): string {
   if (!cmds || Object.keys(cmds).filter(k => cmds[k]).length === 0) return '';
 
   const lines: string[] = [];
-  const ordered: Array<[string, string]> = [];
+  const orderedCommands: Array<[string, string]> = [];
 
   // Ordered by importance
   const slots = ['build', 'test', 'dev', 'lint', 'start'] as const;
   for (const slot of slots) {
-    if (cmds[slot]) ordered.push([slot.charAt(0).toUpperCase() + slot.slice(1), cmds[slot]!]);
+    if (cmds[slot]) orderedCommands.push([slot.charAt(0).toUpperCase() + slot.slice(1), cmds[slot]!]);
   }
   // Any extra keys beyond the standard slots
   for (const [k, v] of Object.entries(cmds)) {
     if (!slots.includes(k as (typeof slots)[number]) && v) {
-      ordered.push([k.charAt(0).toUpperCase() + k.slice(1), v]);
+      orderedCommands.push([k.charAt(0).toUpperCase() + k.slice(1), v]);
     }
   }
 
-  for (const [label, cmd] of ordered) {
+  for (const [label, cmd] of orderedCommands) {
     lines.push(`- **${label}:** \`${cmd}\``);
   }
   return lines.join('\n');

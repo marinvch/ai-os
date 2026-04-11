@@ -8,6 +8,7 @@
  * - collectRecommendations: deduplication across signal sources
  */
 import { describe, it, expect } from 'vitest';
+import os from 'node:os';
 import { buildRecommendationsText, collectRecommendations } from '../recommendations/index.js';
 import type { DetectedStack, DetectedPatterns } from '../types.js';
 
@@ -51,7 +52,7 @@ describe('instructions size cap', () => {
 
     const fs = await import('node:fs');
     const path = await import('node:path');
-    const tmpDir = path.join('/tmp', 'ai-os-test-' + Date.now());
+    const tmpDir = path.join(os.tmpdir(), 'ai-os-test-' + Date.now());
     const githubDir = path.join(tmpDir, '.github');
     fs.mkdirSync(githubDir, { recursive: true });
 
@@ -79,7 +80,7 @@ describe('session context card', () => {
     const { generateContextDocs } = await import('../generators/context-docs.js');
 
     const stack = makeStack();
-    const tmpDir = path.join('/tmp', 'ai-os-ctx-test-' + Date.now());
+    const tmpDir = path.join(os.tmpdir(), 'ai-os-ctx-test-' + Date.now());
     fs.mkdirSync(tmpDir, { recursive: true });
 
     generateContextDocs(stack, tmpDir);
@@ -175,7 +176,7 @@ describe('build commands in copilot-instructions.md', () => {
       },
     });
 
-    const tmpDir = path.join('/tmp', 'ai-os-cmds-test-' + Date.now());
+    const tmpDir = path.join(os.tmpdir(), 'ai-os-cmds-test-' + Date.now());
     fs.mkdirSync(path.join(tmpDir, '.github'), { recursive: true });
 
     generateInstructions(stack, tmpDir, { refreshExisting: false });
@@ -198,7 +199,7 @@ describe('build commands in copilot-instructions.md', () => {
 
     const stack = makeStack({ buildCommands: {} });
 
-    const tmpDir = path.join('/tmp', 'ai-os-nocmds-test-' + Date.now());
+    const tmpDir = path.join(os.tmpdir(), 'ai-os-nocmds-test-' + Date.now());
     fs.mkdirSync(path.join(tmpDir, '.github'), { recursive: true });
 
     generateInstructions(stack, tmpDir, { refreshExisting: false });
@@ -229,7 +230,7 @@ describe('persona directive in copilot-instructions.md', () => {
       frameworks: [{ name: 'Next.js', category: 'fullstack', version: '14.0.0', template: 'nextjs' }],
     });
 
-    const tmpDir = path.join('/tmp', 'ai-os-persona-test-' + Date.now());
+    const tmpDir = path.join(os.tmpdir(), 'ai-os-persona-test-' + Date.now());
     fs.mkdirSync(path.join(tmpDir, '.github'), { recursive: true });
 
     generateInstructions(stack, tmpDir, { refreshExisting: false });
@@ -251,7 +252,7 @@ describe('persona directive in copilot-instructions.md', () => {
 
     const stack = makeStack();
 
-    const tmpDir = path.join('/tmp', 'ai-os-persona-lang-test-' + Date.now());
+    const tmpDir = path.join(os.tmpdir(), 'ai-os-persona-lang-test-' + Date.now());
     fs.mkdirSync(path.join(tmpDir, '.github'), { recursive: true });
 
     generateInstructions(stack, tmpDir, { refreshExisting: false });
