@@ -24,8 +24,6 @@ await build({
   outfile: path.join(root, 'bundle', 'server.js'),
   // Source file already has #!/usr/bin/env node — no banner needed
   external: ['@github/copilot-sdk'],
-  // Mark built-in Node.js modules as external
-  packages: 'external',
   minify: false,
   sourcemap: false,
   logLevel: 'info',

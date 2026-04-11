@@ -31,12 +31,44 @@ function buildKeyFilesList(stack: DetectedStack): string {
   return stack.keyFiles.map(f => `- \`${f}\``).join('\n');
 }
 
+function buildBuildCommandsSection(stack: DetectedStack): string {
+  const cmds = stack.buildCommands;
+  if (!cmds || Object.keys(cmds).filter(k => cmds[k]).length === 0) return '';
+
+  const lines: string[] = [];
+  const orderedCommands: Array<[string, string]> = [];
+
+  // Ordered by importance
+  const slots = ['build', 'test', 'dev', 'lint', 'start'] as const;
+  for (const slot of slots) {
+    if (cmds[slot]) orderedCommands.push([slot.charAt(0).toUpperCase() + slot.slice(1), cmds[slot]!]);
+  }
+  // Any extra keys beyond the standard slots
+  for (const [k, v] of Object.entries(cmds)) {
+    if (!slots.includes(k as (typeof slots)[number]) && v) {
+      orderedCommands.push([k.charAt(0).toUpperCase() + k.slice(1), v]);
+    }
+  }
+
+  for (const [label, cmd] of orderedCommands) {
+    lines.push(`- **${label}:** \`${cmd}\``);
+  }
+  return lines.join('\n');
+}
+
+function buildPersonaDirective(stack: DetectedStack): string {
+  const fw = stack.primaryFramework?.name;
+  if (fw) return `Act as a Senior ${fw} developer with deep expertise in ${stack.primaryLanguage.name} and the full ${fw} ecosystem.`;
+  return `Act as a Senior ${stack.primaryLanguage.name} developer.`;
+}
+
 function fillTemplate(template: string, stack: DetectedStack, frameworkOverlay: string): string {
   const frameworks = stack.frameworks.map(f => f.name).join(', ') || stack.primaryLanguage.name;
   const linter = stack.patterns.linter ?? 'none detected';
   const formatter = stack.patterns.formatter ?? 'none detected';
   const testFramework = stack.patterns.testFramework ?? 'none detected';
   const testDir = stack.patterns.testDirectory ?? 'none detected';
+  const buildCommandsSection = buildBuildCommandsSection(stack);
 
   return template
     .replace(/{{PROJECT_NAME}}/g, stack.projectName)
@@ -51,6 +83,8 @@ function fillTemplate(template: string, stack: DetectedStack, frameworkOverlay: 
     .replace(/{{TEST_FRAMEWORK}}/g, testFramework)
     .replace(/{{TEST_DIRECTORY}}/g, testDir)
     .replace(/{{KEY_FILES}}/g, buildKeyFilesList(stack))
+    .replace(/{{BUILD_COMMANDS}}/g, buildCommandsSection)
+    .replace(/{{PERSONA_DIRECTIVE}}/g, buildPersonaDirective(stack))
     .replace(/{{FRAMEWORK_OVERLAY}}/g, frameworkOverlay);
 }
 
@@ -191,20 +225,53 @@ function generatePathSpecificInstructions(stack: DetectedStack, githubDir: strin
 /** Build the persistent rules section for copilot-instructions.md */
 function buildPersistentRulesSection(persistentRules: string[], stack: DetectedStack): string {
   const detectedRules: string[] = [];
+  const root = stack.rootDir;
 
   // Add auto-detected structural rules
-  const root = stack.rootDir;
   if (fs.existsSync(path.join(root, 'src', 'components', 'ui'))) {
     detectedRules.push('ALWAYS use shared components from `src/components/ui` before creating new UI components');
   } else if (fs.existsSync(path.join(root, 'components', 'ui'))) {
     detectedRules.push('ALWAYS use shared components from `components/ui` before creating new UI components');
+  } else if (fs.existsSync(path.join(root, 'src', 'components'))) {
+    detectedRules.push('ALWAYS check `src/components` for existing components before creating new ones');
+  } else if (fs.existsSync(path.join(root, 'components'))) {
+    detectedRules.push('ALWAYS check `components/` for existing components before creating new ones');
   }
+
   const utilsPaths = ['src/lib', 'src/utils', 'lib', 'utils'];
   for (const up of utilsPaths) {
     if (fs.existsSync(path.join(root, up))) {
       detectedRules.push(`NEVER create utility functions outside \`${up}/\` — add them there instead`);
       break;
     }
+  }
+
+  // API / server routes
+  const apiPaths = ['src/api', 'src/routes', 'api', 'routes', 'server/routes'];
+  for (const ap of apiPaths) {
+    if (fs.existsSync(path.join(root, ap))) {
+      detectedRules.push(`ALWAYS add new API routes inside \`${ap}/\` following the existing file structure`);
+      break;
+    }
+  }
+
+  // Type definitions
+  const typePaths = ['src/types', 'src/interfaces', 'types', 'interfaces'];
+  for (const tp of typePaths) {
+    if (fs.existsSync(path.join(root, tp))) {
+      detectedRules.push(`ALWAYS define shared types and interfaces in \`${tp}/\` — do not redeclare them inline`);
+      break;
+    }
+  }
+
+  // Test directory
+  if (stack.patterns.testDirectory) {
+    detectedRules.push(`ALWAYS place new test files in \`${stack.patterns.testDirectory}/\` or co-located with their source file`);
+  }
+
+  // TypeScript strict rule
+  if (stack.patterns.hasTypeScript) {
+    detectedRules.push('NEVER use `any` as a type — use proper TypeScript types or `unknown`');
   }
 
   const allRules = [...persistentRules, ...detectedRules];
