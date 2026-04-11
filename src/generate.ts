@@ -278,10 +278,10 @@ function runHygieneCheck(cwd: string): void {
     }
   }
 
-  // Check for node_modules inside .ai-os/mcp-server/ (Phase F not yet applied)
+  // Check for node_modules inside .ai-os/mcp-server/ (leftover from pre-v0.4.1 installs)
   const mcpNodeModules = path.join(cwd, '.ai-os', 'mcp-server', 'node_modules');
   if (fs.existsSync(mcpNodeModules)) {
-    issues.push(`  ⚠  node_modules present in .ai-os/mcp-server/ — Phase F (bundle deploy) will eliminate this`);
+    issues.push(`  ⚠  node_modules present in .ai-os/mcp-server/ — run --refresh-existing to replace with the bundled server`);
   }
 
   // Check for *.tmp files in ai-os dirs

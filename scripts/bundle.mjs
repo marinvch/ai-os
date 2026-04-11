@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Bundle script: produces a single-file MCP server at dist/server.js
- * that can be deployed to target repos without node_modules.
+ * Bundle script: produces single-file bundles for deployment without node_modules.
+ *   dist/server.js   — MCP server (deploy to .ai-os/mcp-server/index.js)
+ *   dist/generate.js — Context generator (used by install.sh when present)
  *
  * Usage: node scripts/bundle.mjs
  */

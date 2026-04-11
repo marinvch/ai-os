@@ -1,9 +1,11 @@
-#!/usr/bin/env node
 /**
  * AI OS MCP Server — powered by GitHub Copilot SDK
  *
  * This server runs as a subprocess when GitHub Copilot calls any registered tool.
  * It provides project-specific context tools to minimize token usage and hallucinations.
+ *
+ * Default mode: standalone JSON-RPC over stdio (no npm dependencies required).
+ * Pass --copilot to use the Copilot SDK client integration (requires @github/copilot-sdk).
  *
  * Protocol: JSON-RPC over stdio (Copilot SDK protocol v3)
  * Requirements: Node.js >= 20
@@ -147,6 +149,7 @@ async function main(): Promise<void> {
     return;
   }
 
+  // ── Copilot SDK mode (--copilot flag) ─────────────────────────────────────
   const health = validateRuntimeEnvironment();
   for (const message of health.messages) {
     logDiagnostic(message);
@@ -216,6 +219,13 @@ async function main(): Promise<void> {
  * Implements the MCP protocol subset needed for VS Code Copilot tool integration.
  */
 function runStandaloneMcp(): void {
+  // Ensure the process exits on SIGTERM/SIGINT so that the process.on('exit')
+  // handler in utils.ts can release the .memory.lock file.  Without these
+  // handlers Node.js would terminate via the default signal action which does
+  // NOT emit the 'exit' event, leaving a stale lock on disk.
+  process.on('SIGTERM', () => process.exit(0));
+  process.on('SIGINT', () => process.exit(0));
+
   let buffer = '';
 
   process.stdin.setEncoding('utf-8');
