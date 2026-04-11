@@ -3,7 +3,7 @@ import path from 'node:path';
 import { detectLanguages } from './detectors/language.js';
 import { detectFrameworks } from './detectors/framework.js';
 import { detectPatterns } from './detectors/patterns.js';
-import type { DetectedStack, PackageProfile, DetectedLanguage, DetectedFramework } from './types.js';
+import type { DetectedStack, PackageProfile, DetectedLanguage, DetectedFramework, BuildCommands } from './types.js';
 
 function getProjectName(rootDir: string): string {
   try {
@@ -94,38 +94,116 @@ function hasManifest(dir: string): boolean {
   return manifests.some((manifest) => fs.existsSync(path.join(dir, manifest)));
 }
 
-function discoverPackageRoots(rootDir: string): string[] {
-  const packageRoots = new Set<string>([rootDir]);
+/**
+ * Parse the `packages:` list from a pnpm-workspace.yaml file.
+ * Handles single-quoted, double-quoted, and bare glob patterns.
+ */
+function parsePnpmWorkspaceYaml(yaml: string): string[] {
+  const globs: string[] = [];
+  let inPackages = false;
 
-  const rootPkgPath = path.join(rootDir, 'package.json');
-  try {
-    const pkg = JSON.parse(fs.readFileSync(rootPkgPath, 'utf-8')) as {
-      workspaces?: string[] | { packages?: string[] };
-    };
-
-    const workspaceGlobs = Array.isArray(pkg.workspaces)
-      ? pkg.workspaces
-      : Array.isArray(pkg.workspaces?.packages)
-        ? pkg.workspaces.packages
-        : [];
-
-    for (const glob of workspaceGlobs) {
-      const normalized = glob.replace(/\\/g, '/').replace(/\/*\*$/, '');
-      const base = normalized.endsWith('/*') ? normalized.slice(0, -2) : normalized;
-      const absBase = path.join(rootDir, base);
-      if (!fs.existsSync(absBase) || !fs.statSync(absBase).isDirectory()) continue;
-
-      for (const entry of fs.readdirSync(absBase, { withFileTypes: true })) {
-        if (!entry.isDirectory()) continue;
-        if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
-        const candidate = path.join(absBase, entry.name);
-        if (hasManifest(candidate)) packageRoots.add(candidate);
+  for (const line of yaml.split('\n')) {
+    const trimmed = line.trim();
+    // Detect top-level `packages:` key
+    if (/^packages\s*:/.test(trimmed)) {
+      inPackages = true;
+      continue;
+    }
+    if (inPackages) {
+      // Another top-level key (no leading whitespace) — stop scanning packages list
+      if (trimmed && !line.startsWith(' ') && !line.startsWith('\t')) {
+        break;
+      }
+      if (trimmed.startsWith('-')) {
+        let pattern = trimmed.slice(1).trim();
+        // Strip surrounding quotes
+        if ((pattern.startsWith("'") && pattern.endsWith("'")) ||
+            (pattern.startsWith('"') && pattern.endsWith('"'))) {
+          pattern = pattern.slice(1, -1);
+        }
+        if (pattern) globs.push(pattern);
       }
     }
-  } catch {
-    // Best-effort workspace detection.
   }
 
+  return globs;
+}
+
+/**
+ * Expand a single workspace glob pattern into concrete package root paths
+ * and add them to the provided Set.
+ */
+function expandWorkspaceGlob(rootDir: string, glob: string, out: Set<string>): void {
+  // Skip negation patterns
+  if (glob.startsWith('!')) return;
+
+  const normalized = glob.replace(/\\/g, '/').replace(/\/\*\*$/, '').replace(/\/*\*$/, '');
+  const base = normalized.endsWith('/*') ? normalized.slice(0, -2) : normalized;
+  const absBase = path.join(rootDir, base);
+
+  if (!fs.existsSync(absBase) || !fs.statSync(absBase).isDirectory()) return;
+
+  for (const entry of fs.readdirSync(absBase, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+    const candidate = path.join(absBase, entry.name);
+    if (hasManifest(candidate)) out.add(candidate);
+  }
+}
+
+function discoverPackageRoots(rootDir: string): string[] {
+  const packageRoots = new Set<string>([rootDir]);
+  const workspaceGlobs: string[] = [];
+
+  // 1. package.json#workspaces (npm workspaces / Yarn Classic)
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(rootDir, 'package.json'), 'utf-8')) as {
+      workspaces?: string[] | { packages?: string[] };
+    };
+    const globs = Array.isArray(pkg.workspaces)
+      ? pkg.workspaces
+      : Array.isArray(pkg.workspaces?.packages)
+        ? (pkg.workspaces as { packages: string[] }).packages
+        : [];
+    workspaceGlobs.push(...globs);
+  } catch { /* best-effort */ }
+
+  // 2. pnpm-workspace.yaml
+  try {
+    const yamlPath = path.join(rootDir, 'pnpm-workspace.yaml');
+    if (fs.existsSync(yamlPath)) {
+      workspaceGlobs.push(...parsePnpmWorkspaceYaml(fs.readFileSync(yamlPath, 'utf-8')));
+    }
+  } catch { /* best-effort */ }
+
+  // 3. lerna.json
+  try {
+    const lernaPath = path.join(rootDir, 'lerna.json');
+    if (fs.existsSync(lernaPath)) {
+      const lerna = JSON.parse(fs.readFileSync(lernaPath, 'utf-8')) as { packages?: string[] };
+      if (Array.isArray(lerna.packages)) workspaceGlobs.push(...lerna.packages);
+    }
+  } catch { /* best-effort */ }
+
+  // 4. nx.json — workspaceLayout defines conventional app/lib dirs
+  try {
+    const nxPath = path.join(rootDir, 'nx.json');
+    if (fs.existsSync(nxPath)) {
+      const nx = JSON.parse(fs.readFileSync(nxPath, 'utf-8')) as {
+        workspaceLayout?: { appsDir?: string; libsDir?: string };
+      };
+      if (nx.workspaceLayout?.appsDir) workspaceGlobs.push(`${nx.workspaceLayout.appsDir}/*`);
+      if (nx.workspaceLayout?.libsDir) workspaceGlobs.push(`${nx.workspaceLayout.libsDir}/*`);
+    }
+  } catch { /* best-effort */ }
+
+  // Expand all collected globs into concrete package roots
+  for (const glob of workspaceGlobs) {
+    expandWorkspaceGlob(rootDir, glob, packageRoots);
+  }
+
+  // Conventional fallback (apps/, packages/, services/) — catches turbo.json repos
+  // and any monorepo whose config is not explicitly parsed above.
   const conventionalRoots = ['apps', 'packages', 'services'];
   for (const rel of conventionalRoots) {
     const abs = path.join(rootDir, rel);
@@ -189,6 +267,122 @@ function mergeDependencies(profiles: PackageProfile[]): string[] {
   return [...deps];
 }
 
+/** Extract meaningful build/test/dev commands from package.json, Makefile, and pyproject.toml */
+function detectBuildCommands(rootDir: string): BuildCommands {
+  const commands: BuildCommands = {};
+
+  // ── Node.js package.json scripts ──────────────────────────────────────────
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(rootDir, 'package.json'), 'utf-8')) as {
+      scripts?: Record<string, string>;
+    };
+    const scripts = pkg.scripts ?? {};
+
+    // Priority keys — pick the first available alias for each slot
+    const buildAliases = ['build', 'compile', 'tsc'];
+    const testAliases = ['test', 'test:run', 'jest', 'vitest'];
+    const devAliases = ['dev', 'start:dev', 'develop'];
+    const lintAliases = ['lint', 'lint:fix', 'eslint'];
+    const startAliases = ['start', 'serve', 'preview'];
+
+    for (const k of buildAliases) {
+      if (scripts[k]) { commands.build = `npm run ${k}`; break; }
+    }
+    for (const k of testAliases) {
+      if (scripts[k]) { commands.test = `npm run ${k}`; break; }
+    }
+    for (const k of devAliases) {
+      if (scripts[k]) { commands.dev = `npm run ${k}`; break; }
+    }
+    for (const k of lintAliases) {
+      if (scripts[k]) { commands.lint = `npm run ${k}`; break; }
+    }
+    for (const k of startAliases) {
+      if (scripts[k]) { commands.start = `npm run ${k}`; break; }
+    }
+  } catch { /* ignore */ }
+
+  // ── Python pyproject.toml ─────────────────────────────────────────────────
+  if (!commands.test || !commands.build) {
+    try {
+      const toml = fs.readFileSync(path.join(rootDir, 'pyproject.toml'), 'utf-8');
+
+      // tool.poetry.scripts section
+      const scriptSection = toml.match(/\[tool\.poetry\.scripts\]([\s\S]*?)(\[|\s*$)/)?.[1] ?? '';
+      const scriptEntries = [...scriptSection.matchAll(/^(\w[\w-]*)\s*=\s*"([^"]+)"/mg)];
+      for (const [, name] of scriptEntries) {
+        if (!commands.start && /^(start|serve|run)/.test(name)) commands.start = `poetry run ${name}`;
+        if (!commands.test && /^(test|pytest)/.test(name)) commands.test = `poetry run ${name}`;
+      }
+
+      // Detect pytest / unittest
+      if (!commands.test) {
+        if (toml.includes('pytest')) commands.test = 'pytest';
+        else if (toml.includes('unittest')) commands.test = 'python -m unittest';
+      }
+      // Detect uvicorn / fastapi dev server
+      if (!commands.dev && (toml.includes('fastapi') || toml.includes('uvicorn'))) {
+        commands.dev = 'uvicorn main:app --reload';
+      }
+      // Detect Django manage.py
+      if (!commands.dev && toml.includes('django')) {
+        commands.dev = 'python manage.py runserver';
+      }
+    } catch { /* ignore */ }
+  }
+
+  // ── Python requirements.txt fallback ────────────────────────────────────
+  if (!commands.test) {
+    try {
+      const req = fs.readFileSync(path.join(rootDir, 'requirements.txt'), 'utf-8');
+      if (req.includes('pytest')) commands.test = 'pytest';
+      if (!commands.dev && req.includes('fastapi')) commands.dev = 'uvicorn main:app --reload';
+      if (!commands.dev && req.includes('django')) commands.dev = 'python manage.py runserver';
+    } catch { /* ignore */ }
+  }
+
+  // ── Makefile ─────────────────────────────────────────────────────────────
+  try {
+    const makefile = fs.readFileSync(path.join(rootDir, 'Makefile'), 'utf-8');
+    const targets = [...makefile.matchAll(/^([a-zA-Z][\w-]*):/mg)].map(m => m[1]);
+
+    if (!commands.build && targets.includes('build')) commands.build = 'make build';
+    if (!commands.test && targets.includes('test')) commands.test = 'make test';
+    if (!commands.dev && targets.includes('dev')) commands.dev = 'make dev';
+    if (!commands.dev && targets.includes('run')) commands.dev = 'make run';
+    if (!commands.lint && targets.includes('lint')) commands.lint = 'make lint';
+  } catch { /* ignore */ }
+
+  // ── Go ────────────────────────────────────────────────────────────────────
+  if (!commands.build && fs.existsSync(path.join(rootDir, 'go.mod'))) {
+    commands.build = 'go build ./...';
+    if (!commands.test) commands.test = 'go test ./...';
+  }
+
+  // ── Rust / Cargo ─────────────────────────────────────────────────────────
+  if (!commands.build && fs.existsSync(path.join(rootDir, 'Cargo.toml'))) {
+    commands.build = 'cargo build';
+    if (!commands.test) commands.test = 'cargo test';
+  }
+
+  // ── Java / Maven ─────────────────────────────────────────────────────────
+  if (!commands.build && fs.existsSync(path.join(rootDir, 'pom.xml'))) {
+    commands.build = 'mvn compile';
+    if (!commands.test) commands.test = 'mvn test';
+  }
+
+  // ── Java / Gradle ─────────────────────────────────────────────────────────
+  if (!commands.build && (
+    fs.existsSync(path.join(rootDir, 'build.gradle')) ||
+    fs.existsSync(path.join(rootDir, 'build.gradle.kts'))
+  )) {
+    commands.build = './gradlew build';
+    if (!commands.test) commands.test = './gradlew test';
+  }
+
+  return commands;
+}
+
 export function analyze(rootDir: string): DetectedStack {
   const absRoot = path.resolve(rootDir);
   const packageRoots = discoverPackageRoots(absRoot);
@@ -221,5 +415,6 @@ export function analyze(rootDir: string): DetectedStack {
     rootDir: absRoot,
     allDependencies: mergeDependencies(packageProfiles),
     packageProfiles,
+    buildCommands: detectBuildCommands(absRoot),
   };
 }

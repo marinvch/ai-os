@@ -10,7 +10,7 @@ Run once in any repo. AI OS scans the codebase, detects your stack, and generate
 | -------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | Copilot instructions | `.github/copilot-instructions.md`                 | System prompt optimized for your stack                                             |
 | Context docs         | `.github/ai-os/context/`                          | Token-efficient stack, architecture, conventions docs                              |
-| MCP tools            | `.github/copilot/mcp.json` + `.ai-os/mcp-server/` | 10 tools for code search, schema reading, route listing                            |
+| MCP tools            | `.github/copilot/mcp.json` (committed, no servers) + `.github/copilot/mcp.local.json` (local, gitignored) + `.ai-os/mcp-server/` | 10 tools for code search, schema reading, route listing |
 | Agents               | `.github/agents/*.agent.md`                       | Stack-specific chat agents (framework expert, DB expert, auth, payments, explorer) |
 | Skills               | `.github/copilot/skills/ai-os-*.md`               | AI OS-named per-library playbooks (Next.js, tRPC, Prisma, Stripe, etc.)            |
 | Slash commands       | `.github/copilot/prompts.json`                    | `/new-page`, `/new-trpc-procedure`, `/new-model`, `/rag-query`, etc.               |
@@ -26,6 +26,9 @@ Generated instructions include a **Session Restart Protocol** and **Persistent R
 - Git
 - **Node.js ≥ 20** *or* **Docker** (AI OS prerequisite — your project does not need Node.js)
 - GitHub Copilot (VS Code extension)
+- Node.js ≥ 20 *(auto-installed by `bootstrap.sh` if missing — your project does not need Node.js)*
+
+**No Node.js?** Use the GitHub Actions installer — no local tools required. See below.
 
 ## Install on any repo
 
@@ -34,6 +37,8 @@ Generated instructions include a **Session Restart Protocol** and **Persistent R
 ```bash
 curl -fsSL https://raw.githubusercontent.com/marinvch/ai-os/master/bootstrap.sh | bash
 ```
+
+> **No Node.js?** No problem. `bootstrap.sh` detects a missing Node.js and automatically installs the latest LTS via [nvm](https://github.com/nvm-sh/nvm) before running the installer. Your project does not need Node.js.
 
 With options:
 
@@ -81,6 +86,27 @@ bash ~/ai-os/install.sh --install-skill-creator --install-find-skills
 # Optional: refresh existing generated AI OS artifacts
 bash ~/ai-os/install.sh --refresh-existing
 ```
+
+### Docker-only install (no Node.js required)
+
+If Node.js is not installed, `install.sh` automatically falls back to Docker:
+
+```bash
+# Docker must be running; Node.js is NOT required on the host
+bash ~/ai-os/install.sh --cwd /path/to/your/repo
+```
+
+Or build and run the image manually:
+
+```bash
+# Build once from the ai-os directory
+docker build -t ai-os:local ~/ai-os
+
+# Run against any repo (files are written directly into the repo)
+docker run --rm -v /path/to/your/repo:/repo ai-os:local --cwd /repo
+```
+
+> **Note:** The Docker path generates all context files and instructions but skips the local MCP server installation. Install Node.js ≥ 20 to also enable the MCP server.
 
 ## Optional skill installs
 
@@ -137,10 +163,19 @@ User-authored rules survive refreshes — edit `persistentRules` in `.github/ai-
 ## What gets detected
 
 - **Languages:** TypeScript, JavaScript, Python, Go, Rust, Java, C#, PHP, Ruby, Swift, Kotlin, and 30+ more
-- **Frameworks:** Next.js, React, Vue, Angular, Svelte, Express, FastAPI, Django, Spring Boot, .NET, Laravel, Rails, Nuxt, Astro, Remix, tRPC, Prisma, and more
+- **Frameworks:** Next.js, React, Vue, Angular, Svelte, Express, FastAPI, Django, Spring Boot, .NET, Laravel, Rails, Nuxt, Astro, Remix, SolidJS, tRPC, Prisma, and more
+- **Runtimes:** Bun (`bun.lockb` or `packageManager: bun@…`), Deno (`deno.json` / `deno.jsonc` / `deno.lock`)
 - **Tools:** ESLint, Prettier, Vitest, Jest, Playwright, Docker, GitHub Actions, package managers
+- **Build commands:** Extracted from `package.json` scripts, `Makefile`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `pom.xml`, and `build.gradle` — surfaced in `copilot-instructions.md` so Copilot always knows how to build and test your project
 
 ## Generated MCP tools
+
+AI OS generates two MCP config files:
+
+| File | Committed? | Purpose |
+| ---- | ---------- | ------- |
+| `.github/copilot/mcp.json` | ✅ Yes | Tool definitions only — **no `servers` block**, safe for Copilot cloud agent and users without Node.js |
+| `.github/copilot/mcp.local.json` | ❌ No (gitignored) | Local `servers` block — tells VS Code how to spawn the MCP subprocess when Node.js ≥ 20 is available |
 
 | Tool                    | Purpose                                |
 | ----------------------- | -------------------------------------- |
@@ -158,6 +193,21 @@ User-authored rules survive refreshes — edit `persistentRules` in `.github/ai-
 | `get_repo_memory`       | Retrieve durable project memory        |
 | `remember_repo_fact`    | Persist verified memory entries        |
 
+## Node.js auto-install
+
+`install.sh` detects when Node.js is absent and attempts a silent auto-install in this order:
+
+1. **nvm** (`~/.nvm/nvm.sh`) — most common on macOS/Linux/WSL
+2. **fnm** — fast version manager
+3. **volta** — toolchain manager
+4. **Homebrew** (`brew install node`) — macOS
+5. **apt-get** (NodeSource LTS) — Ubuntu/Debian/WSL
+6. **winget** — Windows Git Bash
+
+If none succeed, clear per-platform instructions are printed and the installer exits.
+
+Your **project** does not need Node.js — only the AI OS tooling does (generator + MCP server runtime).
+
 ## Re-running (idempotent)
 
 Safe to run multiple times:
@@ -168,6 +218,7 @@ Safe to run multiple times:
 - **manifest tracking**: `.github/ai-os/manifest.json` records every file AI OS owns after each run
 - **pruning**: in `--refresh-existing` mode, files in the previous manifest that are no longer generated (e.g. a skill for a framework you removed) are deleted automatically
 - MCP runtime writes `.ai-os/mcp-server/runtime-manifest.json` and is health-checked after install
+- MCP server is deployed as a **bundled single-file** (`dist/server.js`) — no `node_modules` are installed in the target repo
 
 To also update existing generated agents, skills, prompts, and MCP config from latest templates:
 
@@ -181,6 +232,11 @@ To force pruning even without a full refresh:
 To completely remove all AI OS artifacts tracked in the manifest:
 
 - `bash install.sh --uninstall`
+
+To check for orphaned or stale artifacts without modifying anything:
+
+- `npm run check-hygiene -- --cwd /path/to/target-repo`
+- `node .ai-os/mcp-server/index.js --healthcheck`
 
 If MCP runtime diagnostics are needed:
 
@@ -206,6 +262,10 @@ npm run generate -- --cwd /path/to/target-repo --apply
 npm run generate:refresh -- --cwd /path/to/target-repo
 # Prune stale artifacts without full refresh
 npm run generate -- --cwd /path/to/target-repo --prune
+# Scan for orphaned files or dump artifacts (no writes)
+npm run check-hygiene -- --cwd /path/to/target-repo
+# Build the bundled MCP server (dist/server.js)
+npm run bundle
 # Run regression suite (fixture matrix for all supported stacks)
 npm run validate
 ```
