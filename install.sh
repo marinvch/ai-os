@@ -18,7 +18,7 @@ RESET='\033[0m'
 # ── Banner ───────────────────────────────────────────────────────────────────
 echo ""
 echo -e "${CYAN}${BOLD}  ╔═══════════════════════════════════╗${RESET}"
-echo -e "${CYAN}${BOLD}  ║          AI OS  v0.4.0            ║${RESET}"
+echo -e "${CYAN}${BOLD}  ║          AI OS  v0.5.0            ║${RESET}"
 echo -e "${CYAN}${BOLD}  ║  Portable Copilot Context Engine  ║${RESET}"
 echo -e "${CYAN}${BOLD}  ╚═══════════════════════════════════╝${RESET}"
 echo ""
@@ -157,11 +157,99 @@ echo -e "  ${GREEN}✓ Git repository detected${RESET}"
 
 # ── Check Node.js version ────────────────────────────────────────────────────
 if ! command -v node &>/dev/null; then
-  echo -e "  ${RED}✗ Node.js not found.${RESET}"
-  echo -e "  ${YELLOW}  AI OS requires Node.js >= 20 for its generator and MCP server.${RESET}"
-  echo -e "  ${YELLOW}  This is an AI OS prerequisite — your project does NOT need Node.js.${RESET}"
-  echo -e "  ${YELLOW}  Install: https://nodejs.org${RESET}"
-  exit 1
+  echo -e "  ${YELLOW}⚠ Node.js not found.${RESET}"
+  echo -e "  ${YELLOW}  AI OS uses Node.js >= 20 for its generator and MCP server.${RESET}"
+  echo -e "  ${YELLOW}  Your project does NOT need Node.js — this is only an AI OS prerequisite.${RESET}"
+  echo ""
+
+  # ── Docker fallback ──────────────────────────────────────────────────────
+  if command -v docker &>/dev/null && docker info &>/dev/null 2>&1; then
+    echo -e "  ${CYAN}→ Docker detected — running AI OS generator via Docker...${RESET}"
+    echo ""
+
+    DOCKER_IMAGE="node:20-alpine"
+    AIOS_ABS="$(cd "$AIOS_SRC" && pwd)"
+
+    # Run the generator inside a Docker container, mounting both the AI OS source
+    # and the target repo into the container. Pass through args unchanged.
+    DOCKER_GEN_ARGS=("--cwd" "/target")
+    if [[ "$REFRESH_EXISTING" == "true" ]]; then
+      DOCKER_GEN_ARGS+=("--refresh-existing")
+    fi
+
+    docker run --rm \
+      -v "$AIOS_ABS:/ai-os:ro" \
+      -v "$TARGET_DIR:/target" \
+      -w /ai-os \
+      "$DOCKER_IMAGE" \
+      sh -c "npm install --prefer-offline --no-audit --no-fund --silent 2>/dev/null; \
+             node --import tsx/esm src/generate.ts ${DOCKER_GEN_ARGS[*]}"
+
+    # For the MCP server, install a Docker-based launcher so users without Node.js
+    # can still run the MCP server through Docker.
+    MCP_SERVER_DEST="$TARGET_DIR/.ai-os/mcp-server"
+    mkdir -p "$MCP_SERVER_DEST"
+
+    AIOS_VERSION_RAW="$(grep '"version"' "$AIOS_SRC/package.json" | head -1 | sed 's/.*"version": "\(.*\)".*/\1/')"
+
+    cat > "$MCP_SERVER_DEST/index.js" << EOFMCP
+#!/usr/bin/env node
+// AI OS MCP Server — Docker launcher
+// Generated when Node.js was unavailable at install time.
+// This script always delegates to Docker to run the MCP server.
+import { spawnSync } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+const currentDir = path.dirname(fileURLToPath(import.meta.url));
+const root = process.env.AI_OS_ROOT ?? process.cwd();
+// Pass args as separate array elements to avoid shell injection via argument concatenation
+const serverArgs = ['--import', 'tsx/esm', 'index.ts', ...process.argv.slice(2)];
+const result = spawnSync('docker', [
+  'run', '--rm', '-i',
+  '-v', root + ':/repo',
+  '-v', currentDir + ':/mcp-server:ro',
+  '-e', 'AI_OS_ROOT=/repo',
+  '-w', '/mcp-server',
+  'node:20-alpine',
+  'sh', '-c',
+  'npm install --prefer-offline --no-audit --no-fund --silent 2>/dev/null && exec node ' + serverArgs.map(a => JSON.stringify(a)).join(' '),
+], { stdio: 'inherit' });
+process.exit(result.status ?? 1);
+EOFMCP
+    chmod +x "$MCP_SERVER_DEST/index.js"
+
+    # Copy MCP server source files to the destination
+    MCP_SERVER_SRC="$AIOS_SRC/src/mcp-server"
+    cp -r "$MCP_SERVER_SRC"/* "$MCP_SERVER_DEST/"
+
+    cat > "$MCP_SERVER_DEST/runtime-manifest.json" << EOF
+{
+  "name": "ai-os-mcp-server",
+  "runtime": "docker",
+  "sourceVersion": "$AIOS_VERSION_RAW",
+  "installedAt": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+}
+EOF
+
+    echo ""
+    echo -e "  ${GREEN}${BOLD}✅ AI OS installed via Docker!${RESET}"
+    echo ""
+    echo -e "  ${BOLD}Note:${RESET} The MCP server will start via Docker on each Copilot request."
+    echo -e "  ${BOLD}Tip:${RESET}  Install Node.js >= 20 for faster MCP server startup: https://nodejs.org"
+    echo ""
+    echo -e "  ${BOLD}Next steps:${RESET}"
+    echo -e "  1. Open this repo in VS Code with GitHub Copilot extension installed"
+    echo -e "  2. Copilot will use ${CYAN}.github/copilot-instructions.md${RESET} automatically"
+    echo -e "  3. MCP tools are registered in ${CYAN}.github/copilot/mcp.json${RESET}"
+    echo -e "  4. Project context is in ${CYAN}.github/ai-os/context/${RESET}"
+    echo ""
+    exit 0
+  else
+    echo -e "  ${RED}✗ Neither Node.js nor Docker found.${RESET}"
+    echo -e "  ${YELLOW}  Option 1 (recommended): Install Node.js >= 20: https://nodejs.org${RESET}"
+    echo -e "  ${YELLOW}  Option 2: Install Docker and re-run: https://docs.docker.com/get-docker/${RESET}"
+    exit 1
+  fi
 fi
 
 NODE_VERSION=$(node --version | sed 's/v//')
