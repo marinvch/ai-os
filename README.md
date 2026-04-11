@@ -23,9 +23,9 @@ Generated instructions also enforce strict behavior guardrails: ambiguity-first 
 
 ## Requirements
 
-- Node.js ≥ 20
 - Git
 - GitHub Copilot (VS Code extension)
+- Node.js ≥ 20 *(auto-installed by `bootstrap.sh` if missing — your project does not need Node.js)*
 
 ## Install on any repo
 
@@ -34,6 +34,8 @@ Generated instructions also enforce strict behavior guardrails: ambiguity-first 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/marinvch/ai-os/master/bootstrap.sh | bash
 ```
+
+> **No Node.js?** No problem. `bootstrap.sh` detects a missing Node.js and automatically installs the latest LTS via [nvm](https://github.com/nvm-sh/nvm) before running the installer. Your project does not need Node.js.
 
 With options:
 

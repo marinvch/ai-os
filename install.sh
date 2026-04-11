@@ -18,7 +18,7 @@ RESET='\033[0m'
 # ── Banner ───────────────────────────────────────────────────────────────────
 echo ""
 echo -e "${CYAN}${BOLD}  ╔═══════════════════════════════════╗${RESET}"
-echo -e "${CYAN}${BOLD}  ║          AI OS  v0.4.0            ║${RESET}"
+echo -e "${CYAN}${BOLD}  ║          AI OS  v0.5.0            ║${RESET}"
 echo -e "${CYAN}${BOLD}  ║  Portable Copilot Context Engine  ║${RESET}"
 echo -e "${CYAN}${BOLD}  ╚═══════════════════════════════════╝${RESET}"
 echo ""
@@ -159,8 +159,12 @@ echo -e "  ${GREEN}✓ Git repository detected${RESET}"
 if ! command -v node &>/dev/null; then
   echo -e "  ${RED}✗ Node.js not found.${RESET}"
   echo -e "  ${YELLOW}  AI OS requires Node.js >= 20 for its generator and MCP server.${RESET}"
-  echo -e "  ${YELLOW}  This is an AI OS prerequisite — your project does NOT need Node.js.${RESET}"
-  echo -e "  ${YELLOW}  Install: https://nodejs.org${RESET}"
+  echo -e "  ${YELLOW}  Your project does NOT need Node.js — it is only needed to run AI OS itself.${RESET}"
+  echo -e ""
+  echo -e "  ${YELLOW}  Option 1 (recommended): Use bootstrap.sh — it auto-installs Node.js via nvm:${RESET}"
+  echo -e "  ${CYAN}    curl -fsSL https://raw.githubusercontent.com/marinvch/ai-os/master/bootstrap.sh | bash${RESET}"
+  echo -e ""
+  echo -e "  ${YELLOW}  Option 2: Install Node.js manually: https://nodejs.org${RESET}"
   exit 1
 fi
 
