@@ -18,7 +18,7 @@ RESET='\033[0m'
 # ── Banner ───────────────────────────────────────────────────────────────────
 echo ""
 echo -e "${CYAN}${BOLD}  ╔═══════════════════════════════════╗${RESET}"
-echo -e "${CYAN}${BOLD}  ║          AI OS  v0.4.0            ║${RESET}"
+echo -e "${CYAN}${BOLD}  ║          AI OS  v0.5.0            ║${RESET}"
 echo -e "${CYAN}${BOLD}  ║  Portable Copilot Context Engine  ║${RESET}"
 echo -e "${CYAN}${BOLD}  ╚═══════════════════════════════════╝${RESET}"
 echo ""
@@ -157,11 +157,46 @@ echo -e "  ${GREEN}✓ Git repository detected${RESET}"
 
 # ── Check Node.js version ────────────────────────────────────────────────────
 if ! command -v node &>/dev/null; then
-  echo -e "  ${RED}✗ Node.js not found.${RESET}"
-  echo -e "  ${YELLOW}  AI OS requires Node.js >= 20 for its generator and MCP server.${RESET}"
-  echo -e "  ${YELLOW}  This is an AI OS prerequisite — your project does NOT need Node.js.${RESET}"
-  echo -e "  ${YELLOW}  Install: https://nodejs.org${RESET}"
-  exit 1
+  echo -e "  ${YELLOW}⚠ Node.js not found.${RESET}"
+  echo -e "  ${YELLOW}  AI OS requires Node.js >= 20 to run its generator and MCP server.${RESET}"
+  echo -e "  ${YELLOW}  Your project does NOT need Node.js — AI OS is just an installer tool.${RESET}"
+  echo ""
+
+  # Try to auto-install Node.js 20 LTS via nvm (if nvm is available or can be fetched)
+  NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
+
+  # Source nvm if already installed but not loaded in this shell
+  if [[ -s "$NVM_DIR/nvm.sh" ]]; then
+    # shellcheck source=/dev/null
+    source "$NVM_DIR/nvm.sh"
+  fi
+
+  if command -v nvm &>/dev/null; then
+    echo -e "  ${CYAN}→ nvm detected. Installing Node.js 20 LTS...${RESET}"
+    nvm install 20 && nvm use 20
+    echo -e "  ${GREEN}✓ Node.js $(node --version) installed via nvm${RESET}"
+  elif command -v curl &>/dev/null; then
+    echo -e "  ${CYAN}→ Attempting to install nvm + Node.js 20 LTS automatically...${RESET}"
+    curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+    # Load the freshly installed nvm
+    export NVM_DIR="$HOME/.nvm"
+    # shellcheck source=/dev/null
+    [[ -s "$NVM_DIR/nvm.sh" ]] && source "$NVM_DIR/nvm.sh"
+    if command -v nvm &>/dev/null; then
+      nvm install 20 && nvm use 20
+      echo -e "  ${GREEN}✓ Node.js $(node --version) installed via nvm${RESET}"
+    else
+      echo -e "  ${RED}✗ nvm install succeeded but 'nvm' command is still unavailable.${RESET}"
+      echo -e "  ${YELLOW}  Restart your shell, then re-run this script.${RESET}"
+      echo -e "  ${YELLOW}  Or install Node.js manually: https://nodejs.org${RESET}"
+      exit 1
+    fi
+  else
+    echo -e "  ${RED}✗ Cannot auto-install Node.js (no curl found).${RESET}"
+    echo -e "  ${YELLOW}  Install Node.js >= 20 from: https://nodejs.org${RESET}"
+    echo -e "  ${YELLOW}  Or install nvm: https://github.com/nvm-sh/nvm${RESET}"
+    exit 1
+  fi
 fi
 
 NODE_VERSION=$(node --version | sed 's/v//')
@@ -170,7 +205,8 @@ NODE_MAJOR=$(echo "$NODE_VERSION" | cut -d. -f1)
 if [[ "$NODE_MAJOR" -lt 20 ]]; then
   echo -e "  ${RED}✗ Node.js $NODE_VERSION is too old. Need >= 20.${RESET}"
   echo -e "  ${YELLOW}  AI OS uses Node.js for its generator and MCP server (not your project).${RESET}"
-  echo -e "  ${YELLOW}  Update: https://nodejs.org${RESET}"
+  echo -e "  ${YELLOW}  Update via nvm: nvm install 20 && nvm use 20${RESET}"
+  echo -e "  ${YELLOW}  Or update manually: https://nodejs.org${RESET}"
   exit 1
 fi
 
@@ -245,9 +281,14 @@ fi
 echo ""
 
 # ── Install ai-os dependencies (into scripts/ai-os/node_modules) ─────────────
-echo -e "  ${CYAN}→ Installing dependencies...${RESET}"
-(cd "$AIOS_SRC" && npm install --prefer-offline --no-audit --no-fund 2>&1 | tail -3)
-echo -e "  ${GREEN}✓ Dependencies ready${RESET}"
+BUNDLED_GENERATOR="$AIOS_SRC/bundle/generate.js"
+if [[ -f "$BUNDLED_GENERATOR" ]]; then
+  echo -e "  ${GREEN}✓ Using pre-bundled generator (no npm install needed)${RESET}"
+else
+  echo -e "  ${CYAN}→ Installing dependencies...${RESET}"
+  (cd "$AIOS_SRC" && npm install --prefer-offline --no-audit --no-fund 2>&1 | tail -3)
+  echo -e "  ${GREEN}✓ Dependencies ready${RESET}"
+fi
 echo ""
 
 # ── Compile TypeScript (if dist/ is stale or missing) ────────────────────────
@@ -269,7 +310,13 @@ fi
 # Detect absolute node path so mcp.json uses a stable path (fixes nvm/fnm/asdf on Windows/macOS)
 NODE_ABS_PATH="$(command -v node)"
 
-(cd "$AIOS_SRC" && AI_OS_NODE_PATH="$NODE_ABS_PATH" node --import tsx/esm src/generate.ts "${GEN_ARGS[@]}")
+# Use pre-bundled generator when available (no tsx / npm install required)
+BUNDLED_GENERATOR="$AIOS_SRC/bundle/generate.js"
+if [[ -f "$BUNDLED_GENERATOR" ]]; then
+  (cd "$AIOS_SRC" && AI_OS_NODE_PATH="$NODE_ABS_PATH" node bundle/generate.js "${GEN_ARGS[@]}")
+else
+  (cd "$AIOS_SRC" && AI_OS_NODE_PATH="$NODE_ABS_PATH" node --import tsx/esm src/generate.ts "${GEN_ARGS[@]}")
+fi
 
 # ── Copy MCP server to target repo ──────────────────────────────────────────
 MCP_SERVER_SRC="$AIOS_SRC/src/mcp-server"
@@ -312,8 +359,8 @@ if [[ "$MCP_INSTALL_REQUIRED" == "true" ]]; then
     echo -e "  ${CYAN}  Runtime install:${RESET} v${AIOS_VERSION}"
   fi
 
-  # Prefer bundled single-file server (Phase F) if available; fall back to source+tsx launcher
-  BUNDLED_SERVER="$AIOS_SRC/dist/server.js"
+  # Prefer bundled single-file server if available; fall back to source+tsx launcher
+  BUNDLED_SERVER="$AIOS_SRC/bundle/server.js"
   if [[ -f "$BUNDLED_SERVER" ]]; then
     echo -e "  ${CYAN}  Using pre-bundled server (no node_modules required)${RESET}"
     cp "$BUNDLED_SERVER" "$MCP_SERVER_DEST/index.js"

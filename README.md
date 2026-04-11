@@ -16,14 +16,14 @@ Run once in any repo. AI OS scans the codebase, detects your stack, and generate
 | Slash commands       | `.github/copilot/prompts.json`                    | `/new-page`, `/new-trpc-procedure`, `/new-model`, `/rag-query`, etc.               |
 | Manifest             | `.github/ai-os/manifest.json`                     | Tracks every file AI OS owns — used for pruning stale artifacts on refresh         |
 
-AI OS now also initializes a persistent repository memory store at `.github/ai-os/memory/` so agents can retain verified facts and decisions across long sessions.
+AI OS also initializes a persistent repository memory store at `.github/ai-os/memory/` so agents can retain verified facts and decisions across long sessions.
 Detection is package-aware for monorepos/mixed stacks, and MCP context tools provide parity coverage for Node, Java/Spring, Python, Go, and Rust projects.
 
-Generated instructions also enforce strict behavior guardrails: ambiguity-first clarification (no improvisation), explicit allowed/forbidden action boundaries, and an escalation flow for underspecified requests.
+Generated instructions enforce strict behavior guardrails: ambiguity-first clarification (no improvisation), explicit allowed/forbidden action boundaries, and an escalation flow for underspecified requests.
 
 ## Requirements
 
-- Node.js ≥ 20
+- **Node.js >= 20** — required to run the AI OS installer and MCP server. **Your project does NOT need Node.js.** If Node.js is missing, `install.sh` will attempt to auto-install it via [nvm](https://github.com/nvm-sh/nvm).
 - Git
 - GitHub Copilot (VS Code extension)
 
@@ -66,6 +66,14 @@ bash ~/ai-os/install.sh --install-skill-creator --install-find-skills
 bash ~/ai-os/install.sh --refresh-existing
 ```
 
+## No Node.js on your machine?
+
+`install.sh` will automatically attempt to install Node.js 20 LTS via [nvm](https://github.com/nvm-sh/nvm) if `node` is not found in your `PATH`.
+
+If nvm is not available but `curl` is present, `install.sh` will install nvm first and then Node.js 20. Once Node.js is installed, the setup continues automatically.
+
+If the pre-built generator bundle (`bundle/generate.js`) is present in the AI OS source directory, `install.sh` uses it directly — **no `npm install` step is required** on your machine.
+
 ## Optional skill installs
 
 AI OS can install the official `skill-creator` and `find-skills` skills.
@@ -84,8 +92,9 @@ Notes:
 ## What gets detected
 
 - **Languages:** TypeScript, JavaScript, Python, Go, Rust, Java, C#, PHP, Ruby, Swift, Kotlin, and 30+ more
-- **Frameworks:** Next.js, React, Vue, Angular, Svelte, Express, FastAPI, Django, Spring Boot, .NET, Laravel, Rails, Nuxt, Astro, Remix, tRPC, Prisma, and more
+- **Frameworks:** Next.js, React, Vue, Angular, Svelte, Express, FastAPI, Django, Spring Boot, .NET, Laravel, Rails, Nuxt, Astro, Remix, Solid, Bun, Deno, tRPC, Prisma, and more
 - **Tools:** ESLint, Prettier, Vitest, Jest, Playwright, Docker, GitHub Actions, package managers
+- **Monorepos:** npm/Yarn workspaces, pnpm workspaces (`pnpm-workspace.yaml`), Lerna, Nx, Turborepo, conventional `apps/`/`packages/`/`services/` layouts
 
 ## Generated MCP tools
 
@@ -153,6 +162,8 @@ npm run generate -- --cwd /path/to/target-repo --apply
 npm run generate:refresh -- --cwd /path/to/target-repo
 # Prune stale artifacts without full refresh
 npm run generate -- --cwd /path/to/target-repo --prune
+# Build pre-bundled generator + MCP server (no npm install needed for end users)
+npm run bundle
 # Run regression suite (fixture matrix for all supported stacks)
 npm run validate
 ```
@@ -210,7 +221,7 @@ npm run validate
 
 ## Supported framework instruction templates
 
-`nextjs` · `react` · `nuxt` · `vue` · `svelte` · `angular` · `astro` · `express` · `nestjs` · `trpc` · `prisma` · `drizzle` · `python-fastapi` · `python-django` · `java-spring` · `dotnet` · `php-laravel` · `ruby-rails` · `go` · `rust` · `react-native` · `expo`
+`nextjs` · `react` · `nuxt` · `vue` · `svelte` · `angular` · `astro` · `remix` · `solid` · `bun` · `deno` · `express` · `nestjs` · `trpc` · `prisma` · `drizzle` · `python-fastapi` · `python-django` · `java-spring` · `dotnet` · `php-laravel` · `ruby-rails` · `go` · `rust` · `react-native` · `expo`
 
 ## License
 

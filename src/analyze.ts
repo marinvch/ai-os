@@ -126,6 +126,85 @@ function discoverPackageRoots(rootDir: string): string[] {
     // Best-effort workspace detection.
   }
 
+  // pnpm-workspace.yaml
+  try {
+    const pnpmWs = fs.readFileSync(path.join(rootDir, 'pnpm-workspace.yaml'), 'utf-8');
+    // Parse the `packages:` list with a minimal line-based parser (no yaml dep).
+    const inPackages = { active: false };
+    for (const raw of pnpmWs.split('\n')) {
+      const line = raw.trimEnd();
+      if (/^packages\s*:/.test(line)) { inPackages.active = true; continue; }
+      if (inPackages.active) {
+        // Stop when a new top-level key begins
+        if (/^[a-zA-Z]/.test(line) && !line.startsWith(' ') && !line.startsWith('-')) {
+          inPackages.active = false; continue;
+        }
+        const m = line.match(/^\s*-\s*['"]?([^'"]+?)['"]?\s*$/);
+        if (!m) continue;
+        const glob = m[1].trim();
+        const normalized = glob.replace(/\\/g, '/').replace(/\/\*\*$/, '').replace(/\/\*$/, '');
+        const absBase = path.join(rootDir, normalized);
+        if (!fs.existsSync(absBase) || !fs.statSync(absBase).isDirectory()) continue;
+        for (const entry of fs.readdirSync(absBase, { withFileTypes: true })) {
+          if (!entry.isDirectory()) continue;
+          if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+          const candidate = path.join(absBase, entry.name);
+          if (hasManifest(candidate)) packageRoots.add(candidate);
+        }
+      }
+    }
+  } catch {
+    // pnpm-workspace.yaml not present or unreadable.
+  }
+
+  // lerna.json
+  try {
+    const lerna = JSON.parse(fs.readFileSync(path.join(rootDir, 'lerna.json'), 'utf-8')) as {
+      packages?: string[];
+    };
+    for (const glob of lerna.packages ?? []) {
+      const normalized = glob.replace(/\\/g, '/').replace(/\/\*\*$/, '').replace(/\/\*$/, '');
+      const absBase = path.join(rootDir, normalized);
+      if (!fs.existsSync(absBase) || !fs.statSync(absBase).isDirectory()) continue;
+      for (const entry of fs.readdirSync(absBase, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+        const candidate = path.join(absBase, entry.name);
+        if (hasManifest(candidate)) packageRoots.add(candidate);
+      }
+    }
+  } catch {
+    // lerna.json not present or unreadable.
+  }
+
+  // nx.json — scan apps/ and libs/
+  if (fs.existsSync(path.join(rootDir, 'nx.json'))) {
+    for (const rel of ['apps', 'libs']) {
+      const abs = path.join(rootDir, rel);
+      if (!fs.existsSync(abs) || !fs.statSync(abs).isDirectory()) continue;
+      for (const entry of fs.readdirSync(abs, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+        const candidate = path.join(abs, entry.name);
+        if (hasManifest(candidate)) packageRoots.add(candidate);
+      }
+    }
+  }
+
+  // turbo.json — use conventional dirs (apps/, packages/)
+  if (fs.existsSync(path.join(rootDir, 'turbo.json'))) {
+    for (const rel of ['apps', 'packages']) {
+      const abs = path.join(rootDir, rel);
+      if (!fs.existsSync(abs) || !fs.statSync(abs).isDirectory()) continue;
+      for (const entry of fs.readdirSync(abs, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        if (entry.name.startsWith('.') || entry.name === 'node_modules') continue;
+        const candidate = path.join(abs, entry.name);
+        if (hasManifest(candidate)) packageRoots.add(candidate);
+      }
+    }
+  }
+
   const conventionalRoots = ['apps', 'packages', 'services'];
   for (const rel of conventionalRoots) {
     const abs = path.join(rootDir, rel);
