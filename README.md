@@ -23,7 +23,14 @@ Generated instructions also enforce strict behavior guardrails: ambiguity-first 
 
 ## Requirements
 
-- Node.js ≥ 20
+AI OS itself needs one of the following runtimes. **Your project does not need Node.js.**
+
+| Runtime | Notes |
+| ------- | ----- |
+| Node.js ≥ 20 | Recommended — enables both the generator and the local MCP server |
+| Docker | Fallback — `install.sh` auto-detects it; runs the generator in a container; MCP server requires Node.js separately |
+
+Other requirements:
 - Git
 - GitHub Copilot (VS Code extension)
 
@@ -65,6 +72,27 @@ bash ~/ai-os/install.sh --install-skill-creator --install-find-skills
 # Optional: refresh existing generated AI OS artifacts
 bash ~/ai-os/install.sh --refresh-existing
 ```
+
+### Docker-only install (no Node.js required)
+
+If Node.js is not installed, `install.sh` automatically falls back to Docker:
+
+```bash
+# Docker must be running; Node.js is NOT required on the host
+bash ~/ai-os/install.sh --cwd /path/to/your/repo
+```
+
+Or build and run the image manually:
+
+```bash
+# Build once from the ai-os directory
+docker build -t ai-os:local ~/ai-os
+
+# Run against any repo (files are written directly into the repo)
+docker run --rm -v /path/to/your/repo:/repo ai-os:local --cwd /repo
+```
+
+> **Note:** The Docker path generates all context files and instructions but skips the local MCP server installation. Install Node.js ≥ 20 to also enable the MCP server.
 
 ## Optional skill installs
 
