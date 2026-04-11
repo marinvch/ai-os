@@ -110,8 +110,8 @@ function parsePnpmWorkspaceYaml(yaml: string): string[] {
       continue;
     }
     if (inPackages) {
-      // Another top-level key (no leading whitespace, not a list item) — stop
-      if (trimmed && !trimmed.startsWith('-') && !line.startsWith(' ') && !line.startsWith('\t')) {
+      // Another top-level key (no leading whitespace) — stop scanning packages list
+      if (trimmed && !line.startsWith(' ') && !line.startsWith('\t')) {
         break;
       }
       if (trimmed.startsWith('-')) {
@@ -137,7 +137,7 @@ function expandWorkspaceGlob(rootDir: string, glob: string, out: Set<string>): v
   // Skip negation patterns
   if (glob.startsWith('!')) return;
 
-  const normalized = glob.replace(/\\/g, '/').replace(/\/\*\*.*$/, '').replace(/\/*\*$/, '');
+  const normalized = glob.replace(/\\/g, '/').replace(/\/\*\*$/, '').replace(/\/*\*$/, '');
   const base = normalized.endsWith('/*') ? normalized.slice(0, -2) : normalized;
   const absBase = path.join(rootDir, base);
 

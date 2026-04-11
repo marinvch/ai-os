@@ -178,7 +178,7 @@ if ! command -v node &>/dev/null; then
   fi
 
   echo -e "  ${CYAN}→ Building AI OS Docker image (first run may take a minute)...${RESET}"
-  if ! docker build -t ai-os:local "$AIOS_SRC_DOCKER" -q; then
+  if ! docker build -t ai-os:local "$AIOS_SRC_DOCKER"; then
     echo -e "  ${RED}✗ Docker build failed.${RESET}"
     exit 1
   fi
