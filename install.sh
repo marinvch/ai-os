@@ -23,6 +23,19 @@ echo -e "${CYAN}${BOLD}  ║  Portable Copilot Context Engine  ║${RESET}"
 echo -e "${CYAN}${BOLD}  ╚═══════════════════════════════════╝${RESET}"
 echo ""
 
+# ── Git Bash / MSYS / MINGW detection on Windows ─────────────────────────────
+if [[ "${OSTYPE:-}" == "msys" || "${OSTYPE:-}" == "cygwin" || -n "${MSYSTEM:-}" ]]; then
+  if [[ "${MSYSTEM:-}" == "MINGW64" || "${MSYSTEM:-}" == "MINGW32" ]]; then
+    # Git Bash sets MSYSTEM to MINGW64/MINGW32 — this is the expected environment
+    echo -e "  ${GREEN}✓ Git Bash detected (${MSYSTEM})${RESET}"
+  else
+    # Running under MSYS2/Cygwin but not a standard Git Bash session — warn about path issues
+    echo -e "  ${YELLOW}⚠  Windows detected: running outside Git Bash may cause path issues.${RESET}"
+    echo -e "  ${YELLOW}   Open 'Git Bash' from the Start menu and re-run this script there.${RESET}"
+    echo ""
+  fi
+fi
+
 # ── Determine this script's location ─────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -161,7 +174,7 @@ if [[ "$UNINSTALL" == "true" ]]; then
   GITIGNORE="$TARGET_DIR/.gitignore"
   if [[ -f "$GITIGNORE" ]]; then
     # Remove AI OS gitignore lines using sed (cross-platform)
-    sed -i.bak '/^# AI OS/d; /^\.ai-os\/mcp-server\/node_modules$/d; /^\.github\/ai-os\/mcp-server\/node_modules$/d; /^\.github\/ai-os\/memory\/.memory\.lock$/d' "$GITIGNORE"
+    sed -i.bak '/^# AI OS/d; /^\.ai-os\/mcp-server\/node_modules$/d; /^\.github\/ai-os\/mcp-server\/node_modules$/d; /^\.github\/ai-os\/memory\/.memory\.lock$/d; /^\.github\/copilot\/mcp\.local\.json$/d' "$GITIGNORE"
     rm -f "$GITIGNORE.bak"
     echo -e "  ${GREEN}✓ Cleaned AI OS entries from .gitignore${RESET}"
   fi
@@ -487,6 +500,11 @@ if [[ -f "$GITIGNORE" ]]; then
   if ! grep -q "^\.github/ai-os/memory/\.memory\.lock$" "$GITIGNORE" 2>/dev/null; then
     echo ".github/ai-os/memory/.memory.lock" >> "$GITIGNORE"
   fi
+  # mcp.local.json carries the `servers` block for local VS Code use and must never
+  # be committed (it would break the Copilot cloud agent on other machines).
+  if ! grep -q "^\.github/copilot/mcp\.local\.json$" "$GITIGNORE" 2>/dev/null; then
+    echo ".github/copilot/mcp.local.json" >> "$GITIGNORE"
+  fi
 fi
 
 # ── Done ────────────────────────────────────────────────────────────────────
@@ -496,7 +514,8 @@ echo ""
 echo -e "  ${BOLD}Next steps:${RESET}"
 echo -e "  1. Open this repo in VS Code with GitHub Copilot extension installed"
 echo -e "  2. Copilot will use ${CYAN}.github/copilot-instructions.md${RESET} automatically"
-echo -e "  3. MCP tools are registered in ${CYAN}.github/copilot/mcp.json${RESET}"
+echo -e "  3. MCP tool definitions are committed in ${CYAN}.github/copilot/mcp.json${RESET} (no servers block)"
+echo -e "     Local VS Code: configure ${CYAN}.github/copilot/mcp.local.json${RESET} (gitignored, has servers)"
   echo -e "  4. Project context is in ${CYAN}.github/ai-os/context/${RESET}"
 echo -e "  5. AI OS skills are generated in ${CYAN}.github/copilot/skills/${RESET} with ai-os-* naming"
 echo ""
