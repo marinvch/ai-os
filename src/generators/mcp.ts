@@ -10,9 +10,28 @@ interface McpServerConfig {
   env?: Record<string, string>;
 }
 
-interface McpJson {
+/**
+ * Shape of the committed `.github/copilot/mcp.json` file.
+ * The `servers` field is intentionally absent — machine-specific node paths
+ * must not be committed to VCS (they break the Copilot cloud agent and differ
+ * across developer machines / nvm-managed installs).
+ * The local server entry is written to `mcp.local.json` by install.sh.
+ */
+interface CommittedMcpJson {
   version: number;
-  servers: Record<string, McpServerConfig>;
+  servers?: Record<string, McpServerConfig>;
+}
+
+/**
+ * Shape of the local-only `.github/copilot/mcp.local.json` file.
+ * Written by install.sh (not by the generator) and gitignored.
+ * Contains the actual stdio server entry with the absolute node path.
+ */
+interface LocalMcpJson {
+  version: number;
+  /** servers is intentionally omitted from the committed mcp.json — it lives only
+   *  in the gitignored mcp.local.json so the Copilot cloud agent is never broken. */
+  servers?: Record<string, McpServerConfig>;
 }
 
 interface GenerateMcpOptions {
@@ -21,34 +40,18 @@ interface GenerateMcpOptions {
 
 /** Returns absolute paths of all managed files. */
 export function generateMcpJson(stack: DetectedStack, outputDir: string, _options?: GenerateMcpOptions): string[] {
-  const mcpServerPath = path.join('.ai-os', 'mcp-server', 'index.js').replace(/\\/g, '/');
-
   const allTools = getMcpToolsForStack(stack);
 
-  // Use the absolute node path detected at install time (env var set by install.sh) so
-  // the MCP server can be spawned by VS Code even when node is managed by nvm/fnm/asdf.
-  const nodeCommand = process.env['AI_OS_NODE_PATH'] ?? 'node';
-
-  const config: McpJson = {
-    version: 1,
-    servers: {
-      'ai-os': {
-        type: 'stdio',
-        command: nodeCommand,
-        args: [mcpServerPath],
-        env: {
-          AI_OS_ROOT: '.',
-        },
-      },
-    },
-  };
-
+  // Committed file — no servers block so VCS-hosted copies and the Copilot cloud agent
+  // never try to spawn a stdio process that relies on local runtime artifacts.
+  // The local server entry is written separately by install.sh into mcp.local.json.
+  const committedConfig: CommittedMcpJson = { version: 1 };
   const mcpJsonPath = path.join(outputDir, '.github', 'copilot', 'mcp.json');
-  writeIfChanged(mcpJsonPath, JSON.stringify(config, null, 2));
+  writeIfChanged(mcpJsonPath, JSON.stringify(committedConfig, null, 2));
 
   // Also write tool definitions for reference
   const toolsJsonPath = path.join(outputDir, '.github', 'ai-os', 'tools.json');
   writeIfChanged(toolsJsonPath, JSON.stringify(allTools, null, 2));
 
-  return [mcpJsonPath, toolsJsonPath];
+  return [mcpJsonPath, mcpLocalJsonPath, toolsJsonPath];
 }

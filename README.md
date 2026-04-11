@@ -10,7 +10,7 @@ Run once in any repo. AI OS scans the codebase, detects your stack, and generate
 | -------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | Copilot instructions | `.github/copilot-instructions.md`                 | System prompt optimized for your stack                                             |
 | Context docs         | `.github/ai-os/context/`                          | Token-efficient stack, architecture, conventions docs                              |
-| MCP tools            | `.github/copilot/mcp.json` + `.ai-os/mcp-server/` | 10 tools for code search, schema reading, route listing                            |
+| MCP tools            | `.github/copilot/mcp.json` + `.ai-os/mcp-server/` | 16 tools for code search, schema reading, route listing                            |
 | Agents               | `.github/agents/*.agent.md`                       | Stack-specific chat agents (framework expert, DB expert, auth, payments, explorer) |
 | Skills               | `.github/copilot/skills/ai-os-*.md`               | AI OS-named per-library playbooks (Next.js, tRPC, Prisma, Stripe, etc.)            |
 | Slash commands       | `.github/copilot/prompts.json`                    | `/new-page`, `/new-trpc-procedure`, `/new-model`, `/rag-query`, etc.               |
@@ -26,6 +26,8 @@ Generated instructions also enforce strict behavior guardrails: ambiguity-first 
 - **Node.js ≥ 20** (recommended) _or_ **Docker** (automatic fallback when Node.js is absent — see [No Node.js?](#no-nodejs) below)
 - Git
 - GitHub Copilot (VS Code extension)
+
+**Target repositories do not need Node.js** — the MCP server is a pre-built, self-contained bundle (`dist/server.js`) with no npm dependencies.
 
 ## Install on any repo
 
@@ -65,6 +67,23 @@ bash ~/ai-os/install.sh --install-skill-creator --install-find-skills
 # Optional: refresh existing generated AI OS artifacts
 bash ~/ai-os/install.sh --refresh-existing
 ```
+
+### No Node.js? Use Docker
+
+If Node.js ≥ 20 is not available, `install.sh` automatically falls back to Docker:
+
+```bash
+# Docker must be running — install.sh detects it automatically
+bash ~/ai-os/install.sh --cwd /path/to/your/repo
+```
+
+Or run directly with Docker:
+
+```bash
+docker run --rm -v "$(pwd):/repo" ghcr.io/marinvch/ai-os
+```
+
+**After install**, the deployed MCP server (`.ai-os/mcp-server/index.js`) is a single self-contained file — **no `node_modules` in the target repo**. The MCP server only requires `node >= 20` on PATH to run.
 
 ## Optional skill installs
 
@@ -115,9 +134,12 @@ bash ~/ai-os/install.sh --cwd /path/to/your/repo
 | `get_api_routes`        | All API routes with methods            |
 | `get_env_vars`          | Required env vars (never values)       |
 | `get_package_info`      | Installed package versions             |
+| `get_impact_of_change`  | Blast radius of changing a file        |
+| `get_dependency_chain`  | How a module connects to the rest      |
 | `get_memory_guidelines` | Repository memory protocol             |
 | `get_repo_memory`       | Retrieve durable project memory        |
 | `remember_repo_fact`    | Persist verified memory entries        |
+| `check_for_updates`     | Check if AI OS artifacts are stale     |
 
 ## Re-running (idempotent)
 
@@ -128,7 +150,7 @@ Safe to run multiple times:
 - **write-if-changed**: every generator compares content before writing — files with identical content are skipped, so re-runs produce zero git noise
 - **manifest tracking**: `.github/ai-os/manifest.json` records every file AI OS owns after each run
 - **pruning**: in `--refresh-existing` mode, files in the previous manifest that are no longer generated (e.g. a skill for a framework you removed) are deleted automatically
-- MCP runtime writes `.ai-os/mcp-server/runtime-manifest.json` and is health-checked after install
+- MCP runtime writes `.ai-os/mcp-server/runtime-manifest.json` with a SHA-256 hash of the bundle; re-runs skip the copy when the hash is unchanged
 
 To also update existing generated agents, skills, prompts, and MCP config from latest templates:
 
@@ -153,6 +175,8 @@ Generated skill files use `ai-os-*.md` naming and stale ones are auto-pruned on 
 
 ```bash
 npm install
+# Bundle the MCP server (produces dist/server.js — committed to the repo)
+npm run bundle
 # Run generator on a target repo
 npm run generate -- --cwd /path/to/target-repo
 # Dry run (shows detected stack, no files written)
@@ -197,7 +221,9 @@ The MCP server (`src/mcp-server/index.ts`) supports two explicit modes:
 | Copilot SDK client        | `--copilot` flag     | Copilot CLI integration         |
 | Health check              | `--healthcheck` flag | Post-install validation         |
 
-The standalone mode is the default for VS Code. Passing `--copilot` is required to use the Copilot SDK client. If `--copilot` is passed and the Copilot CLI is unavailable, the server exits with an explicit diagnostic — it never silently falls back to a different mode.
+The standalone mode is the default for VS Code. Passing `--copilot` is required to use the Copilot SDK client. If `--copilot` is passed and `@github/copilot-sdk` is unavailable, the server exits with an explicit diagnostic — it never silently falls back to a different mode.
+
+**Bundle architecture**: `npm run bundle` uses esbuild to produce a single self-contained `dist/server.js`. The `@github/copilot-sdk` is a dynamic import loaded only when `--copilot` is passed, so the bundle has zero npm dependencies for the default standalone mode. This file is committed to the repository and deployed as-is — no `npm install` required in target repos.
 
 ## Rollout guide
 
@@ -245,3 +271,4 @@ npm run validate
 ## License
 
 MIT
+

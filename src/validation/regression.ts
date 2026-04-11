@@ -312,6 +312,8 @@ function checkRefreshSafety(dir: string, fixtureName: string, results: CheckResu
 function checkMcpHealth(dir: string, fixtureName: string, results: CheckResult[]): void {
   // The MCP server runtime (index.js) is deployed by install.sh, not by `generate`.
   // The regression suite only runs `generate`, so we verify mcp.json content instead.
+  // Since v0.4.1, the committed mcp.json intentionally has NO servers block —
+  // the server entry lives in the gitignored mcp.local.json (written by install.sh).
   const mcpJsonPath = path.join(dir, '.github/copilot/mcp.json');
   if (!fs.existsSync(mcpJsonPath)) {
     results.push({

@@ -41,6 +41,9 @@ function detectFromPackageJson(rootDir: string): DetectedFramework[] {
 
   if (deps['next']) {
     frameworks.push({ name: 'Next.js', category: 'fullstack', version: deps['next'], template: 'nextjs' });
+  } else if (deps['@remix-run/react'] || deps['@remix-run/node']) {
+    const version = deps['@remix-run/react'] ?? deps['@remix-run/node'];
+    frameworks.push({ name: 'Remix', category: 'fullstack', version, template: 'remix' });
   } else if (deps['@nuxt/core'] || deps['nuxt']) {
     frameworks.push({ name: 'Nuxt.js', category: 'fullstack', version: deps['nuxt'], template: 'nuxt' });
   } else if (deps['react']) {
@@ -49,6 +52,8 @@ function detectFromPackageJson(rootDir: string): DetectedFramework[] {
     } else {
       frameworks.push({ name: 'React', category: 'frontend', version: deps['react'], template: 'react' });
     }
+  } else if (deps['solid-js']) {
+    frameworks.push({ name: 'SolidJS', category: 'frontend', version: deps['solid-js'], template: 'solid' });
   } else if (deps['vue']) {
     frameworks.push({ name: 'Vue.js', category: 'frontend', version: deps['vue'], template: 'vue' });
   } else if (deps['svelte']) {
@@ -57,6 +62,11 @@ function detectFromPackageJson(rootDir: string): DetectedFramework[] {
     frameworks.push({ name: 'Angular', category: 'frontend', version: deps['@angular/core'], template: 'angular' });
   } else if (deps['astro']) {
     frameworks.push({ name: 'Astro', category: 'fullstack', version: deps['astro'], template: 'astro' });
+  } else if (deps['@remix-run/react'] || deps['@remix-run/node']) {
+    const version = deps['@remix-run/react'] ?? deps['@remix-run/node'];
+    frameworks.push({ name: 'Remix', category: 'fullstack', version, template: 'remix' });
+  } else if (deps['solid-js']) {
+    frameworks.push({ name: 'SolidJS', category: 'frontend', version: deps['solid-js'], template: 'solid' });
   }
 
   if (deps['@nestjs/core']) {
@@ -196,6 +206,18 @@ function detectFromRuby(rootDir: string): DetectedFramework[] {
   return [{ name: 'Ruby', category: 'backend', template: 'ruby-rails' }];
 }
 
+function detectFromBun(rootDir: string): DetectedFramework[] {
+  if (!fs.existsSync(path.join(rootDir, 'bun.lockb'))) return [];
+  return [{ name: 'Bun', category: 'backend', template: 'bun' }];
+}
+
+function detectFromDeno(rootDir: string): DetectedFramework[] {
+  const hasDenoJson = fs.existsSync(path.join(rootDir, 'deno.json'))
+    || fs.existsSync(path.join(rootDir, 'deno.jsonc'));
+  if (!hasDenoJson) return [];
+  return [{ name: 'Deno', category: 'backend', template: 'deno' }];
+}
+
 function detectFromPhp(rootDir: string): DetectedFramework[] {
   const composer = readJson<{ require?: Record<string, string> }>(path.join(rootDir, 'composer.json'));
   if (!composer) return [];
@@ -212,9 +234,37 @@ function detectFromPhp(rootDir: string): DetectedFramework[] {
   return [{ name: 'PHP', category: 'backend', template: 'php-laravel' }];
 }
 
+function detectBun(rootDir: string): DetectedFramework[] {
+  // Detect bun.lockb lockfile on disk
+  if (fs.existsSync(path.join(rootDir, 'bun.lockb'))) {
+    return [{ name: 'Bun', category: 'backend', template: 'bun' }];
+  }
+
+  // Detect "packageManager": "bun@..." in package.json
+  interface PkgWithPackageManager {
+    packageManager?: string;
+  }
+  const pkg = readJson<PkgWithPackageManager>(path.join(rootDir, 'package.json'));
+  if (pkg?.packageManager?.startsWith('bun')) {
+    return [{ name: 'Bun', category: 'backend', template: 'bun' }];
+  }
+
+  return [];
+}
+
+function detectDeno(rootDir: string): DetectedFramework[] {
+  const denoFiles = ['deno.json', 'deno.jsonc', 'deno.lock', 'import_map.json'];
+  if (denoFiles.some(f => fs.existsSync(path.join(rootDir, f)))) {
+    return [{ name: 'Deno', category: 'backend', template: 'deno' }];
+  }
+  return [];
+}
+
 export function detectFrameworks(rootDir: string): DetectedFramework[] {
   const frameworks: DetectedFramework[] = [
     ...detectFromPackageJson(rootDir),
+    ...detectFromBun(rootDir),
+    ...detectFromDeno(rootDir),
     ...detectFromPython(rootDir),
     ...detectFromGo(rootDir),
     ...detectFromRust(rootDir),
@@ -222,6 +272,8 @@ export function detectFrameworks(rootDir: string): DetectedFramework[] {
     ...detectFromDotnet(rootDir),
     ...detectFromRuby(rootDir),
     ...detectFromPhp(rootDir),
+    ...detectBun(rootDir),
+    ...detectDeno(rootDir),
   ];
 
   // Deduplicate by name
