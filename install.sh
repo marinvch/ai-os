@@ -18,7 +18,7 @@ RESET='\033[0m'
 # ── Banner ───────────────────────────────────────────────────────────────────
 echo ""
 echo -e "${CYAN}${BOLD}  ╔═══════════════════════════════════╗${RESET}"
-echo -e "${CYAN}${BOLD}  ║          AI OS  v0.4.0            ║${RESET}"
+echo -e "${CYAN}${BOLD}  ║          AI OS  v0.5.0            ║${RESET}"
 echo -e "${CYAN}${BOLD}  ║  Portable Copilot Context Engine  ║${RESET}"
 echo -e "${CYAN}${BOLD}  ╚═══════════════════════════════════╝${RESET}"
 echo ""
@@ -155,12 +155,56 @@ fi
 
 echo -e "  ${GREEN}✓ Git repository detected${RESET}"
 
-# ── Check Node.js version ────────────────────────────────────────────────────
+# ── Check Node.js version (with Docker fallback for no-Node.js environments) ─
 if ! command -v node &>/dev/null; then
-  echo -e "  ${RED}✗ Node.js not found.${RESET}"
-  echo -e "  ${YELLOW}  AI OS requires Node.js >= 20 for its generator and MCP server.${RESET}"
-  echo -e "  ${YELLOW}  This is an AI OS prerequisite — your project does NOT need Node.js.${RESET}"
-  echo -e "  ${YELLOW}  Install: https://nodejs.org${RESET}"
+  echo -e "  ${YELLOW}⚠ Node.js not found.${RESET}"
+  echo -e "  ${YELLOW}  AI OS uses Node.js >= 20 for its generator and MCP server (your project does NOT need Node.js).${RESET}"
+  echo ""
+
+  # ── Docker fallback ──────────────────────────────────────────────────────
+  if command -v docker &>/dev/null; then
+    echo -e "  ${CYAN}→ Docker detected — attempting Docker-based context generation...${RESET}"
+    echo ""
+
+    AIOS_DOCKER_SRC="$SCRIPT_DIR"
+    DOCKER_IMAGE_TAG="ai-os-local:latest"
+
+    # Build the image from the ai-os source directory
+    echo -e "  ${CYAN}  Building Docker image (this may take a minute on first run)...${RESET}"
+    if docker build -t "$DOCKER_IMAGE_TAG" "$AIOS_DOCKER_SRC" >/dev/null 2>&1; then
+      echo -e "  ${GREEN}  ✓ Docker image ready${RESET}"
+    else
+      echo -e "  ${RED}  ✗ Docker build failed. Install Node.js >= 20 and retry.${RESET}"
+      echo -e "  ${YELLOW}    Install Node.js: https://nodejs.org${RESET}"
+      exit 1
+    fi
+
+    DOCKER_GEN_ARGS=(--cwd /repo)
+    if [[ "$REFRESH_EXISTING" == "true" ]]; then
+      DOCKER_GEN_ARGS+=(--refresh-existing)
+    fi
+
+    echo -e "  ${CYAN}  Running AI OS generator in Docker container...${RESET}"
+    if docker run --rm \
+        -v "$TARGET_DIR:/repo" \
+        "$DOCKER_IMAGE_TAG" "${DOCKER_GEN_ARGS[@]}"; then
+      echo ""
+      echo -e "  ${GREEN}${BOLD}✅ AI OS context generated via Docker!${RESET}"
+      echo ""
+      echo -e "  ${YELLOW}Note:${RESET} MCP server runtime requires Node.js >= 20 to run locally."
+      echo -e "  ${YELLOW}       Install Node.js (https://nodejs.org) and re-run install.sh to enable MCP tools.${RESET}"
+      echo ""
+      exit 0
+    else
+      echo -e "  ${RED}✗ Docker-based generation failed.${RESET}"
+      echo -e "  ${YELLOW}  Install Node.js >= 20 and retry: https://nodejs.org${RESET}"
+      exit 1
+    fi
+  fi
+
+  echo -e "  ${RED}✗ Node.js not found and Docker is not available.${RESET}"
+  echo -e "  ${YELLOW}  Option 1 — Install Node.js (recommended):  https://nodejs.org${RESET}"
+  echo -e "  ${YELLOW}  Option 2 — Install Docker and retry:       https://docker.com${RESET}"
   exit 1
 fi
 
