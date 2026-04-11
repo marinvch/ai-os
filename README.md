@@ -10,7 +10,7 @@ Run once in any repo. AI OS scans the codebase, detects your stack, and generate
 | -------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | Copilot instructions | `.github/copilot-instructions.md`                 | System prompt optimized for your stack                                             |
 | Context docs         | `.github/ai-os/context/`                          | Token-efficient stack, architecture, conventions docs                              |
-| MCP tools            | `.github/copilot/mcp.json` + `.ai-os/mcp-server/` | 10 tools for code search, schema reading, route listing                            |
+| MCP tools            | `.github/copilot/mcp.json` (committed, no servers) + `.github/copilot/mcp.local.json` (local, gitignored) + `.ai-os/mcp-server/` | 10 tools for code search, schema reading, route listing |
 | Agents               | `.github/agents/*.agent.md`                       | Stack-specific chat agents (framework expert, DB expert, auth, payments, explorer) |
 | Skills               | `.github/copilot/skills/ai-os-*.md`               | AI OS-named per-library playbooks (Next.js, tRPC, Prisma, Stripe, etc.)            |
 | Slash commands       | `.github/copilot/prompts.json`                    | `/new-page`, `/new-trpc-procedure`, `/new-model`, `/rag-query`, etc.               |
@@ -26,6 +26,7 @@ Generated instructions also enforce strict behavior guardrails: ambiguity-first 
 - Node.js ≥ 20 *(auto-installed by `install.sh` if absent — see below)*
 - Git
 - GitHub Copilot (VS Code extension)
+- Node.js ≥ 20 *(auto-installed by `bootstrap.sh` if missing — your project does not need Node.js)*
 
 ## Install on any repo
 
@@ -34,6 +35,8 @@ Generated instructions also enforce strict behavior guardrails: ambiguity-first 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/marinvch/ai-os/master/bootstrap.sh | bash
 ```
+
+> **No Node.js?** No problem. `bootstrap.sh` detects a missing Node.js and automatically installs the latest LTS via [nvm](https://github.com/nvm-sh/nvm) before running the installer. Your project does not need Node.js.
 
 With options:
 
@@ -66,6 +69,20 @@ bash ~/ai-os/install.sh --install-skill-creator --install-find-skills
 bash ~/ai-os/install.sh --refresh-existing
 ```
 
+## Quickstart for Java / Python / Go developers
+
+You need **Git Bash** and **Node.js ≥ 20** (Node is used by AI OS itself, not your project).
+
+```bash
+# From Git Bash, inside your repo:
+curl -fsSL https://raw.githubusercontent.com/marinvch/ai-os/master/bootstrap.sh | bash
+```
+
+Node.js is only needed to run the AI OS generator and MCP server — it has no impact on your Java/Maven/Gradle (or Python/Go) build.  
+After AI OS is set up you can remove Node.js if it is not needed for your project.
+
+> **Windows tip:** Open **Git Bash** from the Start menu, `cd` to your project's root directory, and then run the command above. Do not use CMD or PowerShell — AI OS requires a POSIX shell.
+
 ## Optional skill installs
 
 AI OS can install the official `skill-creator` and `find-skills` skills.
@@ -84,10 +101,18 @@ Notes:
 ## What gets detected
 
 - **Languages:** TypeScript, JavaScript, Python, Go, Rust, Java, C#, PHP, Ruby, Swift, Kotlin, and 30+ more
-- **Frameworks:** Next.js, React, Vue, Angular, Svelte, Express, FastAPI, Django, Spring Boot, .NET, Laravel, Rails, Nuxt, Astro, Remix, tRPC, Prisma, and more
+- **Frameworks:** Next.js, React, Vue, Angular, Svelte, Express, FastAPI, Django, Spring Boot, .NET, Laravel, Rails, Nuxt, Astro, Remix, SolidJS, tRPC, Prisma, and more
+- **Runtimes:** Bun (`bun.lockb` or `packageManager: bun@…`), Deno (`deno.json` / `deno.jsonc` / `deno.lock`)
 - **Tools:** ESLint, Prettier, Vitest, Jest, Playwright, Docker, GitHub Actions, package managers
 
 ## Generated MCP tools
+
+AI OS generates two MCP config files:
+
+| File | Committed? | Purpose |
+| ---- | ---------- | ------- |
+| `.github/copilot/mcp.json` | ✅ Yes | Tool definitions only — **no `servers` block**, safe for Copilot cloud agent and users without Node.js |
+| `.github/copilot/mcp.local.json` | ❌ No (gitignored) | Local `servers` block — tells VS Code how to spawn the MCP subprocess when Node.js ≥ 20 is available |
 
 | Tool                    | Purpose                                |
 | ----------------------- | -------------------------------------- |
