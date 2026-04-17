@@ -1141,7 +1141,9 @@ No specific framework template found. Follow the general rules above.`);
   content = enforceSizeCap(content);
   const githubDir = path6.join(outputDir, ".github");
   const outputPath = path6.join(githubDir, "copilot-instructions.md");
-  writeIfChanged(outputPath, content);
+  if (!(options?.preserveContextFiles && fs6.existsSync(outputPath))) {
+    writeIfChanged(outputPath, content);
+  }
   const instructionsDir = path6.join(githubDir, "instructions");
   const autoActivationContent = [
     "---",
@@ -2156,7 +2158,8 @@ function mergeSections(existing, updated) {
   }
   return result.join("\n");
 }
-function generateContextDocs(stack, outputDir) {
+function generateContextDocs(stack, outputDir, options) {
+  const preserveContextFiles = options?.preserveContextFiles ?? false;
   const contextDir = path10.join(outputDir, ".github", "ai-os", "context");
   fs10.mkdirSync(contextDir, { recursive: true });
   const memoryDir = path10.join(outputDir, ".github", "ai-os", "memory");
@@ -2174,11 +2177,15 @@ function generateContextDocs(stack, outputDir) {
   }
   writeIfChanged(track(path10.join(contextDir, "stack.md")), generateStackDoc(stack));
   const archPath = track(path10.join(contextDir, "architecture.md"));
-  const archGenerated = generateArchitectureDoc(stack);
-  writeIfChanged(archPath, fs10.existsSync(archPath) ? mergeSections(fs10.readFileSync(archPath, "utf-8"), archGenerated) : archGenerated);
+  if (!(preserveContextFiles && fs10.existsSync(archPath))) {
+    const archGenerated = generateArchitectureDoc(stack);
+    writeIfChanged(archPath, fs10.existsSync(archPath) ? mergeSections(fs10.readFileSync(archPath, "utf-8"), archGenerated) : archGenerated);
+  }
   const convsPath = track(path10.join(contextDir, "conventions.md"));
-  const convsGenerated = generateConventionsDoc(stack);
-  writeIfChanged(convsPath, fs10.existsSync(convsPath) ? mergeSections(fs10.readFileSync(convsPath, "utf-8"), convsGenerated) : convsGenerated);
+  if (!(preserveContextFiles && fs10.existsSync(convsPath))) {
+    const convsGenerated = generateConventionsDoc(stack);
+    writeIfChanged(convsPath, fs10.existsSync(convsPath) ? mergeSections(fs10.readFileSync(convsPath, "utf-8"), convsGenerated) : convsGenerated);
+  }
   writeIfChanged(track(path10.join(contextDir, "memory.md")), generateMemoryDoc(stack));
   writeIfChanged(track(path10.join(contextDir, "existing-ai-context.md")), generateExistingAiContextDoc(stack, existingContext));
   const memoryReadmePath = track(path10.join(memoryDir, "README.md"));
@@ -2584,7 +2591,7 @@ async function generateAgentsWithOptions(stack, cwd, options) {
   const generated = [];
   for (const spec of specs) {
     const outputPath = path11.join(agentsDir, spec.outputFile);
-    if (fs11.existsSync(outputPath) && !options.refreshExisting) continue;
+    if (fs11.existsSync(outputPath) && (!options.refreshExisting || options.preserveExistingAgents)) continue;
     if (!options.refreshExisting) {
       if (sequentialFlowFiles.has(spec.outputFile)) {
       } else {
@@ -2615,6 +2622,7 @@ async function generateAgentsWithOptions(stack, cwd, options) {
 async function generateAgents(stack, cwd, options) {
   return generateAgentsWithOptions(stack, cwd, {
     refreshExisting: options?.refreshExisting ?? false,
+    preserveExistingAgents: options?.preserveExistingAgents ?? false,
     config: options?.config
   });
 }
@@ -3177,10 +3185,23 @@ function detectRepoType(targetDir) {
   }
   return "new";
 }
-function decideAction(targetDir, relPath, mode, behavior) {
+var CONTEXT_FILE_PATHS = /* @__PURE__ */ new Set([
+  ".github/copilot-instructions.md",
+  ".github/ai-os/context/architecture.md",
+  ".github/ai-os/context/conventions.md"
+]);
+function decideAction(targetDir, relPath, mode, behavior, preserveContextFiles) {
   const alreadyExists = exists3(targetDir, relPath);
   if (!alreadyExists) {
     return { path: relPath, action: "create", reason: "File does not exist yet", risk: "low" };
+  }
+  if (preserveContextFiles && CONTEXT_FILE_PATHS.has(relPath)) {
+    return {
+      path: relPath,
+      action: "preserve",
+      reason: "Safe refresh: curated file preserved (pass --regenerate-context to allow rewrite)",
+      risk: "low"
+    };
   }
   if (behavior === "always-overwrite") {
     return {
@@ -3205,29 +3226,30 @@ function decideAction(targetDir, relPath, mode, behavior) {
     risk: "low"
   };
 }
-function buildOnboardingPlan(targetDir, mode) {
+function buildOnboardingPlan(targetDir, mode, opts = {}) {
+  const preserveContextFiles = mode === "refresh-existing" && !(opts.regenerateContext ?? false);
   const actions = [];
-  actions.push(decideAction(targetDir, ".github/copilot-instructions.md", mode, "always-overwrite"));
-  actions.push(decideAction(targetDir, ".github/instructions/ai-os.instructions.md", mode, "always-overwrite"));
-  actions.push(decideAction(targetDir, ".vscode/mcp.json", mode, "always-overwrite"));
-  actions.push(decideAction(targetDir, ".github/ai-os/tools.json", mode, "always-overwrite"));
-  actions.push(decideAction(targetDir, ".ai-os/mcp-server/runtime-manifest.json", mode, "always-overwrite"));
-  actions.push(decideAction(targetDir, ".github/ai-os/context/stack.md", mode, "always-overwrite"));
-  actions.push(decideAction(targetDir, ".github/ai-os/context/architecture.md", mode, "safe-merge"));
-  actions.push(decideAction(targetDir, ".github/ai-os/context/conventions.md", mode, "safe-merge"));
-  actions.push(decideAction(targetDir, ".github/ai-os/context/memory.md", mode, "always-overwrite"));
-  actions.push(decideAction(targetDir, ".github/ai-os/context/existing-ai-context.md", mode, "always-overwrite"));
-  actions.push(decideAction(targetDir, ".github/ai-os/context/dependency-graph.json", mode, "always-overwrite"));
-  actions.push(decideAction(targetDir, ".github/ai-os/config.json", mode, "always-overwrite"));
-  actions.push(decideAction(targetDir, ".github/ai-os/manifest.json", mode, "always-overwrite"));
-  actions.push(decideAction(targetDir, ".github/ai-os/memory/README.md", mode, "safe-merge"));
-  actions.push(decideAction(targetDir, ".github/ai-os/memory/memory.jsonl", mode, "safe-merge"));
-  actions.push(decideAction(targetDir, ".github/COPILOT_CONTEXT.md", mode, "always-overwrite"));
-  actions.push(decideAction(targetDir, ".github/ai-os/recommendations.md", mode, "always-overwrite"));
-  actions.push(decideAction(targetDir, ".github/agents/", mode, "safe-merge"));
-  actions.push(decideAction(targetDir, ".github/copilot/skills/", mode, "safe-merge"));
-  actions.push(decideAction(targetDir, ".github/copilot/prompts.json", mode, "safe-merge"));
-  actions.push(decideAction(targetDir, ".agents/skills/skill-creator/", mode, "safe-merge"));
+  actions.push(decideAction(targetDir, ".github/copilot-instructions.md", mode, "always-overwrite", preserveContextFiles));
+  actions.push(decideAction(targetDir, ".github/instructions/ai-os.instructions.md", mode, "always-overwrite", preserveContextFiles));
+  actions.push(decideAction(targetDir, ".vscode/mcp.json", mode, "always-overwrite", preserveContextFiles));
+  actions.push(decideAction(targetDir, ".github/ai-os/tools.json", mode, "always-overwrite", preserveContextFiles));
+  actions.push(decideAction(targetDir, ".ai-os/mcp-server/runtime-manifest.json", mode, "always-overwrite", preserveContextFiles));
+  actions.push(decideAction(targetDir, ".github/ai-os/context/stack.md", mode, "always-overwrite", preserveContextFiles));
+  actions.push(decideAction(targetDir, ".github/ai-os/context/architecture.md", mode, "safe-merge", preserveContextFiles));
+  actions.push(decideAction(targetDir, ".github/ai-os/context/conventions.md", mode, "safe-merge", preserveContextFiles));
+  actions.push(decideAction(targetDir, ".github/ai-os/context/memory.md", mode, "always-overwrite", preserveContextFiles));
+  actions.push(decideAction(targetDir, ".github/ai-os/context/existing-ai-context.md", mode, "always-overwrite", preserveContextFiles));
+  actions.push(decideAction(targetDir, ".github/ai-os/context/dependency-graph.json", mode, "always-overwrite", preserveContextFiles));
+  actions.push(decideAction(targetDir, ".github/ai-os/config.json", mode, "always-overwrite", preserveContextFiles));
+  actions.push(decideAction(targetDir, ".github/ai-os/manifest.json", mode, "always-overwrite", preserveContextFiles));
+  actions.push(decideAction(targetDir, ".github/ai-os/memory/README.md", mode, "safe-merge", preserveContextFiles));
+  actions.push(decideAction(targetDir, ".github/ai-os/memory/memory.jsonl", mode, "safe-merge", preserveContextFiles));
+  actions.push(decideAction(targetDir, ".github/COPILOT_CONTEXT.md", mode, "always-overwrite", preserveContextFiles));
+  actions.push(decideAction(targetDir, ".github/ai-os/recommendations.md", mode, "always-overwrite", preserveContextFiles));
+  actions.push(decideAction(targetDir, ".github/agents/", mode, "safe-merge", preserveContextFiles));
+  actions.push(decideAction(targetDir, ".github/copilot/skills/", mode, "safe-merge", preserveContextFiles));
+  actions.push(decideAction(targetDir, ".github/copilot/prompts.json", mode, "safe-merge", preserveContextFiles));
+  actions.push(decideAction(targetDir, ".agents/skills/skill-creator/", mode, "safe-merge", preserveContextFiles));
   return {
     targetDir,
     detectedRepoType: detectRepoType(targetDir),
@@ -3238,10 +3260,10 @@ function buildOnboardingPlan(targetDir, mode) {
 function formatOnboardingPlan(plan) {
   const counts = plan.actions.reduce(
     (acc, action) => {
-      acc[action.action] += 1;
+      acc[action.action] = (acc[action.action] ?? 0) + 1;
       return acc;
     },
-    { create: 0, update: 0, merge: 0, skip: 0 }
+    { create: 0, update: 0, merge: 0, skip: 0, preserve: 0 }
   );
   const lines = [];
   lines.push("");
@@ -3249,10 +3271,11 @@ function formatOnboardingPlan(plan) {
   lines.push(`  \u{1F4C2} Target: ${plan.targetDir}`);
   lines.push(`  \u{1F9E9} Repo type: ${plan.detectedRepoType}`);
   lines.push(`  \u{1F527} Mode: ${plan.mode}`);
-  lines.push(`  \u{1F4CA} Actions: create=${counts.create}, update=${counts.update}, merge=${counts.merge}, skip=${counts.skip}`);
+  lines.push(`  \u{1F4CA} Actions: create=${counts.create}, update=${counts.update}, merge=${counts.merge}, preserve=${counts.preserve}, skip=${counts.skip}`);
   lines.push("");
   for (const action of plan.actions) {
-    lines.push(`  - [${action.action}] ${action.path} (${action.risk} risk) \u2014 ${action.reason}`);
+    const icon = action.action === "preserve" ? "\u{1F512}" : "\xB7";
+    lines.push(`  ${icon} [${action.action}] ${action.path} (${action.risk} risk) \u2014 ${action.reason}`);
   }
   lines.push("");
   lines.push("  \u2705 Use --apply to execute this plan.");
@@ -3607,6 +3630,8 @@ function parseArgs() {
   let prune = false;
   let verbose = false;
   let cleanUpdate = false;
+  let regenerateContext = false;
+  let pruneCustomArtifacts = false;
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--cwd" && args[i + 1]) {
       cwd = path17.resolve(args[i + 1]);
@@ -3636,9 +3661,13 @@ function parseArgs() {
       action = "check-hygiene";
     } else if (args[i] === "--verbose" || args[i] === "-v") {
       verbose = true;
+    } else if (args[i] === "--regenerate-context") {
+      regenerateContext = true;
+    } else if (args[i] === "--prune-custom-artifacts") {
+      pruneCustomArtifacts = true;
     }
   }
-  return { cwd, dryRun, mode, action, prune, verbose, cleanUpdate };
+  return { cwd, dryRun, mode, action, prune, verbose, cleanUpdate, regenerateContext, pruneCustomArtifacts };
 }
 function printBanner() {
   const version = `v${getToolVersion()}`;
@@ -3724,7 +3753,7 @@ function printAgentFlowStatus(cwd, mode) {
   }
   console.log("");
 }
-function printSummary(stack, outputDir, written, skipped, pruned, agents) {
+function printSummary(stack, outputDir, written, skipped, pruned, agents, preserved) {
   const mcpToolCount = getMcpToolsForStack(stack).length;
   const fw = stack.frameworks.map((f) => f.name).join(", ") || stack.primaryLanguage.name;
   console.log(`  \u{1F4E6} Project:    ${stack.projectName}`);
@@ -3736,6 +3765,10 @@ function printSummary(stack, outputDir, written, skipped, pruned, agents) {
   console.log("  Diff summary:");
   console.log(`  \u2705 Written (new or changed):  ${written.length}`);
   console.log(`  \u23ED\uFE0F  Unchanged (skipped):        ${skipped.length}`);
+  if (preserved.length > 0) {
+    console.log(`  \u{1F512} Preserved (curated):        ${preserved.length}`);
+    for (const p of preserved) console.log(`       \u2022 ${path17.relative(outputDir, p).replace(/\\/g, "/")}`);
+  }
   if (pruned.length > 0) {
     console.log(`  \u{1F5D1}\uFE0F  Pruned (stale):              ${pruned.length}`);
     for (const p of pruned) console.log(`       \u2022 ${path17.relative(outputDir, p).replace(/\\/g, "/")}`);
@@ -3782,6 +3815,24 @@ function printContextualNextSteps(mode, onboardingPlan, updateStatus, recommenda
   console.log(`     "${firstPrompt}"`);
   printRecommendationsHint();
   console.log("");
+}
+function loadProtectConfig(cwd) {
+  const protectPath = path17.join(cwd, ".github", "ai-os", "protect.json");
+  if (!fs16.existsSync(protectPath)) return /* @__PURE__ */ new Set();
+  try {
+    const raw = JSON.parse(fs16.readFileSync(protectPath, "utf-8"));
+    if (!Array.isArray(raw.protected)) return /* @__PURE__ */ new Set();
+    return new Set(
+      raw.protected.filter((p) => typeof p === "string").map((p) => p.replace(/\\/g, "/"))
+    );
+  } catch {
+    console.warn("  \u26A0 Could not parse .github/ai-os/protect.json \u2014 ignoring protection config");
+    return /* @__PURE__ */ new Set();
+  }
+}
+var CUSTOM_ARTIFACT_DIRS = [".github/agents/", ".agents/skills/"];
+function isCustomArtifact(relPath) {
+  return CUSTOM_ARTIFACT_DIRS.some((dir) => relPath.startsWith(dir));
 }
 function ensureGitignoreEntry(cwd, entry) {
   const gitignorePath = path17.join(cwd, ".gitignore");
@@ -3864,7 +3915,7 @@ function installLocalMcpRuntime(cwd, verbose) {
 }
 async function main() {
   printBanner();
-  const { cwd, dryRun, mode: rawMode, action, prune: pruneFlag, verbose, cleanUpdate } = parseArgs();
+  const { cwd, dryRun, mode: rawMode, action, prune: pruneFlag, verbose, cleanUpdate, regenerateContext, pruneCustomArtifacts } = parseArgs();
   let mode = rawMode;
   if (verbose) {
     setVerboseMode(true);
@@ -3893,12 +3944,20 @@ async function main() {
   } else if (mode === "safe" && !updateStatus.isFirstInstall) {
     printUpdateBanner(updateStatus);
   }
+  const isRefresh = mode === "refresh-existing";
+  const preserveContextFiles = isRefresh && !regenerateContext;
+  if (isRefresh && preserveContextFiles) {
+    console.log("  \u{1F512} Safe refresh: curated context/instruction files will be preserved.");
+    console.log("     Pass --regenerate-context to allow full rewrite of those files.");
+    console.log("");
+  }
   if (mode === "refresh-existing") {
     pruneLegacyArtifacts(cwd, { fullCleanup: cleanUpdate });
   }
+  const protectedPaths = loadProtectConfig(cwd);
   const stack = analyze(cwd);
   const existingConfig = readAiOsConfig(cwd);
-  const onboardingPlan = buildOnboardingPlan(cwd, mode);
+  const onboardingPlan = buildOnboardingPlan(cwd, mode, { regenerateContext });
   if (action === "plan") {
     console.log(formatOnboardingPlan(onboardingPlan));
     return;
@@ -3916,11 +3975,11 @@ async function main() {
   }
   const previousManifest = readManifest(cwd);
   const previousFiles = new Set(previousManifest?.files ?? []);
-  const contextFiles = generateContextDocs(stack, cwd);
+  const contextFiles = generateContextDocs(stack, cwd, { preserveContextFiles });
   const config = readAiOsConfig(cwd) ?? existingConfig;
-  const instructionFiles = generateInstructions(stack, cwd, { refreshExisting: mode === "refresh-existing", config: config ?? void 0 });
+  const instructionFiles = generateInstructions(stack, cwd, { refreshExisting: mode === "refresh-existing", preserveContextFiles, config: config ?? void 0 });
   const mcpFiles = generateMcpJson(stack, cwd, { refreshExisting: mode === "refresh-existing" });
-  const agentFiles = await generateAgents(stack, cwd, { refreshExisting: mode === "refresh-existing", config: config ?? void 0 });
+  const agentFiles = await generateAgents(stack, cwd, { refreshExisting: mode === "refresh-existing", preserveExistingAgents: preserveContextFiles, config: config ?? void 0 });
   const skillFiles = await generateSkills(stack, cwd, { refreshExisting: mode === "refresh-existing" });
   const promptFiles = await generatePrompts(stack, cwd, { refreshExisting: mode === "refresh-existing" });
   const workflowFiles = generateWorkflows(cwd, { config: config ?? void 0 });
@@ -3951,10 +4010,23 @@ ${gapReport}
   currentRelFiles.push(manifestRel);
   const shouldPrune = pruneFlag || mode === "refresh-existing";
   const prunedAbs = [];
+  const preservedAbs = [];
   if (shouldPrune && previousFiles.size > 0) {
     const currentSet = new Set(currentRelFiles);
     for (const rel of previousFiles) {
       if (!currentSet.has(rel)) {
+        if (protectedPaths.has(rel)) {
+          if (verbose) console.log(`  \u{1F512} protect  ${rel}  (in protect.json)`);
+          preservedAbs.push(path17.join(cwd, rel));
+          continue;
+        }
+        if (!pruneCustomArtifacts && isCustomArtifact(rel)) {
+          if (verbose) {
+            console.log(`  \u{1F512} preserve ${rel}  (custom artifact \u2014 pass --prune-custom-artifacts to remove)`);
+          }
+          preservedAbs.push(path17.join(cwd, rel));
+          continue;
+        }
         const abs = path17.join(cwd, rel);
         if (fs16.existsSync(abs)) {
           try {
@@ -3978,7 +4050,7 @@ ${gapReport}
   const newFiles = currentRelFiles.filter((r) => r !== manifestRel && !previousFiles.has(r));
   const existingFiles = currentRelFiles.filter((r) => r !== manifestRel && previousFiles.has(r));
   installLocalMcpRuntime(cwd, verbose);
-  printSummary(stack, cwd, newFiles, existingFiles, prunedAbs, agentFiles);
+  printSummary(stack, cwd, newFiles, existingFiles, prunedAbs, agentFiles, preservedAbs);
   printContextualNextSteps(mode, onboardingPlan, updateStatus, config?.recommendations !== false);
   const agentFlowMode = config?.agentFlowMode;
   const isFirstInstall = updateStatus.isFirstInstall;
