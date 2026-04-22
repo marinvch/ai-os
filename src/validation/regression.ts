@@ -499,28 +499,38 @@ function checkMcpHealth(dir: string, fixtureName: string, results: CheckResult[]
 
   results.push({ fixture: fixtureName, check: 'tools.json is valid JSON', passed: true });
 
+  interface StructuredToolsConfig {
+    activeTools: unknown[];
+    availableButInactive?: unknown[];
+  }
+
+  function isStructuredToolsConfig(value: unknown): value is StructuredToolsConfig {
+    return (
+      value !== null &&
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      'activeTools' in value &&
+      Array.isArray((value as StructuredToolsConfig).activeTools)
+    );
+  }
+
   // tools.json is now a structured object with `activeTools` and `availableButInactive` arrays
-  const isStructured =
-    toolsConfig !== null &&
-    typeof toolsConfig === 'object' &&
-    !Array.isArray(toolsConfig) &&
-    'activeTools' in (toolsConfig as object) &&
-    Array.isArray((toolsConfig as { activeTools: unknown }).activeTools);
+  const structured = isStructuredToolsConfig(toolsConfig) ? toolsConfig : null;
 
   results.push({
     fixture: fixtureName,
     check: 'tools.json contains activeTools section with MCP tool definitions',
-    passed: isStructured && ((toolsConfig as { activeTools: unknown[] }).activeTools.length > 0),
-    detail: isStructured
-      ? ((toolsConfig as { activeTools: unknown[] }).activeTools.length > 0 ? undefined : 'tools.json activeTools is empty')
+    passed: structured !== null && structured.activeTools.length > 0,
+    detail: structured !== null
+      ? (structured.activeTools.length > 0 ? undefined : 'tools.json activeTools is empty')
       : 'tools.json is missing activeTools array (expected structured format with activeTools and availableButInactive)',
   });
 
   results.push({
     fixture: fixtureName,
     check: 'tools.json contains availableButInactive section',
-    passed: isStructured && 'availableButInactive' in (toolsConfig as object) && Array.isArray((toolsConfig as { availableButInactive: unknown }).availableButInactive),
-    detail: isStructured && !('availableButInactive' in (toolsConfig as object))
+    passed: structured !== null && Array.isArray(structured.availableButInactive),
+    detail: structured !== null && !Array.isArray(structured.availableButInactive)
       ? 'tools.json is missing availableButInactive array'
       : undefined,
   });
