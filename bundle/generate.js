@@ -1519,6 +1519,20 @@ var MCP_TOOL_DEFINITIONS = [
       required: ["threshold"]
     },
     condition: always
+  },
+  // ── Tool #23: Session State Reset ─────────────────────────────────────────
+  {
+    name: "reset_session_state",
+    description: "Clears all session state files (active-plan.json, checkpoints.jsonl, failure-ledger.jsonl, compact-context.md, runtime-state.json). Call at the start of a new branch or task to prevent stale context from a previous session from bleeding into the current conversation.",
+    inputSchema: { type: "object", properties: {} },
+    condition: always
+  },
+  // ── Tool #24: Sync Hosted Memory ──────────────────────────────────────────
+  {
+    name: "sync_hosted_memory",
+    description: "Returns step-by-step guidance for mirroring durable facts from Copilot hosted memory into memory.jsonl. Use periodically in long sessions to ensure verified facts are not lost when the context window resets.",
+    inputSchema: { type: "object", properties: {} },
+    condition: always
   }
 ];
 function getMcpToolsForStack(stack) {
@@ -1792,7 +1806,7 @@ function getLatestPublishedTagVersion() {
     );
     if (result.status !== 0 || !result.stdout) return null;
     const versions = result.stdout.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((line) => {
-      const match = line.match(/refs\/tags\/(v\d+\.\d+\.\d+)$/);
+      const match = line.match(/refs\/tags\/v(\d+\.\d+\.\d+)$/);
       return match?.[1] ?? null;
     }).filter((v) => v !== null);
     if (versions.length === 0) return null;
@@ -1925,6 +1939,7 @@ var DEFAULT_AI_OS_CONFIG = {
   recommendations: true,
   sessionContextCard: true,
   updateCheckEnabled: true,
+  skillsStrategy: "creator-only",
   agentFlowMode: "create",
   persistentRules: [],
   exclude: ["node_modules", "dist", ".next", ".nuxt", "build", "out"]
@@ -2544,6 +2559,7 @@ function generateContextDocs(stack, outputDir, options) {
     recommendations: existingConfig?.recommendations ?? DEFAULT_AI_OS_CONFIG.recommendations,
     sessionContextCard: existingConfig?.sessionContextCard ?? DEFAULT_AI_OS_CONFIG.sessionContextCard,
     updateCheckEnabled: existingConfig?.updateCheckEnabled ?? DEFAULT_AI_OS_CONFIG.updateCheckEnabled,
+    skillsStrategy: existingConfig?.skillsStrategy ?? DEFAULT_AI_OS_CONFIG.skillsStrategy,
     agentFlowMode: existingConfig?.agentFlowMode ?? DEFAULT_AI_OS_CONFIG.agentFlowMode,
     persistentRules: existingConfig?.persistentRules ?? DEFAULT_AI_OS_CONFIG.persistentRules,
     exclude: existingConfig?.exclude ?? DEFAULT_AI_OS_CONFIG.exclude
@@ -3177,9 +3193,29 @@ function buildSkillSpecs(stack, cwd) {
   }
   return specs;
 }
+function removeIfEmpty(dir) {
+  try {
+    if (fs12.existsSync(dir) && fs12.readdirSync(dir).length === 0) {
+      fs12.rmSync(dir, { recursive: true });
+      console.log(`  \u{1F5D1}\uFE0F  Removed empty skills directory: ${dir}`);
+    }
+  } catch {
+  }
+}
 async function generateSkillsWithOptions(stack, cwd, options) {
   const skillsDir = path12.join(cwd, SKILLS_DIR);
   fs12.mkdirSync(skillsDir, { recursive: true });
+  if (options.strategy === "creator-only") {
+    if (options.refreshExisting && fs12.existsSync(skillsDir)) {
+      const onDisk = fs12.readdirSync(skillsDir).filter((f) => f.startsWith("ai-os-") && f.endsWith(".md"));
+      for (const stale of onDisk) {
+        fs12.rmSync(path12.join(skillsDir, stale));
+        console.log(`  \u{1F5D1}\uFE0F  Pruned predefined skill (creator-only mode): ${stale}`);
+      }
+      removeIfEmpty(skillsDir);
+    }
+    return [];
+  }
   const specs = buildSkillSpecs(stack, cwd);
   const generatedPaths = [];
   for (const spec of specs) {
@@ -3205,11 +3241,15 @@ async function generateSkillsWithOptions(stack, cwd, options) {
         console.log(`  \u{1F5D1}\uFE0F  Pruned stale skill: ${stale}`);
       }
     }
+    removeIfEmpty(skillsDir);
   }
   return generatedPaths;
 }
 async function generateSkills(stack, cwd, options) {
-  return generateSkillsWithOptions(stack, cwd, { refreshExisting: options?.refreshExisting ?? false });
+  return generateSkillsWithOptions(stack, cwd, {
+    refreshExisting: options?.refreshExisting ?? false,
+    strategy: options?.strategy ?? "creator-only"
+  });
 }
 var BUNDLED_SKILLS = [
   { dirName: "skill-creator", label: "skill-creator" }
@@ -3876,28 +3916,40 @@ var DEPENDENCY_RECOMMENDATIONS = {
   },
   next: {
     trigger: "next",
-    skills: ["nextjs", "vercel-react-best-practices", "context7"],
+    skills: [
+      "nextjs",
+      { name: "vercel-react-best-practices", source: "vercel-labs/agent-skills" },
+      { name: "context7", source: "intellectronica/agent-skills" }
+    ],
     vscode: ["bradlc.vscode-tailwindcss"]
   },
   "next.js": {
     trigger: "next.js",
-    skills: ["nextjs", "vercel-react-best-practices", "context7"],
+    skills: [
+      "nextjs",
+      { name: "vercel-react-best-practices", source: "vercel-labs/agent-skills" },
+      { name: "context7", source: "intellectronica/agent-skills" }
+    ],
     vscode: ["bradlc.vscode-tailwindcss"]
   },
   react: {
     trigger: "react",
-    skills: ["react", "vercel-react-best-practices", "context7"],
+    skills: [
+      "react",
+      { name: "vercel-react-best-practices", source: "vercel-labs/agent-skills" },
+      { name: "context7", source: "intellectronica/agent-skills" }
+    ],
     vscode: ["dsznajder.es7-react-js-snippets", "burkeholland.simple-react-snippets"]
   },
   nuxt: {
     trigger: "nuxt",
-    skills: ["context7"],
+    skills: [{ name: "context7", source: "intellectronica/agent-skills" }],
     vscode: ["Vue.volar"]
   },
   vue: {
     trigger: "vue",
     vscode: ["Vue.volar"],
-    skills: ["context7"]
+    skills: [{ name: "context7", source: "intellectronica/agent-skills" }]
   },
   "express": {
     trigger: "express",
@@ -3905,13 +3957,13 @@ var DEPENDENCY_RECOMMENDATIONS = {
   },
   "fastapi": {
     trigger: "fastapi",
-    skills: ["python-fastapi", "context7"],
+    skills: ["python-fastapi", { name: "context7", source: "intellectronica/agent-skills" }],
     vscode: ["ms-python.python"]
   },
   "django": {
     trigger: "django",
     vscode: ["ms-python.python", "batisteo.vscode-django"],
-    skills: ["context7"]
+    skills: [{ name: "context7", source: "intellectronica/agent-skills" }]
   },
   supabase: {
     trigger: "supabase",
@@ -3931,18 +3983,26 @@ var DEPENDENCY_RECOMMENDATIONS = {
   },
   "drizzle-orm": {
     trigger: "drizzle-orm",
-    skills: ["context7"]
+    skills: [{ name: "context7", source: "intellectronica/agent-skills" }]
   }
 };
 var FRAMEWORK_RECOMMENDATIONS = {
   "Next.js": {
     trigger: "Next.js",
-    skills: ["nextjs", "vercel-react-best-practices", "context7"],
+    skills: [
+      "nextjs",
+      { name: "vercel-react-best-practices", source: "vercel-labs/agent-skills" },
+      { name: "context7", source: "intellectronica/agent-skills" }
+    ],
     vscode: ["dsznajder.es7-react-js-snippets", "bradlc.vscode-tailwindcss"]
   },
   "React": {
     trigger: "React",
-    skills: ["react", "vercel-react-best-practices", "context7"],
+    skills: [
+      "react",
+      { name: "vercel-react-best-practices", source: "vercel-labs/agent-skills" },
+      { name: "context7", source: "intellectronica/agent-skills" }
+    ],
     vscode: ["dsznajder.es7-react-js-snippets"]
   },
   "Express": {
@@ -3952,27 +4012,27 @@ var FRAMEWORK_RECOMMENDATIONS = {
   "NestJS": {
     trigger: "NestJS",
     vscode: ["nrwl.angular-console"],
-    skills: ["context7"]
+    skills: [{ name: "context7", source: "intellectronica/agent-skills" }]
   },
   "FastAPI": {
     trigger: "FastAPI",
-    skills: ["python-fastapi", "context7"],
+    skills: ["python-fastapi", { name: "context7", source: "intellectronica/agent-skills" }],
     vscode: ["ms-python.python"]
   },
   "Spring Boot": {
     trigger: "Spring Boot",
-    skills: ["java-spring", "context7"],
+    skills: ["java-spring", { name: "context7", source: "intellectronica/agent-skills" }],
     vscode: ["vscjava.vscode-java-pack", "redhat.java"]
   },
   "Astro": {
     trigger: "Astro",
     vscode: ["astro-build.astro-vscode"],
-    skills: ["context7"]
+    skills: [{ name: "context7", source: "intellectronica/agent-skills" }]
   },
   "SvelteKit": {
     trigger: "SvelteKit",
     vscode: ["svelte.svelte-vscode"],
-    skills: ["context7"]
+    skills: [{ name: "context7", source: "intellectronica/agent-skills" }]
   },
   "Svelte": {
     trigger: "Svelte",
@@ -3981,7 +4041,7 @@ var FRAMEWORK_RECOMMENDATIONS = {
   "Nuxt": {
     trigger: "Nuxt",
     vscode: ["Vue.volar"],
-    skills: ["context7"]
+    skills: [{ name: "context7", source: "intellectronica/agent-skills" }]
   },
   "Vue": {
     trigger: "Vue",
@@ -4006,22 +4066,22 @@ var LANGUAGE_RECOMMENDATIONS = {
   "Go": {
     trigger: "Go",
     vscode: ["golang.go"],
-    skills: ["context7"]
+    skills: [{ name: "context7", source: "intellectronica/agent-skills" }]
   },
   "Rust": {
     trigger: "Rust",
     vscode: ["rust-lang.rust-analyzer"],
-    skills: ["context7"]
+    skills: [{ name: "context7", source: "intellectronica/agent-skills" }]
   },
   "Python": {
     trigger: "Python",
     vscode: ["ms-python.python", "ms-python.black-formatter"],
-    skills: ["context7"]
+    skills: [{ name: "context7", source: "intellectronica/agent-skills" }]
   },
   "Java": {
     trigger: "Java",
     vscode: ["vscjava.vscode-java-pack"],
-    skills: ["context7"]
+    skills: [{ name: "context7", source: "intellectronica/agent-skills" }]
   },
   "Ruby": {
     trigger: "Ruby",
@@ -4035,7 +4095,10 @@ var LANGUAGE_RECOMMENDATIONS = {
 var UNIVERSAL_RECOMMENDATIONS = [
   {
     trigger: "universal",
-    skills: ["find-skills", "context7"]
+    skills: [
+      "find-skills",
+      { name: "context7", source: "intellectronica/agent-skills" }
+    ]
   }
 ];
 
@@ -4058,9 +4121,11 @@ function collectRecommendations(stack) {
       }
     }
     for (const skill of rec.skills ?? []) {
-      if (!seenSkills.has(skill)) {
-        seenSkills.add(skill);
-        collected.skills.push({ trigger: rec.trigger, name: skill });
+      const skillName = typeof skill === "string" ? skill : skill.name;
+      const skillSource = typeof skill === "string" ? void 0 : skill.source;
+      if (!seenSkills.has(skillName)) {
+        seenSkills.add(skillName);
+        collected.skills.push({ trigger: rec.trigger, name: skillName, source: skillSource });
       }
     }
     if (rec.copilotExtension && !seenExt.has(rec.copilotExtension.name)) {
@@ -4145,13 +4210,21 @@ function generateRecommendationsDoc(stack, collected) {
       lines.push(`- **${item.name}** \u2014 for \`${item.trigger}\``);
     }
     lines.push("");
-    lines.push("**Install via skills CLI:**");
-    lines.push("```bash");
-    for (const item of collected.skills) {
-      lines.push(`npx -y skills add --skill ${item.name} -g -a github-copilot`);
+    const installableSkills = collected.skills.filter((s) => s.source);
+    const aiOsSkills = collected.skills.filter((s) => !s.source);
+    if (installableSkills.length > 0) {
+      lines.push("**Install external skills via skills CLI:**");
+      lines.push("```bash");
+      for (const item of installableSkills) {
+        lines.push(`npx -y skills add ${item.source}@${item.name} -g -a github-copilot`);
+      }
+      lines.push("```");
+      lines.push("");
     }
-    lines.push("```");
-    lines.push("");
+    if (aiOsSkills.length > 0) {
+      lines.push(`> **AI OS generated skills** (${aiOsSkills.map((s) => `\`${s.name}\``).join(", ")}) are written to \`.github/copilot/skills/\` automatically by AI OS \u2014 no CLI install needed.`);
+      lines.push("");
+    }
   }
   if (collected.copilotExtensions.length > 0) {
     lines.push("## GitHub Copilot Extensions", "");
@@ -4180,10 +4253,25 @@ function getSkillsGapReport(stack, skillsLockPath) {
   const installedSet = new Set(installed.map((s) => s.toLowerCase()));
   const missing = [...recommendedSkills].filter((s) => !installedSet.has(s.toLowerCase()));
   if (missing.length === 0) return "";
-  const cmds = missing.map((s) => `npx -y skills add --skill ${s} -g -a github-copilot`).join("\n");
-  return `  \u{1F4E6} Skills gap detected \u2014 Missing: [${missing.join(", ")}]
-  Run:
-${cmds.split("\n").map((l) => `    ${l}`).join("\n")}`;
+  const missingWithSources = missing.map((name) => {
+    const skillEntry = collected.skills.find((s) => s.name === name);
+    return { name, source: skillEntry?.source };
+  });
+  const installable = missingWithSources.filter((s) => s.source);
+  const aiOsManaged = missingWithSources.filter((s) => !s.source);
+  const lines = [
+    `  \u{1F4E6} Skills gap detected \u2014 Missing: [${missing.join(", ")}]`
+  ];
+  if (installable.length > 0) {
+    lines.push("  Install via skills CLI:");
+    for (const s of installable) {
+      lines.push(`    npx -y skills add ${s.source}@${s.name} -g -a github-copilot`);
+    }
+  }
+  if (aiOsManaged.length > 0) {
+    lines.push(`  AI OS skills (${aiOsManaged.map((s) => s.name).join(", ")}) are generated by AI OS \u2014 re-run the installer to add them.`);
+  }
+  return lines.join("\n");
 }
 function generateRecommendations(stack, outputDir) {
   const collected = collectRecommendations(stack);
@@ -4354,7 +4442,7 @@ function printSummary(stack, outputDir, written, skipped, pruned, agents, preser
   console.log("");
 }
 function printContextualNextSteps(mode, onboardingPlan, updateStatus, recommendationsEnabled) {
-  const refreshCmd = `npx -y github:marinvch/ai-os#v${updateStatus.toolVersion} --refresh-existing`;
+  const refreshCmd = `npx -y "github:marinvch/ai-os#v${updateStatus.latestVersion}" --refresh-existing`;
   const recommendationsPath = ".github/ai-os/recommendations.md";
   const printInstructionStrategy = () => {
     console.log("  \u{1F4CC} First action after install/refresh:");
@@ -4582,13 +4670,18 @@ async function main() {
   const previousFiles = new Set(previousManifest?.files ?? []);
   const contextFiles = generateContextDocs(stack, cwd, { preserveContextFiles });
   const config = readAiOsConfig(cwd) ?? existingConfig;
+  const skillsStrategy = config?.skillsStrategy ?? "creator-only";
   const instructionFiles = generateInstructions(stack, cwd, { refreshExisting: mode === "refresh-existing", preserveContextFiles, config: config ?? void 0 });
   const mcpFiles = generateMcpJson(stack, cwd, { refreshExisting: mode === "refresh-existing" });
   const agentFiles = await generateAgents(stack, cwd, { refreshExisting: mode === "refresh-existing", preserveExistingAgents: preserveContextFiles, config: config ?? void 0 });
-  const skillFiles = await generateSkills(stack, cwd, { refreshExisting: mode === "refresh-existing" });
+  const skillFiles = await generateSkills(stack, cwd, {
+    refreshExisting: mode === "refresh-existing",
+    strategy: skillsStrategy
+  });
   const promptFiles = await generatePrompts(stack, cwd, { refreshExisting: mode === "refresh-existing" });
   const workflowFiles = generateWorkflows(cwd, { config: config ?? void 0 });
   await deployBundledSkills(cwd, { refreshExisting: mode === "refresh-existing" });
+  console.log(`  \u{1F9E0} Skills strategy: ${skillsStrategy}`);
   const recommendationFiles = [];
   if (config?.recommendations !== false) {
     const recPath = generateRecommendations(stack, cwd);

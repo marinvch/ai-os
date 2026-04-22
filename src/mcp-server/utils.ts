@@ -13,10 +13,7 @@ export function getProjectRoot(): string {
 
 export function readAiOsFile(relPath: string): string {
   try {
-    const newPath = path.join(ROOT, '.github', 'ai-os', relPath);
-    if (fs.existsSync(newPath)) return fs.readFileSync(newPath, 'utf-8');
-    // Legacy fallback
-    return fs.readFileSync(path.join(ROOT, '.ai-os', relPath), 'utf-8');
+    return fs.readFileSync(path.join(ROOT, '.github', 'ai-os', relPath), 'utf-8');
   } catch {
     return '';
   }
@@ -94,15 +91,11 @@ const SESSION_CHECKPOINTS_CAP = 100;
 const SESSION_FAILURES_CAP = 50;
 
 function getMemoryFilePath(): string {
-  const newPath = path.join(ROOT, '.github', 'ai-os', 'memory', 'memory.jsonl');
-  const legacyPath = path.join(ROOT, '.ai-os', 'memory', 'memory.jsonl');
-  return fs.existsSync(newPath) || !fs.existsSync(legacyPath) ? newPath : legacyPath;
+  return path.join(ROOT, '.github', 'ai-os', 'memory', 'memory.jsonl');
 }
 
 function getMemoryDirPath(): string {
-  const newPath = path.join(ROOT, '.github', 'ai-os', 'memory');
-  const legacyPath = path.join(ROOT, '.ai-os', 'memory');
-  return fs.existsSync(newPath) || !fs.existsSync(legacyPath) ? newPath : legacyPath;
+  return path.join(ROOT, '.github', 'ai-os', 'memory');
 }
 
 function getMemoryLockFilePath(): string {
@@ -1054,6 +1047,98 @@ export function setWatchdogThreshold(threshold: number): string {
   } catch (err) {
     return `Failed to set watchdog threshold: ${err instanceof Error ? err.message : String(err)}`;
   }
+}
+
+/**
+ * Reset all session state files (active-plan.json, checkpoints.jsonl,
+ * failure-ledger.jsonl, compact-context.md, runtime-state.json).
+ * Use at the start of a new branch or a new task to avoid stale context
+ * from previous sessions bleeding into the current conversation.
+ */
+export function resetSessionState(): string {
+  try {
+    return withSessionLock(() => {
+      const sessionDir = getSessionMemoryDirPath();
+      if (!fs.existsSync(sessionDir)) {
+        return 'No session state found — nothing to reset.';
+      }
+
+      const results: string[] = ['Session state reset.'];
+
+      const filesToClear: Array<[string, string]> = [
+        [getCheckpointLogPath(), 'checkpoints.jsonl cleared'],
+        [getFailureLedgerPath(), 'failure-ledger.jsonl cleared'],
+      ];
+
+      const filesToRemove: Array<[string, string]> = [
+        [getActivePlanPath(), 'active-plan.json removed'],
+        [getCompactContextPath(), 'compact-context.md removed'],
+        [getRuntimeStatePath(), 'runtime-state.json removed'],
+      ];
+
+      for (const [f, label] of filesToClear) {
+        try {
+          if (fs.existsSync(f)) {
+            writeTextAtomic(f, '');
+            results.push(`- ${label}`);
+          }
+        } catch (err) {
+          results.push(`- ${label} (warning: ${err instanceof Error ? err.message : String(err)})`);
+        }
+      }
+
+      for (const [f, label] of filesToRemove) {
+        try {
+          if (fs.existsSync(f)) {
+            fs.unlinkSync(f);
+            results.push(`- ${label}`);
+          }
+        } catch (err) {
+          results.push(`- ${label} (warning: ${err instanceof Error ? err.message : String(err)})`);
+        }
+      }
+
+      results.push('', 'Start a new plan with `upsert_active_plan` when you are ready.');
+      return results.join('\n');
+    });
+  } catch (err) {
+    return `Failed to reset session state: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+
+/**
+ * Returns guidance for mirroring Copilot hosted memory entries into memory.jsonl.
+ * The MCP server cannot read the Copilot hosted memory directly; this tool prompts
+ * the agent to extract and persist the durable facts it holds in context.
+ */
+export function syncHostedMemory(): string {
+  const memoryPath = getMemoryFilePath();
+  let entryCount = 0;
+  try {
+    const lines = fs.readFileSync(memoryPath, 'utf-8').split('\n').filter(Boolean);
+    entryCount = lines.length;
+  } catch {
+    // file may not exist yet
+  }
+
+  return [
+    '## Sync Hosted Memory → memory.jsonl',
+    '',
+    `Current \`memory.jsonl\` has **${entryCount}** entries.`,
+    '',
+    'Copilot hosted memory (the facts you have stored in this conversation) cannot be',
+    'read by the MCP server directly. To persist them durably:',
+    '',
+    '1. Review the facts you hold in hosted memory (use your memory search if available).',
+    '2. For each durable fact not yet in `memory.jsonl`, call `remember_repo_fact` with:',
+    '   - `title`: short descriptive title',
+    '   - `content`: the fact or decision',
+    '   - `category`: architecture | conventions | build | testing | security | pitfalls | decisions',
+    '   - `tags`: optional comma-separated tags',
+    '3. Repeat until all relevant hosted facts are mirrored.',
+    '',
+    '> Run `get_repo_memory` afterwards to verify the entries were written.',
+  ].join('\n');
 }
 
 export function searchFiles(query: string, filePattern?: string, caseSensitive = false): string {

@@ -300,6 +300,20 @@ export const MCP_TOOL_DEFINITIONS: McpToolDefinition[] = [
     },
     condition: always,
   },
+  // ── Tool #23: Session State Reset ─────────────────────────────────────────
+  {
+    name: 'reset_session_state',
+    description: 'Clears all session state files (active-plan.json, checkpoints.jsonl, failure-ledger.jsonl, compact-context.md, runtime-state.json). Call at the start of a new branch or task to prevent stale context from a previous session from bleeding into the current conversation.',
+    inputSchema: { type: 'object', properties: {} },
+    condition: always,
+  },
+  // ── Tool #24: Sync Hosted Memory ──────────────────────────────────────────
+  {
+    name: 'sync_hosted_memory',
+    description: 'Returns step-by-step guidance for mirroring durable facts from Copilot hosted memory into memory.jsonl. Use periodically in long sessions to ensure verified facts are not lost when the context window resets.',
+    inputSchema: { type: 'object', properties: {} },
+    condition: always,
+  },
 ];
 
 export function getMcpToolsForStack(stack: DetectedStack): Array<Omit<McpToolDefinition, 'condition'>> {

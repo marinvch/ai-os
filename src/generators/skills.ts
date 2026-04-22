@@ -138,6 +138,18 @@ interface GenerateSkillsOptions {
   strategy?: 'creator-only' | 'predefined+creator';
 }
 
+/** Remove a directory if it exists and is empty. Handles race conditions gracefully. */
+function removeIfEmpty(dir: string): void {
+  try {
+    if (fs.existsSync(dir) && fs.readdirSync(dir).length === 0) {
+      fs.rmSync(dir, { recursive: true });
+      console.log(`  🗑️  Removed empty skills directory: ${dir}`);
+    }
+  } catch {
+    // Directory may have been written to between the check and removal — skip silently.
+  }
+}
+
 async function generateSkillsWithOptions(
   stack: DetectedStack,
   cwd: string,
@@ -155,6 +167,8 @@ async function generateSkillsWithOptions(
         fs.rmSync(path.join(skillsDir, stale));
         console.log(`  🗑️  Pruned predefined skill (creator-only mode): ${stale}`);
       }
+      // Remove the directory itself if it is now empty.
+      removeIfEmpty(skillsDir);
     }
     return [];
   }
@@ -195,6 +209,8 @@ async function generateSkillsWithOptions(
         console.log(`  🗑️  Pruned stale skill: ${stale}`);
       }
     }
+    // Remove the directory itself if it is now empty.
+    removeIfEmpty(skillsDir);
   }
 
   return generatedPaths;

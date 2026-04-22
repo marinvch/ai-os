@@ -275,6 +275,20 @@ var MCP_TOOL_DEFINITIONS = [
       required: ["threshold"]
     },
     condition: always
+  },
+  // ── Tool #23: Session State Reset ─────────────────────────────────────────
+  {
+    name: "reset_session_state",
+    description: "Clears all session state files (active-plan.json, checkpoints.jsonl, failure-ledger.jsonl, compact-context.md, runtime-state.json). Call at the start of a new branch or task to prevent stale context from a previous session from bleeding into the current conversation.",
+    inputSchema: { type: "object", properties: {} },
+    condition: always
+  },
+  // ── Tool #24: Sync Hosted Memory ──────────────────────────────────────────
+  {
+    name: "sync_hosted_memory",
+    description: "Returns step-by-step guidance for mirroring durable facts from Copilot hosted memory into memory.jsonl. Use periodically in long sessions to ensure verified facts are not lost when the context window resets.",
+    inputSchema: { type: "object", properties: {} },
+    condition: always
   }
 ];
 function getAllMcpTools() {
@@ -325,7 +339,7 @@ function getLatestPublishedTagVersion() {
     );
     if (result.status !== 0 || !result.stdout) return null;
     const versions = result.stdout.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((line) => {
-      const match = line.match(/refs\/tags\/(v\d+\.\d+\.\d+)$/);
+      const match = line.match(/refs\/tags\/v(\d+\.\d+\.\d+)$/);
       return match?.[1] ?? null;
     }).filter((v) => v !== null);
     if (versions.length === 0) return null;
@@ -350,9 +364,7 @@ function getProjectRoot() {
 }
 function readAiOsFile(relPath) {
   try {
-    const newPath = path2.join(ROOT, ".github", "ai-os", relPath);
-    if (fs.existsSync(newPath)) return fs.readFileSync(newPath, "utf-8");
-    return fs.readFileSync(path2.join(ROOT, ".ai-os", relPath), "utf-8");
+    return fs.readFileSync(path2.join(ROOT, ".github", "ai-os", relPath), "utf-8");
   } catch {
     return "";
   }
@@ -367,14 +379,10 @@ var SESSION_LOCK_RETRY_MS = 30;
 var SESSION_CHECKPOINTS_CAP = 100;
 var SESSION_FAILURES_CAP = 50;
 function getMemoryFilePath() {
-  const newPath = path2.join(ROOT, ".github", "ai-os", "memory", "memory.jsonl");
-  const legacyPath = path2.join(ROOT, ".ai-os", "memory", "memory.jsonl");
-  return fs.existsSync(newPath) || !fs.existsSync(legacyPath) ? newPath : legacyPath;
+  return path2.join(ROOT, ".github", "ai-os", "memory", "memory.jsonl");
 }
 function getMemoryDirPath() {
-  const newPath = path2.join(ROOT, ".github", "ai-os", "memory");
-  const legacyPath = path2.join(ROOT, ".ai-os", "memory");
-  return fs.existsSync(newPath) || !fs.existsSync(legacyPath) ? newPath : legacyPath;
+  return path2.join(ROOT, ".github", "ai-os", "memory");
 }
 function getMemoryLockFilePath() {
   return path2.join(getMemoryDirPath(), ".memory.lock");
@@ -1126,6 +1134,77 @@ function setWatchdogThreshold(threshold) {
     return `Failed to set watchdog threshold: ${err instanceof Error ? err.message : String(err)}`;
   }
 }
+function resetSessionState() {
+  try {
+    return withSessionLock(() => {
+      const sessionDir = getSessionMemoryDirPath();
+      if (!fs.existsSync(sessionDir)) {
+        return "No session state found \u2014 nothing to reset.";
+      }
+      const results = ["Session state reset."];
+      const filesToClear = [
+        [getCheckpointLogPath(), "checkpoints.jsonl cleared"],
+        [getFailureLedgerPath(), "failure-ledger.jsonl cleared"]
+      ];
+      const filesToRemove = [
+        [getActivePlanPath(), "active-plan.json removed"],
+        [getCompactContextPath(), "compact-context.md removed"],
+        [getRuntimeStatePath(), "runtime-state.json removed"]
+      ];
+      for (const [f, label] of filesToClear) {
+        try {
+          if (fs.existsSync(f)) {
+            writeTextAtomic(f, "");
+            results.push(`- ${label}`);
+          }
+        } catch (err) {
+          results.push(`- ${label} (warning: ${err instanceof Error ? err.message : String(err)})`);
+        }
+      }
+      for (const [f, label] of filesToRemove) {
+        try {
+          if (fs.existsSync(f)) {
+            fs.unlinkSync(f);
+            results.push(`- ${label}`);
+          }
+        } catch (err) {
+          results.push(`- ${label} (warning: ${err instanceof Error ? err.message : String(err)})`);
+        }
+      }
+      results.push("", "Start a new plan with `upsert_active_plan` when you are ready.");
+      return results.join("\n");
+    });
+  } catch (err) {
+    return `Failed to reset session state: ${err instanceof Error ? err.message : String(err)}`;
+  }
+}
+function syncHostedMemory() {
+  const memoryPath = getMemoryFilePath();
+  let entryCount = 0;
+  try {
+    const lines = fs.readFileSync(memoryPath, "utf-8").split("\n").filter(Boolean);
+    entryCount = lines.length;
+  } catch {
+  }
+  return [
+    "## Sync Hosted Memory \u2192 memory.jsonl",
+    "",
+    `Current \`memory.jsonl\` has **${entryCount}** entries.`,
+    "",
+    "Copilot hosted memory (the facts you have stored in this conversation) cannot be",
+    "read by the MCP server directly. To persist them durably:",
+    "",
+    "1. Review the facts you hold in hosted memory (use your memory search if available).",
+    "2. For each durable fact not yet in `memory.jsonl`, call `remember_repo_fact` with:",
+    "   - `title`: short descriptive title",
+    "   - `content`: the fact or decision",
+    "   - `category`: architecture | conventions | build | testing | security | pitfalls | decisions",
+    "   - `tags`: optional comma-separated tags",
+    "3. Repeat until all relevant hosted facts are mirrored.",
+    "",
+    "> Run `get_repo_memory` afterwards to verify the entries were written."
+  ].join("\n");
+}
 function searchFiles(query, filePattern, caseSensitive = false) {
   try {
     const flags = caseSensitive ? "" : "-i";
@@ -1841,6 +1920,12 @@ function executeTool(toolName, input) {
       break;
     case "suggest_improvements":
       result = suggestImprovements();
+      break;
+    case "reset_session_state":
+      result = resetSessionState();
+      break;
+    case "sync_hosted_memory":
+      result = syncHostedMemory();
       break;
     default:
       result = `Unknown tool: ${toolName}`;

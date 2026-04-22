@@ -41,6 +41,8 @@ import {
   getSessionContext,
   getRecommendations,
   suggestImprovements,
+  resetSessionState,
+  syncHostedMemory,
 } from './utils.js';
 
 interface ToolInput {
@@ -202,6 +204,12 @@ function executeTool(toolName: string, input: ToolInput): string {
       break;
     case 'suggest_improvements':
       result = suggestImprovements();
+      break;
+    case 'reset_session_state':
+      result = resetSessionState();
+      break;
+    case 'sync_hosted_memory':
+      result = syncHostedMemory();
       break;
     default:
       result = `Unknown tool: ${toolName}`;

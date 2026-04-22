@@ -24,8 +24,8 @@ const [isOpen, setIsOpen] = useState(false);
 // Derived state — compute from props/state, don't sync
 const filteredItems = items.filter(i => i.active); // NOT useState
 
-// Shared state — lift to parent or use tRPC cache
-// No Redux, no Zustand — tRPC covers server state
+// Shared state — lift to parent or use your project's state solution
+// (Redux Toolkit, Zustand, context, or server-state library)
 ```
 
 ## Custom Hooks
@@ -77,6 +77,7 @@ if (error) return <ErrorBoundary error={error} />;
 const expensive = useMemo(() => heavyComputation(data), [data]); // justified
 const handler = useCallback(() => doSomething(), []); // justified for stable refs
 
-// Lazy load heavy components
-const PDFViewer = dynamic(() => import('./PDFViewer'), { ssr: false });
+// Lazy load heavy components (React.lazy + Suspense)
+const PDFViewer = React.lazy(() => import('./PDFViewer'));
+// Usage: <Suspense fallback={<Spinner />}><PDFViewer /></Suspense>
 ```
