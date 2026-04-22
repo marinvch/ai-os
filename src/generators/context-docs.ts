@@ -15,6 +15,7 @@ const DEFAULT_AI_OS_CONFIG: Omit<AiOsConfig, 'version' | 'installedAt' | 'projec
   agentFlowMode: 'create',
   persistentRules: [],
   exclude: ['node_modules', 'dist', '.next', '.nuxt', 'build', 'out'],
+  strictStackFiltering: true,
 };
 
 /** Read and return the existing AI OS config, or null. */
@@ -727,6 +728,7 @@ export function generateContextDocs(stack: DetectedStack, outputDir: string, opt
     agentFlowMode: existingConfig?.agentFlowMode ?? DEFAULT_AI_OS_CONFIG.agentFlowMode,
     persistentRules: existingConfig?.persistentRules ?? DEFAULT_AI_OS_CONFIG.persistentRules,
     exclude: existingConfig?.exclude ?? DEFAULT_AI_OS_CONFIG.exclude,
+    strictStackFiltering: existingConfig?.strictStackFiltering ?? DEFAULT_AI_OS_CONFIG.strictStackFiltering,
   };
 
   const aiOsDir = path.join(outputDir, '.github', 'ai-os');

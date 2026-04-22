@@ -138,7 +138,8 @@
       "path": "src/generators/instructions.ts",
       "imports": [
         "src/types.ts",
-        "src/generators/utils.ts"
+        "src/generators/utils.ts",
+        "src/mcp-tools.ts"
       ],
       "importedBy": [
         "src/generate.ts"
@@ -247,21 +248,29 @@
     },
     "src/mcp-server/tool-definitions.ts": {
       "path": "src/mcp-server/tool-definitions.ts",
-      "imports": [],
+      "imports": [
+        "src/mcp-tools.ts",
+        "src/mcp-server/utils.ts"
+      ],
       "importedBy": [
-        "src/mcp-server/index.ts"
+        "src/mcp-server/index.ts",
+        "src/tests/mcp-tool-definitions.test.ts"
       ],
       "exports": [
         "McpToolSchema",
         "McpToolDefinition",
-        "getAllMcpTools"
+        "getAllMcpTools",
+        "getActiveToolsForProject"
       ]
     },
     "src/mcp-server/utils.ts": {
       "path": "src/mcp-server/utils.ts",
-      "imports": [],
+      "imports": [
+        "src/updater.ts"
+      ],
       "importedBy": [
-        "src/mcp-server/index.ts"
+        "src/mcp-server/index.ts",
+        "src/mcp-server/tool-definitions.ts"
       ],
       "exports": [
         "getProjectRoot",
@@ -269,6 +278,14 @@
         "getMemoryGuidelines",
         "getRepoMemory",
         "rememberRepoFact",
+        "getActivePlan",
+        "upsertActivePlan",
+        "appendCheckpoint",
+        "closeCheckpoint",
+        "recordFailurePattern",
+        "compactSessionContext",
+        "recordToolCallAndRunWatchdog",
+        "setWatchdogThreshold",
         "searchFiles",
         "buildFileTree",
         "getPrismaSchema",
@@ -292,14 +309,19 @@
       ],
       "importedBy": [
         "src/generate.ts",
-        "src/generators/mcp.ts"
+        "src/generators/instructions.ts",
+        "src/generators/mcp.ts",
+        "src/mcp-server/tool-definitions.ts",
+        "src/tests/mcp-tool-definitions.test.ts"
       ],
       "exports": [
         "McpToolSchema",
         "McpToolDefinition",
         "MCP_TOOL_DEFINITIONS",
         "getMcpToolsForStack",
-        "getAllMcpTools"
+        "getAllMcpTools",
+        "McpToolsPartitioned",
+        "getMcpToolsPartitioned"
       ]
     },
     "src/planner.ts": {
@@ -366,6 +388,16 @@
       "importedBy": [],
       "exports": []
     },
+    "src/tests/mcp-tool-definitions.test.ts": {
+      "path": "src/tests/mcp-tool-definitions.test.ts",
+      "imports": [
+        "src/mcp-tools.ts",
+        "src/mcp-server/tool-definitions.ts",
+        "src/types.ts"
+      ],
+      "importedBy": [],
+      "exports": []
+    },
     "src/tests/memory-retrieval.test.ts": {
       "path": "src/tests/memory-retrieval.test.ts",
       "imports": [],
@@ -380,11 +412,23 @@
       "importedBy": [],
       "exports": []
     },
+    "src/tests/session-continuity.test.ts": {
+      "path": "src/tests/session-continuity.test.ts",
+      "imports": [],
+      "importedBy": [],
+      "exports": []
+    },
     "src/tests/skill-contract.test.ts": {
       "path": "src/tests/skill-contract.test.ts",
       "imports": [
         "src/validation/skill-contract.ts"
       ],
+      "importedBy": [],
+      "exports": []
+    },
+    "src/tests/updater.test.ts": {
+      "path": "src/tests/updater.test.ts",
+      "imports": [],
       "importedBy": [],
       "exports": []
     },
@@ -406,7 +450,8 @@
         "src/generators/workflows.ts",
         "src/mcp-tools.ts",
         "src/recommendations/index.ts",
-        "src/tests/generators.test.ts"
+        "src/tests/generators.test.ts",
+        "src/tests/mcp-tool-definitions.test.ts"
       ],
       "exports": [
         "DetectedLanguage",
@@ -425,12 +470,14 @@
       "imports": [],
       "importedBy": [
         "src/generate.ts",
-        "src/generators/context-docs.ts"
+        "src/generators/context-docs.ts",
+        "src/mcp-server/utils.ts"
       ],
       "exports": [
         "getToolVersion",
         "InstalledConfig",
         "readInstalledConfig",
+        "getLatestResolvableVersion",
         "UpdateStatus",
         "checkUpdateStatus",
         "printUpdateBanner",
@@ -528,6 +575,6 @@
       "exports": []
     }
   },
-  "generatedAt": "2026-04-20T03:49:59.843Z",
-  "fileCount": 39
+  "generatedAt": "2026-04-22T10:40:10.873Z",
+  "fileCount": 42
 }

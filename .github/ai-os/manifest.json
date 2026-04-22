@@ -1,10 +1,8 @@
 {
-  "version": "0.9.0",
-  "generatedAt": "2026-04-20T03:49:59.877Z",
+  "version": "0.9.1",
+  "generatedAt": "2026-04-22T10:40:10.883Z",
   "files": [
     ".github/COPILOT_CONTEXT.md",
-    ".github/agents/idea-validator.agent.md",
-    ".github/agents/implementation-agent.agent.md",
     ".github/ai-os/config.json",
     ".github/ai-os/context/architecture.md",
     ".github/ai-os/context/context-budget.md",

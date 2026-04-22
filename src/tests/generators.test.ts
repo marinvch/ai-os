@@ -10,7 +10,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import os from 'node:os';
 import { buildRecommendationsText, collectRecommendations } from '../recommendations/index.js';
-import type { DetectedStack, DetectedPatterns } from '../types.js';
+import type { DetectedStack, DetectedPatterns, AiOsConfig } from '../types.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -36,6 +36,31 @@ function makeStack(overrides: Partial<DetectedStack> = {}): DetectedStack {
     keyFiles: ['package.json', 'tsconfig.json'],
     patterns: BASE_PATTERNS,
     allDependencies: [],
+    ...overrides,
+  };
+}
+
+/** Minimal AiOsConfig for use in tests. Only overrides matter; all other fields get sensible defaults. */
+function makeConfig(overrides: Partial<AiOsConfig> = {}): AiOsConfig {
+  return {
+    version: '0.0.0',
+    installedAt: new Date().toISOString(),
+    projectName: 'test-project',
+    primaryLanguage: 'TypeScript',
+    primaryFramework: null,
+    frameworks: [],
+    packageManager: 'npm',
+    hasTypeScript: true,
+    agentsMd: false,
+    pathSpecificInstructions: true,
+    recommendations: true,
+    sessionContextCard: true,
+    updateCheckEnabled: true,
+    skillsStrategy: 'creator-only',
+    agentFlowMode: 'create',
+    persistentRules: [],
+    exclude: [],
+    strictStackFiltering: true,
     ...overrides,
   };
 }
@@ -711,5 +736,172 @@ describe('skills strategy', () => {
     expect(fs.existsSync(path.join(skillsDir, 'ai-os-nextjs-patterns.md'))).toBe(false);
 
     fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// strictStackFiltering — config flag and tools.json format
+// ---------------------------------------------------------------------------
+
+describe('strictStackFiltering', () => {
+  it('defaults config strictStackFiltering to true', async () => {
+    const { generateContextDocs } = await import('../generators/context-docs.js');
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+
+    const stack = makeStack();
+    const tmpDir = path.join(os.tmpdir(), 'ai-os-strict-filter-default-' + Date.now());
+    fs.mkdirSync(tmpDir, { recursive: true });
+
+    generateContextDocs(stack, tmpDir, { preserveContextFiles: false });
+
+    const configPath = path.join(tmpDir, '.github', 'ai-os', 'config.json');
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf-8')) as { strictStackFiltering?: boolean };
+    expect(config.strictStackFiltering).toBe(true);
+
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('preserves strictStackFiltering=false on refresh', async () => {
+    const { generateContextDocs } = await import('../generators/context-docs.js');
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+
+    const stack = makeStack();
+    const tmpDir = path.join(os.tmpdir(), 'ai-os-strict-filter-preserve-' + Date.now());
+    fs.mkdirSync(tmpDir, { recursive: true });
+
+    // Initial generation
+    generateContextDocs(stack, tmpDir, { preserveContextFiles: false });
+
+    // Manually set strictStackFiltering to false
+    const configPath = path.join(tmpDir, '.github', 'ai-os', 'config.json');
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf-8')) as Record<string, unknown>;
+    config['strictStackFiltering'] = false;
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf-8');
+
+    // Refresh — should preserve false
+    generateContextDocs(stack, tmpDir, { preserveContextFiles: false });
+
+    const refreshed = JSON.parse(fs.readFileSync(configPath, 'utf-8')) as { strictStackFiltering?: boolean };
+    expect(refreshed.strictStackFiltering).toBe(false);
+
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('generates tools.json with activeTools and availableButInactive for a minimal stack', async () => {
+    const { generateMcpJson } = await import('../generators/mcp.js');
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+
+    const stack = makeStack();
+    const tmpDir = path.join(os.tmpdir(), 'ai-os-tools-json-' + Date.now());
+    fs.mkdirSync(path.join(tmpDir, '.github', 'ai-os'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.vscode'), { recursive: true });
+
+    generateMcpJson(stack, tmpDir, { config: makeConfig({ strictStackFiltering: true }) });
+
+    const toolsJsonPath = path.join(tmpDir, '.github', 'ai-os', 'tools.json');
+    expect(fs.existsSync(toolsJsonPath)).toBe(true);
+
+    const toolsJson = JSON.parse(fs.readFileSync(toolsJsonPath, 'utf-8')) as { activeTools: unknown[]; availableButInactive: unknown[] };
+    expect(Array.isArray(toolsJson.activeTools)).toBe(true);
+    expect(Array.isArray(toolsJson.availableButInactive)).toBe(true);
+
+    // For a stack without Prisma/tRPC, those tools should be in availableButInactive
+    const activeNames = (toolsJson.activeTools as Array<{ name: string }>).map(t => t.name);
+    const inactiveNames = (toolsJson.availableButInactive as Array<{ name: string }>).map(t => t.name);
+    expect(activeNames).not.toContain('get_prisma_schema');
+    expect(inactiveNames).toContain('get_prisma_schema');
+    expect(activeNames).not.toContain('get_trpc_procedures');
+    expect(inactiveNames).toContain('get_trpc_procedures');
+
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('puts all tools in activeTools when strictStackFiltering=false', async () => {
+    const { generateMcpJson } = await import('../generators/mcp.js');
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+
+    const stack = makeStack();
+    const tmpDir = path.join(os.tmpdir(), 'ai-os-tools-json-nofilter-' + Date.now());
+    fs.mkdirSync(path.join(tmpDir, '.github', 'ai-os'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.vscode'), { recursive: true });
+
+    generateMcpJson(stack, tmpDir, { config: makeConfig({ strictStackFiltering: false }) });
+
+    const toolsJsonPath = path.join(tmpDir, '.github', 'ai-os', 'tools.json');
+    const toolsJson = JSON.parse(fs.readFileSync(toolsJsonPath, 'utf-8')) as { activeTools: unknown[]; availableButInactive: unknown[] };
+
+    expect(toolsJson.availableButInactive.length).toBe(0);
+    const activeNames = (toolsJson.activeTools as Array<{ name: string }>).map(t => t.name);
+    expect(activeNames).toContain('get_prisma_schema');
+    expect(activeNames).toContain('get_trpc_procedures');
+
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('excludes conditional inactive tools from ai-os.instructions.md table when strictStackFiltering=true', async () => {
+    const { generateInstructions } = await import('../generators/instructions.js');
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+
+    const stack = makeStack(); // no Prisma, no tRPC
+    const tmpDir = path.join(os.tmpdir(), 'ai-os-instr-filter-' + Date.now());
+    fs.mkdirSync(path.join(tmpDir, '.github'), { recursive: true });
+
+    generateInstructions(stack, tmpDir, {
+      refreshExisting: false,
+      config: makeConfig({ strictStackFiltering: true }),
+    });
+
+    const instructionsPath = path.join(tmpDir, '.github', 'instructions', 'ai-os.instructions.md');
+    const content = fs.readFileSync(instructionsPath, 'utf-8');
+
+    expect(content).not.toContain('get_prisma_schema');
+    expect(content).not.toContain('get_trpc_procedures');
+    expect(content).toContain('get_session_context');
+    expect(content).toContain('get_repo_memory');
+
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('includes get_prisma_schema in instructions table when Prisma is in the stack', async () => {
+    const { generateInstructions } = await import('../generators/instructions.js');
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+
+    const stack = makeStack({ allDependencies: ['prisma', '@prisma/client'] });
+    const tmpDir = path.join(os.tmpdir(), 'ai-os-instr-prisma-' + Date.now());
+    fs.mkdirSync(path.join(tmpDir, '.github'), { recursive: true });
+
+    generateInstructions(stack, tmpDir, {
+      refreshExisting: false,
+      config: makeConfig({ strictStackFiltering: true }),
+    });
+
+    const instructionsPath = path.join(tmpDir, '.github', 'instructions', 'ai-os.instructions.md');
+    const content = fs.readFileSync(instructionsPath, 'utf-8');
+
+    expect(content).toContain('get_prisma_schema');
+
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('recommendations doc separates stack-specific from universal skills', async () => {
+    const { buildRecommendationsText } = await import('../recommendations/index.js');
+
+    const stack = makeStack({
+      allDependencies: ['prisma', '@prisma/client'],
+      frameworks: [{ name: 'React', category: 'frontend', template: 'react', version: '18.0.0' }],
+    });
+
+    const text = buildRecommendationsText(stack);
+
+    // Stack-specific section header should be present
+    expect(text).toContain('## Stack-Specific Agent Skills');
+    // Universal section should be separate
+    expect(text).toContain('## Universal Skills (Optional)');
   });
 });

@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { DetectedStack, AiOsConfig } from '../types.js';
 import { writeIfChanged, resolveTemplatesDir } from './utils.js';
+import { getMcpToolsForStack, getAllMcpTools } from '../mcp-tools.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEMPLATES_DIR = resolveTemplatesDir(__dirname);
@@ -289,6 +290,54 @@ function buildPersistentRulesSection(persistentRules: string[], stack: DetectedS
   ].join('\n');
 }
 
+/** Canonical "When to call" descriptions for each MCP tool. */
+const TOOL_WHEN_TO_CALL: Record<string, string> = {
+  get_session_context: '**At session start** — reloads MUST-ALWAYS rules and key context',
+  get_project_structure: 'Before exploring unfamiliar directories',
+  get_stack_info: 'Before suggesting any library or tooling changes',
+  get_conventions: 'Before writing new code in this repo',
+  get_file_summary: 'To understand a file without reading it fully',
+  get_impact_of_change: '**Before editing any file** — shows blast radius',
+  get_dependency_chain: 'To trace how a module connects to the rest of the code',
+  search_codebase: 'To find symbols, patterns, or usage examples',
+  get_env_vars: 'Before referencing environment variables',
+  check_for_updates: 'To see if AI OS artifacts are out of date',
+  get_memory_guidelines: 'At task start to load memory safety protocol',
+  get_repo_memory: 'Before coding to recover durable repo decisions and constraints',
+  remember_repo_fact: 'After substantial tasks to persist verified learnings',
+  get_recommendations: 'To see stack-appropriate tools, extensions, and skills',
+  suggest_improvements: 'To surface architectural and tooling gaps',
+  get_prisma_schema: 'Before any database model changes — reads the full Prisma schema',
+  get_trpc_procedures: 'To inspect available tRPC procedures without reading the router file',
+  get_api_routes: 'To list all API routes before adding or modifying endpoints',
+  get_package_info: 'Before suggesting a library — checks installed versions to avoid API mismatch',
+  get_active_plan: 'After a context reset — restores the persisted task plan',
+  upsert_active_plan: 'When starting a non-trivial task — persists your plan across context resets',
+  append_checkpoint: 'To save progress during long tool-call sequences',
+  close_checkpoint: 'To mark a checkpoint as completed',
+  record_failure_pattern: 'When a repeated tool failure is identified — prevents re-attempting the same fix',
+  compact_session_context: 'When context utilization is high — compresses session state',
+  set_watchdog_threshold: 'To adjust the automatic checkpoint interval for the current session',
+};
+
+/**
+ * Builds the MCP tools table for ai-os.instructions.md.
+ * When strictStackFiltering is on, only active (stack-eligible) tools are shown.
+ * When off, all tools are shown.
+ */
+function buildToolsTable(stack: DetectedStack, strictFiltering: boolean): string[] {
+  const activeTools = strictFiltering ? getMcpToolsForStack(stack) : getAllMcpTools();
+  const lines: string[] = [
+    '| Tool | When to call |',
+    '|---|---|',
+  ];
+  for (const tool of activeTools) {
+    const when = TOOL_WHEN_TO_CALL[tool.name] ?? tool.description;
+    lines.push(`| \`${tool.name}\` | ${when} |`);
+  }
+  return lines;
+}
+
 /** Returns absolute paths of all managed files. */
 export function generateInstructions(stack: DetectedStack, outputDir: string, options?: GenerateInstructionsOptions): string[] {
   const base = readTemplate('base-instructions.md');
@@ -330,6 +379,9 @@ export function generateInstructions(stack: DetectedStack, outputDir: string, op
   // instructions on every request, enabling MCP tools without manual activation.
   const instructionsDir = path.join(githubDir, 'instructions');
 
+  const strictFiltering = config?.strictStackFiltering !== false;
+  const toolsTableLines = buildToolsTable(stack, strictFiltering);
+
   const autoActivationContent = [
     '---',
     'applyTo: "**"',
@@ -340,23 +392,7 @@ export function generateInstructions(stack: DetectedStack, outputDir: string, op
     'This repository uses **AI OS** for context-enriched Copilot assistance.',
     'The following MCP tools are available — use them proactively:',
     '',
-    '| Tool | When to call |',
-    '|---|---|',
-    '| `get_session_context` | **At session start** — reloads MUST-ALWAYS rules and key context |',
-    '| `get_project_structure` | Before exploring unfamiliar directories |',
-    '| `get_stack_info` | Before suggesting any library or tooling changes |',
-    '| `get_conventions` | Before writing new code in this repo |',
-    '| `get_file_summary` | To understand a file without reading it fully |',
-    '| `get_impact_of_change` | **Before editing any file** — shows blast radius |',
-    '| `get_dependency_chain` | To trace how a module connects to the rest of the code |',
-    '| `search_codebase` | To find symbols, patterns, or usage examples |',
-    '| `get_env_vars` | Before referencing environment variables |',
-    '| `check_for_updates` | To see if AI OS artifacts are out of date |',
-    '| `get_memory_guidelines` | At task start to load memory safety protocol |',
-    '| `get_repo_memory` | Before coding to recover durable repo decisions and constraints |',
-    '| `remember_repo_fact` | After substantial tasks to persist verified learnings |',
-    '| `get_recommendations` | To see stack-appropriate tools, extensions, and skills |',
-    '| `suggest_improvements` | To surface architectural and tooling gaps |',
+    ...toolsTableLines,
     '',
     '## Session Restart Protocol',
     '',

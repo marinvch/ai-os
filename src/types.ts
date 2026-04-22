@@ -122,4 +122,11 @@ export interface AiOsConfig {
    * - 'skip'    : do not generate sequential agents
    */
   agentFlowMode?: 'create' | 'hook' | 'skip';
+  /**
+   * When true (default), only expose MCP tools, skills, and recommendations relevant to the
+   * detected stack. Conditional tools (e.g. get_prisma_schema, get_trpc_procedures) are hidden
+   * from the MCP runtime tool list and the generated instructions table if not in the stack.
+   * Set to false to expose all tools regardless of stack (legacy behavior).
+   */
+  strictStackFiltering?: boolean;
 }

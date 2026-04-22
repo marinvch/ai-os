@@ -281,15 +281,6 @@ function getAllMcpTools() {
   return MCP_TOOL_DEFINITIONS.map(({ condition: _condition, ...tool }) => tool);
 }
 
-// src/mcp-server/tool-definitions.ts
-function getAllMcpTools2() {
-  return getAllMcpTools().map((tool) => ({
-    name: tool.name,
-    description: tool.description,
-    inputSchema: tool.inputSchema
-  }));
-}
-
 // src/mcp-server/utils.ts
 import { execSync } from "node:child_process";
 import fs from "node:fs";
@@ -325,7 +316,7 @@ function getLatestPublishedTagVersion() {
     );
     if (result.status !== 0 || !result.stdout) return null;
     const versions = result.stdout.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((line) => {
-      const match = line.match(/refs\/tags\/(v\d+\.\d+\.\d+)$/);
+      const match = line.match(/refs\/tags\/v(\d+\.\d+\.\d+)$/);
       return match?.[1] ?? null;
     }).filter((v) => v !== null);
     if (versions.length === 0) return null;
@@ -1722,6 +1713,37 @@ function suggestImprovements() {
   ].join("\n");
 }
 
+// src/mcp-server/tool-definitions.ts
+function readToolsJsonFromProject() {
+  const raw = readAiOsFile("tools.json");
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && "activeTools" in parsed) {
+      return parsed;
+    }
+    if (Array.isArray(parsed)) {
+      return { activeTools: parsed };
+    }
+  } catch {
+  }
+  return null;
+}
+function getAllMcpTools2() {
+  return getAllMcpTools().map((tool) => ({
+    name: tool.name,
+    description: tool.description,
+    inputSchema: tool.inputSchema
+  }));
+}
+function getActiveToolsForProject() {
+  const toolsJson = readToolsJsonFromProject();
+  if (toolsJson?.activeTools && toolsJson.activeTools.length > 0) {
+    return toolsJson.activeTools;
+  }
+  return getAllMcpTools2();
+}
+
 // src/mcp-server/index.ts
 function logDiagnostic(message) {
   if (process.env["AI_OS_MCP_DEBUG"] === "1") {
@@ -1897,7 +1919,7 @@ async function main() {
   }
   const session = await client.createSession({
     model: "gpt-4.1",
-    tools: getAllMcpTools2().map((tool) => ({
+    tools: getActiveToolsForProject().map((tool) => ({
       name: tool.name,
       description: tool.description,
       parameters: tool.inputSchema,
@@ -1942,7 +1964,7 @@ function handleJsonRpcMessage(raw) {
   const { id, method, params } = msg;
   if (method === "tools/list") {
     sendResponse(id, {
-      tools: getAllMcpTools2().map((tool) => ({
+      tools: getActiveToolsForProject().map((tool) => ({
         name: tool.name,
         description: tool.description,
         inputSchema: tool.inputSchema
@@ -1953,7 +1975,7 @@ function handleJsonRpcMessage(raw) {
   if (method === "tools/call") {
     const toolName = params?.name ?? "";
     const input = params?.arguments ?? {};
-    const toolExists = getAllMcpTools2().some((tool) => tool.name === toolName);
+    const toolExists = getActiveToolsForProject().some((tool) => tool.name === toolName);
     if (!toolExists) {
       sendError(id, -32601, `Unknown tool: ${toolName}`);
       return;

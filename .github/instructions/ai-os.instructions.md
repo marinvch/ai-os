@@ -9,21 +9,29 @@ The following MCP tools are available — use them proactively:
 
 | Tool | When to call |
 |---|---|
-| `get_session_context` | **At session start** — reloads MUST-ALWAYS rules and key context |
+| `search_codebase` | To find symbols, patterns, or usage examples |
 | `get_project_structure` | Before exploring unfamiliar directories |
-| `get_stack_info` | Before suggesting any library or tooling changes |
 | `get_conventions` | Before writing new code in this repo |
+| `get_stack_info` | Before suggesting any library or tooling changes |
 | `get_file_summary` | To understand a file without reading it fully |
+| `get_env_vars` | Before referencing environment variables |
+| `get_package_info` | Before suggesting a library — checks installed versions to avoid API mismatch |
 | `get_impact_of_change` | **Before editing any file** — shows blast radius |
 | `get_dependency_chain` | To trace how a module connects to the rest of the code |
-| `search_codebase` | To find symbols, patterns, or usage examples |
-| `get_env_vars` | Before referencing environment variables |
 | `check_for_updates` | To see if AI OS artifacts are out of date |
 | `get_memory_guidelines` | At task start to load memory safety protocol |
 | `get_repo_memory` | Before coding to recover durable repo decisions and constraints |
 | `remember_repo_fact` | After substantial tasks to persist verified learnings |
+| `get_active_plan` | After a context reset — restores the persisted task plan |
+| `upsert_active_plan` | When starting a non-trivial task — persists your plan across context resets |
+| `append_checkpoint` | To save progress during long tool-call sequences |
+| `close_checkpoint` | To mark a checkpoint as completed |
+| `record_failure_pattern` | When a repeated tool failure is identified — prevents re-attempting the same fix |
+| `compact_session_context` | When context utilization is high — compresses session state |
+| `get_session_context` | **At session start** — reloads MUST-ALWAYS rules and key context |
 | `get_recommendations` | To see stack-appropriate tools, extensions, and skills |
 | `suggest_improvements` | To surface architectural and tooling gaps |
+| `set_watchdog_threshold` | To adjust the automatic checkpoint interval for the current session |
 
 ## Session Restart Protocol
 

@@ -901,352 +901,6 @@ function resolveTemplatesDir(runtimeDir) {
   return candidates[0];
 }
 
-// src/generators/instructions.ts
-var __dirname = path6.dirname(fileURLToPath(import.meta.url));
-var TEMPLATES_DIR = resolveTemplatesDir(__dirname);
-function readTemplate(name) {
-  try {
-    return fs6.readFileSync(path6.join(TEMPLATES_DIR, name), "utf-8");
-  } catch {
-    return "";
-  }
-}
-function readFrameworkTemplate(templateKey) {
-  return readTemplate(path6.join("frameworks", `${templateKey}.md`));
-}
-function buildStackSummary(stack) {
-  const lines = [];
-  for (const lang of stack.languages.slice(0, 5)) {
-    lines.push(`- **${lang.name}** (${lang.percentage}% of codebase, ${lang.fileCount} files)`);
-  }
-  return lines.join("\n");
-}
-function buildKeyFilesList(stack) {
-  return stack.keyFiles.map((f) => `- \`${f}\``).join("\n");
-}
-function buildBuildCommandsSection(stack) {
-  const cmds = stack.buildCommands;
-  if (!cmds || Object.keys(cmds).filter((k) => cmds[k]).length === 0) return "";
-  const lines = [];
-  const orderedCommands = [];
-  const slots = ["build", "test", "dev", "lint", "start"];
-  for (const slot of slots) {
-    if (cmds[slot]) orderedCommands.push([slot.charAt(0).toUpperCase() + slot.slice(1), cmds[slot]]);
-  }
-  for (const [k, v] of Object.entries(cmds)) {
-    if (!slots.includes(k) && v) {
-      orderedCommands.push([k.charAt(0).toUpperCase() + k.slice(1), v]);
-    }
-  }
-  for (const [label, cmd] of orderedCommands) {
-    lines.push(`- **${label}:** \`${cmd}\``);
-  }
-  return lines.join("\n");
-}
-function buildPersonaDirective(stack) {
-  const fw = stack.primaryFramework?.name;
-  if (fw) return `Act as a Senior ${fw} developer with deep expertise in ${stack.primaryLanguage.name} and the full ${fw} ecosystem.`;
-  return `Act as a Senior ${stack.primaryLanguage.name} developer.`;
-}
-function fillTemplate(template, stack, frameworkOverlay) {
-  const frameworks = stack.frameworks.map((f) => f.name).join(", ") || stack.primaryLanguage.name;
-  const linter = stack.patterns.linter ?? "none detected";
-  const formatter = stack.patterns.formatter ?? "none detected";
-  const testFramework = stack.patterns.testFramework ?? "none detected";
-  const testDir = stack.patterns.testDirectory ?? "none detected";
-  const buildCommandsSection = buildBuildCommandsSection(stack);
-  return template.replace(/{{PROJECT_NAME}}/g, stack.projectName).replace(/{{PRIMARY_LANGUAGE}}/g, stack.primaryLanguage.name).replace(/{{FRAMEWORKS}}/g, frameworks).replace(/{{PACKAGE_MANAGER}}/g, stack.patterns.packageManager).replace(/{{HAS_TYPESCRIPT}}/g, stack.patterns.hasTypeScript ? "Yes" : "No").replace(/{{STACK_SUMMARY}}/g, buildStackSummary(stack)).replace(/{{NAMING_CONVENTION}}/g, stack.patterns.namingConvention).replace(/{{LINTER}}/g, linter).replace(/{{FORMATTER}}/g, formatter).replace(/{{TEST_FRAMEWORK}}/g, testFramework).replace(/{{TEST_DIRECTORY}}/g, testDir).replace(/{{KEY_FILES}}/g, buildKeyFilesList(stack)).replace(/{{BUILD_COMMANDS}}/g, buildCommandsSection).replace(/{{PERSONA_DIRECTIVE}}/g, buildPersonaDirective(stack)).replace(/{{FRAMEWORK_OVERLAY}}/g, frameworkOverlay);
-}
-function enforceSizeCap(content, maxBytes = 8192) {
-  const encoded = Buffer.byteLength(content, "utf-8");
-  if (encoded <= maxBytes) return content;
-  const cutIdx = content.lastIndexOf("\n---\n", Math.floor(content.length * (maxBytes / encoded)));
-  if (cutIdx > 0) {
-    const truncated = content.slice(0, cutIdx) + "\n\n<!-- [AI OS] content trimmed to stay within 8 KB Copilot budget -->\n";
-    if (Buffer.byteLength(truncated, "utf-8") <= maxBytes) return truncated;
-  }
-  const bytes = Buffer.from(content, "utf-8").slice(0, maxBytes - 100);
-  return bytes.toString("utf-8") + "\n\n<!-- [AI OS] truncated to 8 KB Copilot budget -->\n";
-}
-function generatePathSpecificInstructions(stack, githubDir) {
-  const files = [];
-  const root = path6.dirname(githubDir);
-  const instructionsDir = path6.join(githubDir, "instructions");
-  const fw = stack.primaryFramework?.name ?? "";
-  const primaryLang = stack.primaryLanguage.name;
-  const frontendPaths = ["src/app", "src/pages", "components", "pages", "app", "src/components"];
-  const hasFrontend = frontendPaths.some((p) => fs6.existsSync(path6.join(root, p)));
-  if (hasFrontend) {
-    const applyPaths = frontendPaths.filter((p2) => fs6.existsSync(path6.join(root, p2)));
-    const applyTo = applyPaths.map((p2) => `${p2}/**`).join(", ");
-    const content = [
-      "---",
-      `applyTo: "${applyTo}"`,
-      "---",
-      "",
-      `# Frontend Rules \u2014 ${stack.projectName}`,
-      "",
-      `- Use ${fw || primaryLang} conventions for all UI components`,
-      "- Prefer shared components in the detected components directory over new one-offs",
-      stack.patterns.hasTypeScript ? "- All component props must be typed (no `any`)" : "",
-      stack.patterns.namingConvention === "PascalCase" ? "- Component files: PascalCase (e.g. `MyButton.tsx`)" : `- Component files: ${stack.patterns.namingConvention}`,
-      stack.patterns.testFramework ? `- Co-locate component tests (*.test.tsx / *.spec.tsx) using ${stack.patterns.testFramework}` : ""
-    ].filter(Boolean).join("\n");
-    const p = path6.join(instructionsDir, "frontend.instructions.md");
-    writeIfChanged(p, content);
-    files.push(p);
-  }
-  const backendPaths = ["src/api", "server", "routes", "src/routes", "api", "src/server"];
-  const hasBackend = backendPaths.some((p) => fs6.existsSync(path6.join(root, p)));
-  if (hasBackend) {
-    const applyPaths = backendPaths.filter((p2) => fs6.existsSync(path6.join(root, p2)));
-    const applyTo = applyPaths.map((p2) => `${p2}/**`).join(", ");
-    const content = [
-      "---",
-      `applyTo: "${applyTo}"`,
-      "---",
-      "",
-      `# Backend Rules \u2014 ${stack.projectName}`,
-      "",
-      "- Validate all external inputs at API boundaries",
-      "- Never return raw error messages to clients \u2014 use structured error responses",
-      "- Scope all database queries by the authenticated user/owner",
-      stack.patterns.hasTypeScript ? "- Type all request/response payloads (no implicit `any`)" : "",
-      "- Use async/await over callback chains"
-    ].filter(Boolean).join("\n");
-    const p = path6.join(instructionsDir, "backend.instructions.md");
-    writeIfChanged(p, content);
-    files.push(p);
-  }
-  const testExts = ["test.ts", "test.tsx", "spec.ts", "spec.tsx", "test.js", "spec.js"];
-  const hasTestFiles = testExts.some((ext) => {
-    try {
-      const out = fs6.readdirSync(root).some((f) => f.endsWith(`.${ext}`));
-      return out;
-    } catch {
-      return false;
-    }
-  });
-  const hasTestDir = stack.patterns.testDirectory ? fs6.existsSync(path6.join(root, stack.patterns.testDirectory)) : false;
-  if (hasTestDir || stack.patterns.testFramework) {
-    const applyTo = "**/*.test.ts, **/*.test.tsx, **/*.spec.ts, **/*.spec.tsx, **/*.test.js, **/*.spec.js";
-    const content = [
-      "---",
-      `applyTo: "${applyTo}"`,
-      "---",
-      "",
-      `# Test Rules \u2014 ${stack.projectName}`,
-      "",
-      stack.patterns.testFramework ? `- Use ${stack.patterns.testFramework} as the test framework` : "- Use the existing test framework consistently",
-      stack.patterns.testDirectory ? `- Tests live in \`${stack.patterns.testDirectory}/\` or co-located (\`*.test.ts\`)` : "",
-      "- One assertion concept per test (avoid multiple unrelated assertions)",
-      '- Test descriptions must be descriptive: `it("returns 401 when token is missing")`',
-      "- Mock external services and databases in unit tests",
-      "- Do not import from `dist/` or `build/` in tests"
-    ].filter(Boolean).join("\n");
-    const p = path6.join(instructionsDir, "tests.instructions.md");
-    writeIfChanged(p, content);
-    files.push(p);
-  }
-  const schemaPaths = ["prisma", "migrations", "db/migrations", "src/db"];
-  const hasSchema = schemaPaths.some((p) => fs6.existsSync(path6.join(root, p)));
-  if (hasSchema || stack.allDependencies.includes("prisma") || stack.allDependencies.includes("@prisma/client")) {
-    const applyPaths = schemaPaths.filter((p2) => fs6.existsSync(path6.join(root, p2)));
-    const applyTo = applyPaths.length > 0 ? applyPaths.map((p2) => `${p2}/**`).join(", ") : "prisma/**, migrations/**";
-    const content = [
-      "---",
-      `applyTo: "${applyTo}"`,
-      "---",
-      "",
-      `# Schema & Migration Rules \u2014 ${stack.projectName}`,
-      "",
-      "- Call `get_prisma_schema` before any model changes",
-      "- Never delete columns in a single migration \u2014 deprecate then remove in the next release",
-      "- Add database indexes for all foreign keys and frequently queried fields",
-      "- Schema changes require a migration file \u2014 do not edit the schema without running migrate"
-    ].join("\n");
-    const p = path6.join(instructionsDir, "schema.instructions.md");
-    writeIfChanged(p, content);
-    files.push(p);
-  }
-  return files;
-}
-function buildPersistentRulesSection(persistentRules, stack) {
-  const detectedRules = [];
-  const root = stack.rootDir;
-  if (fs6.existsSync(path6.join(root, "src", "components", "ui"))) {
-    detectedRules.push("ALWAYS use shared components from `src/components/ui` before creating new UI components");
-  } else if (fs6.existsSync(path6.join(root, "components", "ui"))) {
-    detectedRules.push("ALWAYS use shared components from `components/ui` before creating new UI components");
-  } else if (fs6.existsSync(path6.join(root, "src", "components"))) {
-    detectedRules.push("ALWAYS check `src/components` for existing components before creating new ones");
-  } else if (fs6.existsSync(path6.join(root, "components"))) {
-    detectedRules.push("ALWAYS check `components/` for existing components before creating new ones");
-  }
-  const utilsPaths = ["src/lib", "src/utils", "lib", "utils"];
-  for (const up of utilsPaths) {
-    if (fs6.existsSync(path6.join(root, up))) {
-      detectedRules.push(`NEVER create utility functions outside \`${up}/\` \u2014 add them there instead`);
-      break;
-    }
-  }
-  const apiPaths = ["src/api", "src/routes", "api", "routes", "server/routes"];
-  for (const ap of apiPaths) {
-    if (fs6.existsSync(path6.join(root, ap))) {
-      detectedRules.push(`ALWAYS add new API routes inside \`${ap}/\` following the existing file structure`);
-      break;
-    }
-  }
-  const typePaths = ["src/types", "src/interfaces", "types", "interfaces"];
-  for (const tp of typePaths) {
-    if (fs6.existsSync(path6.join(root, tp))) {
-      detectedRules.push(`ALWAYS define shared types and interfaces in \`${tp}/\` \u2014 do not redeclare them inline`);
-      break;
-    }
-  }
-  if (stack.patterns.testDirectory) {
-    detectedRules.push(`ALWAYS place new test files in \`${stack.patterns.testDirectory}/\` or co-located with their source file`);
-  }
-  if (stack.patterns.hasTypeScript) {
-    detectedRules.push("NEVER use `any` as a type \u2014 use proper TypeScript types or `unknown`");
-  }
-  const allRules = [...persistentRules, ...detectedRules];
-  if (allRules.length === 0) return "";
-  return [
-    "",
-    "## Persistent Rules",
-    "",
-    "> These rules survive context window resets. They are enforced on every request.",
-    "",
-    ...allRules.map((r) => `- ${r}`)
-  ].join("\n");
-}
-function generateInstructions(stack, outputDir, options) {
-  const base = readTemplate("base-instructions.md");
-  if (!base) throw new Error("Base instructions template not found");
-  const config = options?.config;
-  const templateKeys = /* @__PURE__ */ new Set();
-  for (const fw of stack.frameworks) {
-    templateKeys.add(fw.template);
-  }
-  const overlays = [...templateKeys].map((k) => readFrameworkTemplate(k)).filter(Boolean).join("\n\n---\n\n");
-  let content = fillTemplate(base, stack, overlays || `## ${stack.primaryLanguage.name} Project
-
-No specific framework template found. Follow the general rules above.`);
-  const persistentRules = config?.persistentRules ?? [];
-  const persistentSection = buildPersistentRulesSection(persistentRules, stack);
-  if (persistentSection) {
-    content = content + persistentSection;
-  }
-  content = enforceSizeCap(content);
-  const githubDir = path6.join(outputDir, ".github");
-  const outputPath = path6.join(githubDir, "copilot-instructions.md");
-  if (!(options?.preserveContextFiles && fs6.existsSync(outputPath))) {
-    writeIfChanged(outputPath, content);
-  }
-  const instructionsDir = path6.join(githubDir, "instructions");
-  const autoActivationContent = [
-    "---",
-    'applyTo: "**"',
-    "---",
-    "",
-    `# AI OS \u2014 Active (${stack.projectName})`,
-    "",
-    "This repository uses **AI OS** for context-enriched Copilot assistance.",
-    "The following MCP tools are available \u2014 use them proactively:",
-    "",
-    "| Tool | When to call |",
-    "|---|---|",
-    "| `get_session_context` | **At session start** \u2014 reloads MUST-ALWAYS rules and key context |",
-    "| `get_project_structure` | Before exploring unfamiliar directories |",
-    "| `get_stack_info` | Before suggesting any library or tooling changes |",
-    "| `get_conventions` | Before writing new code in this repo |",
-    "| `get_file_summary` | To understand a file without reading it fully |",
-    "| `get_impact_of_change` | **Before editing any file** \u2014 shows blast radius |",
-    "| `get_dependency_chain` | To trace how a module connects to the rest of the code |",
-    "| `search_codebase` | To find symbols, patterns, or usage examples |",
-    "| `get_env_vars` | Before referencing environment variables |",
-    "| `check_for_updates` | To see if AI OS artifacts are out of date |",
-    "| `get_memory_guidelines` | At task start to load memory safety protocol |",
-    "| `get_repo_memory` | Before coding to recover durable repo decisions and constraints |",
-    "| `remember_repo_fact` | After substantial tasks to persist verified learnings |",
-    "| `get_recommendations` | To see stack-appropriate tools, extensions, and skills |",
-    "| `suggest_improvements` | To surface architectural and tooling gaps |",
-    "",
-    "## Session Restart Protocol",
-    "",
-    "**When starting a new conversation or after a context window reset:**",
-    "1. Call `get_session_context` \u2192 reloads MUST-ALWAYS rules, build commands, key files",
-    "2. Call `get_repo_memory` \u2192 reloads durable architectural decisions",
-    "3. Call `get_conventions` \u2192 reloads coding rules",
-    "",
-    "## Memory Protocol",
-    "",
-    "1. MUST start each non-trivial task by checking relevant repository memory.",
-    "2. Prioritize memory-backed constraints over assumptions.",
-    "3. MUST persist only verified durable facts and decisions at the end of the task.",
-    "4. Do not store speculative, duplicate, or transient status notes in repo memory.",
-    "",
-    "## Project-State Strategy",
-    "",
-    "Always start by reviewing `.github/copilot-instructions.md` and aligning it to the current repository state before implementation.",
-    "",
-    "1. **New Project Strategy:** Create a lightweight baseline first (stack, conventions, build/test commands, key paths). Keep instructions concise and expand only when new codepaths appear.",
-    "2. **Existing or Large Project Strategy:** Audit instruction drift first. If context is missing, fill architecture/build/pitfall gaps before coding so Copilot can reason with fewer retries and less token waste.",
-    "",
-    "## AI OS Value Mode",
-    "",
-    "Use AI OS to expand Copilot capabilities beyond default behavior:",
-    "",
-    "1. **Problem Understanding First:** Restate the objective in implementation terms, derive constraints and acceptance criteria from repo context and memory, and ask focused clarification when ambiguity changes behavior.",
-    "2. **Token Spending Discipline:** Prefer targeted retrieval tools before full reads, reuse loaded context, report deltas instead of repetition, and stop exploration when confidence is sufficient.",
-    "3. **User-Value Delivery:** Complete tasks end-to-end when feasible (implementation plus validation), surface tradeoffs and risks clearly, and optimize for reduced user effort.",
-    "",
-    "## Strict Behavior Guardrails",
-    "",
-    "1. MUST ask clarifying questions first when a request is ambiguous, underspecified, or outside described scope.",
-    "2. MUST NOT improvise requirements, API contracts, or migration scope beyond explicit instructions.",
-    "3. MUST avoid silent fallback for core runtime failures; return explicit diagnostics instead.",
-    "",
-    "### Allowed Actions",
-    "",
-    "- Read relevant context and repository memory before implementation.",
-    "- Apply minimal in-scope edits and validate with non-destructive checks.",
-    "",
-    "### Forbidden Actions",
-    "",
-    "- Destructive operations without explicit approval.",
-    "- Broad refactors or architecture changes without confirmation.",
-    "- Writing speculative or transient notes into repo memory.",
-    "",
-    "### Escalation Flow (When Ambiguous)",
-    "",
-    "1. State what is unclear and what assumptions would change behavior.",
-    "2. Ask focused clarifying question(s) with bounded options.",
-    "3. Continue after clarification; if unavailable, take safest minimal action and document limits.",
-    "",
-    "## Update AI OS",
-    "",
-    "If `check_for_updates` returns an available update, run:",
-    "```bash",
-    "npx -y github:marinvch/ai-os --refresh-existing",
-    "```",
-    "This refreshes all context docs, agent files, skills, and MCP tools in-place."
-  ].join("\n");
-  const autoActivationPath = path6.join(instructionsDir, "ai-os.instructions.md");
-  writeIfChanged(autoActivationPath, autoActivationContent);
-  const outputFiles = [outputPath, autoActivationPath];
-  if (config?.pathSpecificInstructions !== false) {
-    const pathSpecificFiles = generatePathSpecificInstructions(stack, githubDir);
-    outputFiles.push(...pathSpecificFiles);
-  }
-  return outputFiles;
-}
-
-// src/generators/mcp.ts
-import fs7 from "node:fs";
-import path7 from "node:path";
-
 // src/mcp-tools.ts
 var always = () => true;
 var MCP_TOOL_DEFINITIONS = [
@@ -1524,8 +1178,394 @@ var MCP_TOOL_DEFINITIONS = [
 function getMcpToolsForStack(stack) {
   return MCP_TOOL_DEFINITIONS.filter((tool) => tool.condition ? tool.condition(stack) : true).map(({ condition: _condition, ...tool }) => tool);
 }
+function getAllMcpTools() {
+  return MCP_TOOL_DEFINITIONS.map(({ condition: _condition, ...tool }) => tool);
+}
+function getMcpToolsPartitioned(stack, strictFiltering = true) {
+  const activeTools = [];
+  const availableButInactive = [];
+  for (const { condition, ...tool } of MCP_TOOL_DEFINITIONS) {
+    const isActive = !condition || condition(stack);
+    if (!strictFiltering || isActive) {
+      activeTools.push(tool);
+    } else {
+      availableButInactive.push(tool);
+    }
+  }
+  return { activeTools, availableButInactive };
+}
+
+// src/generators/instructions.ts
+var __dirname = path6.dirname(fileURLToPath(import.meta.url));
+var TEMPLATES_DIR = resolveTemplatesDir(__dirname);
+function readTemplate(name) {
+  try {
+    return fs6.readFileSync(path6.join(TEMPLATES_DIR, name), "utf-8");
+  } catch {
+    return "";
+  }
+}
+function readFrameworkTemplate(templateKey) {
+  return readTemplate(path6.join("frameworks", `${templateKey}.md`));
+}
+function buildStackSummary(stack) {
+  const lines = [];
+  for (const lang of stack.languages.slice(0, 5)) {
+    lines.push(`- **${lang.name}** (${lang.percentage}% of codebase, ${lang.fileCount} files)`);
+  }
+  return lines.join("\n");
+}
+function buildKeyFilesList(stack) {
+  return stack.keyFiles.map((f) => `- \`${f}\``).join("\n");
+}
+function buildBuildCommandsSection(stack) {
+  const cmds = stack.buildCommands;
+  if (!cmds || Object.keys(cmds).filter((k) => cmds[k]).length === 0) return "";
+  const lines = [];
+  const orderedCommands = [];
+  const slots = ["build", "test", "dev", "lint", "start"];
+  for (const slot of slots) {
+    if (cmds[slot]) orderedCommands.push([slot.charAt(0).toUpperCase() + slot.slice(1), cmds[slot]]);
+  }
+  for (const [k, v] of Object.entries(cmds)) {
+    if (!slots.includes(k) && v) {
+      orderedCommands.push([k.charAt(0).toUpperCase() + k.slice(1), v]);
+    }
+  }
+  for (const [label, cmd] of orderedCommands) {
+    lines.push(`- **${label}:** \`${cmd}\``);
+  }
+  return lines.join("\n");
+}
+function buildPersonaDirective(stack) {
+  const fw = stack.primaryFramework?.name;
+  if (fw) return `Act as a Senior ${fw} developer with deep expertise in ${stack.primaryLanguage.name} and the full ${fw} ecosystem.`;
+  return `Act as a Senior ${stack.primaryLanguage.name} developer.`;
+}
+function fillTemplate(template, stack, frameworkOverlay) {
+  const frameworks = stack.frameworks.map((f) => f.name).join(", ") || stack.primaryLanguage.name;
+  const linter = stack.patterns.linter ?? "none detected";
+  const formatter = stack.patterns.formatter ?? "none detected";
+  const testFramework = stack.patterns.testFramework ?? "none detected";
+  const testDir = stack.patterns.testDirectory ?? "none detected";
+  const buildCommandsSection = buildBuildCommandsSection(stack);
+  return template.replace(/{{PROJECT_NAME}}/g, stack.projectName).replace(/{{PRIMARY_LANGUAGE}}/g, stack.primaryLanguage.name).replace(/{{FRAMEWORKS}}/g, frameworks).replace(/{{PACKAGE_MANAGER}}/g, stack.patterns.packageManager).replace(/{{HAS_TYPESCRIPT}}/g, stack.patterns.hasTypeScript ? "Yes" : "No").replace(/{{STACK_SUMMARY}}/g, buildStackSummary(stack)).replace(/{{NAMING_CONVENTION}}/g, stack.patterns.namingConvention).replace(/{{LINTER}}/g, linter).replace(/{{FORMATTER}}/g, formatter).replace(/{{TEST_FRAMEWORK}}/g, testFramework).replace(/{{TEST_DIRECTORY}}/g, testDir).replace(/{{KEY_FILES}}/g, buildKeyFilesList(stack)).replace(/{{BUILD_COMMANDS}}/g, buildCommandsSection).replace(/{{PERSONA_DIRECTIVE}}/g, buildPersonaDirective(stack)).replace(/{{FRAMEWORK_OVERLAY}}/g, frameworkOverlay);
+}
+function enforceSizeCap(content, maxBytes = 8192) {
+  const encoded = Buffer.byteLength(content, "utf-8");
+  if (encoded <= maxBytes) return content;
+  const cutIdx = content.lastIndexOf("\n---\n", Math.floor(content.length * (maxBytes / encoded)));
+  if (cutIdx > 0) {
+    const truncated = content.slice(0, cutIdx) + "\n\n<!-- [AI OS] content trimmed to stay within 8 KB Copilot budget -->\n";
+    if (Buffer.byteLength(truncated, "utf-8") <= maxBytes) return truncated;
+  }
+  const bytes = Buffer.from(content, "utf-8").slice(0, maxBytes - 100);
+  return bytes.toString("utf-8") + "\n\n<!-- [AI OS] truncated to 8 KB Copilot budget -->\n";
+}
+function generatePathSpecificInstructions(stack, githubDir) {
+  const files = [];
+  const root = path6.dirname(githubDir);
+  const instructionsDir = path6.join(githubDir, "instructions");
+  const fw = stack.primaryFramework?.name ?? "";
+  const primaryLang = stack.primaryLanguage.name;
+  const frontendPaths = ["src/app", "src/pages", "components", "pages", "app", "src/components"];
+  const hasFrontend = frontendPaths.some((p) => fs6.existsSync(path6.join(root, p)));
+  if (hasFrontend) {
+    const applyPaths = frontendPaths.filter((p2) => fs6.existsSync(path6.join(root, p2)));
+    const applyTo = applyPaths.map((p2) => `${p2}/**`).join(", ");
+    const content = [
+      "---",
+      `applyTo: "${applyTo}"`,
+      "---",
+      "",
+      `# Frontend Rules \u2014 ${stack.projectName}`,
+      "",
+      `- Use ${fw || primaryLang} conventions for all UI components`,
+      "- Prefer shared components in the detected components directory over new one-offs",
+      stack.patterns.hasTypeScript ? "- All component props must be typed (no `any`)" : "",
+      stack.patterns.namingConvention === "PascalCase" ? "- Component files: PascalCase (e.g. `MyButton.tsx`)" : `- Component files: ${stack.patterns.namingConvention}`,
+      stack.patterns.testFramework ? `- Co-locate component tests (*.test.tsx / *.spec.tsx) using ${stack.patterns.testFramework}` : ""
+    ].filter(Boolean).join("\n");
+    const p = path6.join(instructionsDir, "frontend.instructions.md");
+    writeIfChanged(p, content);
+    files.push(p);
+  }
+  const backendPaths = ["src/api", "server", "routes", "src/routes", "api", "src/server"];
+  const hasBackend = backendPaths.some((p) => fs6.existsSync(path6.join(root, p)));
+  if (hasBackend) {
+    const applyPaths = backendPaths.filter((p2) => fs6.existsSync(path6.join(root, p2)));
+    const applyTo = applyPaths.map((p2) => `${p2}/**`).join(", ");
+    const content = [
+      "---",
+      `applyTo: "${applyTo}"`,
+      "---",
+      "",
+      `# Backend Rules \u2014 ${stack.projectName}`,
+      "",
+      "- Validate all external inputs at API boundaries",
+      "- Never return raw error messages to clients \u2014 use structured error responses",
+      "- Scope all database queries by the authenticated user/owner",
+      stack.patterns.hasTypeScript ? "- Type all request/response payloads (no implicit `any`)" : "",
+      "- Use async/await over callback chains"
+    ].filter(Boolean).join("\n");
+    const p = path6.join(instructionsDir, "backend.instructions.md");
+    writeIfChanged(p, content);
+    files.push(p);
+  }
+  const testExts = ["test.ts", "test.tsx", "spec.ts", "spec.tsx", "test.js", "spec.js"];
+  const hasTestFiles = testExts.some((ext) => {
+    try {
+      const out = fs6.readdirSync(root).some((f) => f.endsWith(`.${ext}`));
+      return out;
+    } catch {
+      return false;
+    }
+  });
+  const hasTestDir = stack.patterns.testDirectory ? fs6.existsSync(path6.join(root, stack.patterns.testDirectory)) : false;
+  if (hasTestDir || stack.patterns.testFramework) {
+    const applyTo = "**/*.test.ts, **/*.test.tsx, **/*.spec.ts, **/*.spec.tsx, **/*.test.js, **/*.spec.js";
+    const content = [
+      "---",
+      `applyTo: "${applyTo}"`,
+      "---",
+      "",
+      `# Test Rules \u2014 ${stack.projectName}`,
+      "",
+      stack.patterns.testFramework ? `- Use ${stack.patterns.testFramework} as the test framework` : "- Use the existing test framework consistently",
+      stack.patterns.testDirectory ? `- Tests live in \`${stack.patterns.testDirectory}/\` or co-located (\`*.test.ts\`)` : "",
+      "- One assertion concept per test (avoid multiple unrelated assertions)",
+      '- Test descriptions must be descriptive: `it("returns 401 when token is missing")`',
+      "- Mock external services and databases in unit tests",
+      "- Do not import from `dist/` or `build/` in tests"
+    ].filter(Boolean).join("\n");
+    const p = path6.join(instructionsDir, "tests.instructions.md");
+    writeIfChanged(p, content);
+    files.push(p);
+  }
+  const schemaPaths = ["prisma", "migrations", "db/migrations", "src/db"];
+  const hasSchema = schemaPaths.some((p) => fs6.existsSync(path6.join(root, p)));
+  if (hasSchema || stack.allDependencies.includes("prisma") || stack.allDependencies.includes("@prisma/client")) {
+    const applyPaths = schemaPaths.filter((p2) => fs6.existsSync(path6.join(root, p2)));
+    const applyTo = applyPaths.length > 0 ? applyPaths.map((p2) => `${p2}/**`).join(", ") : "prisma/**, migrations/**";
+    const content = [
+      "---",
+      `applyTo: "${applyTo}"`,
+      "---",
+      "",
+      `# Schema & Migration Rules \u2014 ${stack.projectName}`,
+      "",
+      "- Call `get_prisma_schema` before any model changes",
+      "- Never delete columns in a single migration \u2014 deprecate then remove in the next release",
+      "- Add database indexes for all foreign keys and frequently queried fields",
+      "- Schema changes require a migration file \u2014 do not edit the schema without running migrate"
+    ].join("\n");
+    const p = path6.join(instructionsDir, "schema.instructions.md");
+    writeIfChanged(p, content);
+    files.push(p);
+  }
+  return files;
+}
+function buildPersistentRulesSection(persistentRules, stack) {
+  const detectedRules = [];
+  const root = stack.rootDir;
+  if (fs6.existsSync(path6.join(root, "src", "components", "ui"))) {
+    detectedRules.push("ALWAYS use shared components from `src/components/ui` before creating new UI components");
+  } else if (fs6.existsSync(path6.join(root, "components", "ui"))) {
+    detectedRules.push("ALWAYS use shared components from `components/ui` before creating new UI components");
+  } else if (fs6.existsSync(path6.join(root, "src", "components"))) {
+    detectedRules.push("ALWAYS check `src/components` for existing components before creating new ones");
+  } else if (fs6.existsSync(path6.join(root, "components"))) {
+    detectedRules.push("ALWAYS check `components/` for existing components before creating new ones");
+  }
+  const utilsPaths = ["src/lib", "src/utils", "lib", "utils"];
+  for (const up of utilsPaths) {
+    if (fs6.existsSync(path6.join(root, up))) {
+      detectedRules.push(`NEVER create utility functions outside \`${up}/\` \u2014 add them there instead`);
+      break;
+    }
+  }
+  const apiPaths = ["src/api", "src/routes", "api", "routes", "server/routes"];
+  for (const ap of apiPaths) {
+    if (fs6.existsSync(path6.join(root, ap))) {
+      detectedRules.push(`ALWAYS add new API routes inside \`${ap}/\` following the existing file structure`);
+      break;
+    }
+  }
+  const typePaths = ["src/types", "src/interfaces", "types", "interfaces"];
+  for (const tp of typePaths) {
+    if (fs6.existsSync(path6.join(root, tp))) {
+      detectedRules.push(`ALWAYS define shared types and interfaces in \`${tp}/\` \u2014 do not redeclare them inline`);
+      break;
+    }
+  }
+  if (stack.patterns.testDirectory) {
+    detectedRules.push(`ALWAYS place new test files in \`${stack.patterns.testDirectory}/\` or co-located with their source file`);
+  }
+  if (stack.patterns.hasTypeScript) {
+    detectedRules.push("NEVER use `any` as a type \u2014 use proper TypeScript types or `unknown`");
+  }
+  const allRules = [...persistentRules, ...detectedRules];
+  if (allRules.length === 0) return "";
+  return [
+    "",
+    "## Persistent Rules",
+    "",
+    "> These rules survive context window resets. They are enforced on every request.",
+    "",
+    ...allRules.map((r) => `- ${r}`)
+  ].join("\n");
+}
+var TOOL_WHEN_TO_CALL = {
+  get_session_context: "**At session start** \u2014 reloads MUST-ALWAYS rules and key context",
+  get_project_structure: "Before exploring unfamiliar directories",
+  get_stack_info: "Before suggesting any library or tooling changes",
+  get_conventions: "Before writing new code in this repo",
+  get_file_summary: "To understand a file without reading it fully",
+  get_impact_of_change: "**Before editing any file** \u2014 shows blast radius",
+  get_dependency_chain: "To trace how a module connects to the rest of the code",
+  search_codebase: "To find symbols, patterns, or usage examples",
+  get_env_vars: "Before referencing environment variables",
+  check_for_updates: "To see if AI OS artifacts are out of date",
+  get_memory_guidelines: "At task start to load memory safety protocol",
+  get_repo_memory: "Before coding to recover durable repo decisions and constraints",
+  remember_repo_fact: "After substantial tasks to persist verified learnings",
+  get_recommendations: "To see stack-appropriate tools, extensions, and skills",
+  suggest_improvements: "To surface architectural and tooling gaps",
+  get_prisma_schema: "Before any database model changes \u2014 reads the full Prisma schema",
+  get_trpc_procedures: "To inspect available tRPC procedures without reading the router file",
+  get_api_routes: "To list all API routes before adding or modifying endpoints",
+  get_package_info: "Before suggesting a library \u2014 checks installed versions to avoid API mismatch",
+  get_active_plan: "After a context reset \u2014 restores the persisted task plan",
+  upsert_active_plan: "When starting a non-trivial task \u2014 persists your plan across context resets",
+  append_checkpoint: "To save progress during long tool-call sequences",
+  close_checkpoint: "To mark a checkpoint as completed",
+  record_failure_pattern: "When a repeated tool failure is identified \u2014 prevents re-attempting the same fix",
+  compact_session_context: "When context utilization is high \u2014 compresses session state",
+  set_watchdog_threshold: "To adjust the automatic checkpoint interval for the current session"
+};
+function buildToolsTable(stack, strictFiltering) {
+  const activeTools = strictFiltering ? getMcpToolsForStack(stack) : getAllMcpTools();
+  const lines = [
+    "| Tool | When to call |",
+    "|---|---|"
+  ];
+  for (const tool of activeTools) {
+    const when = TOOL_WHEN_TO_CALL[tool.name] ?? tool.description;
+    lines.push(`| \`${tool.name}\` | ${when} |`);
+  }
+  return lines;
+}
+function generateInstructions(stack, outputDir, options) {
+  const base = readTemplate("base-instructions.md");
+  if (!base) throw new Error("Base instructions template not found");
+  const config = options?.config;
+  const templateKeys = /* @__PURE__ */ new Set();
+  for (const fw of stack.frameworks) {
+    templateKeys.add(fw.template);
+  }
+  const overlays = [...templateKeys].map((k) => readFrameworkTemplate(k)).filter(Boolean).join("\n\n---\n\n");
+  let content = fillTemplate(base, stack, overlays || `## ${stack.primaryLanguage.name} Project
+
+No specific framework template found. Follow the general rules above.`);
+  const persistentRules = config?.persistentRules ?? [];
+  const persistentSection = buildPersistentRulesSection(persistentRules, stack);
+  if (persistentSection) {
+    content = content + persistentSection;
+  }
+  content = enforceSizeCap(content);
+  const githubDir = path6.join(outputDir, ".github");
+  const outputPath = path6.join(githubDir, "copilot-instructions.md");
+  if (!(options?.preserveContextFiles && fs6.existsSync(outputPath))) {
+    writeIfChanged(outputPath, content);
+  }
+  const instructionsDir = path6.join(githubDir, "instructions");
+  const strictFiltering = config?.strictStackFiltering !== false;
+  const toolsTableLines = buildToolsTable(stack, strictFiltering);
+  const autoActivationContent = [
+    "---",
+    'applyTo: "**"',
+    "---",
+    "",
+    `# AI OS \u2014 Active (${stack.projectName})`,
+    "",
+    "This repository uses **AI OS** for context-enriched Copilot assistance.",
+    "The following MCP tools are available \u2014 use them proactively:",
+    "",
+    ...toolsTableLines,
+    "",
+    "## Session Restart Protocol",
+    "",
+    "**When starting a new conversation or after a context window reset:**",
+    "1. Call `get_session_context` \u2192 reloads MUST-ALWAYS rules, build commands, key files",
+    "2. Call `get_repo_memory` \u2192 reloads durable architectural decisions",
+    "3. Call `get_conventions` \u2192 reloads coding rules",
+    "",
+    "## Memory Protocol",
+    "",
+    "1. MUST start each non-trivial task by checking relevant repository memory.",
+    "2. Prioritize memory-backed constraints over assumptions.",
+    "3. MUST persist only verified durable facts and decisions at the end of the task.",
+    "4. Do not store speculative, duplicate, or transient status notes in repo memory.",
+    "",
+    "## Project-State Strategy",
+    "",
+    "Always start by reviewing `.github/copilot-instructions.md` and aligning it to the current repository state before implementation.",
+    "",
+    "1. **New Project Strategy:** Create a lightweight baseline first (stack, conventions, build/test commands, key paths). Keep instructions concise and expand only when new codepaths appear.",
+    "2. **Existing or Large Project Strategy:** Audit instruction drift first. If context is missing, fill architecture/build/pitfall gaps before coding so Copilot can reason with fewer retries and less token waste.",
+    "",
+    "## AI OS Value Mode",
+    "",
+    "Use AI OS to expand Copilot capabilities beyond default behavior:",
+    "",
+    "1. **Problem Understanding First:** Restate the objective in implementation terms, derive constraints and acceptance criteria from repo context and memory, and ask focused clarification when ambiguity changes behavior.",
+    "2. **Token Spending Discipline:** Prefer targeted retrieval tools before full reads, reuse loaded context, report deltas instead of repetition, and stop exploration when confidence is sufficient.",
+    "3. **User-Value Delivery:** Complete tasks end-to-end when feasible (implementation plus validation), surface tradeoffs and risks clearly, and optimize for reduced user effort.",
+    "",
+    "## Strict Behavior Guardrails",
+    "",
+    "1. MUST ask clarifying questions first when a request is ambiguous, underspecified, or outside described scope.",
+    "2. MUST NOT improvise requirements, API contracts, or migration scope beyond explicit instructions.",
+    "3. MUST avoid silent fallback for core runtime failures; return explicit diagnostics instead.",
+    "",
+    "### Allowed Actions",
+    "",
+    "- Read relevant context and repository memory before implementation.",
+    "- Apply minimal in-scope edits and validate with non-destructive checks.",
+    "",
+    "### Forbidden Actions",
+    "",
+    "- Destructive operations without explicit approval.",
+    "- Broad refactors or architecture changes without confirmation.",
+    "- Writing speculative or transient notes into repo memory.",
+    "",
+    "### Escalation Flow (When Ambiguous)",
+    "",
+    "1. State what is unclear and what assumptions would change behavior.",
+    "2. Ask focused clarifying question(s) with bounded options.",
+    "3. Continue after clarification; if unavailable, take safest minimal action and document limits.",
+    "",
+    "## Update AI OS",
+    "",
+    "If `check_for_updates` returns an available update, run:",
+    "```bash",
+    "npx -y github:marinvch/ai-os --refresh-existing",
+    "```",
+    "This refreshes all context docs, agent files, skills, and MCP tools in-place."
+  ].join("\n");
+  const autoActivationPath = path6.join(instructionsDir, "ai-os.instructions.md");
+  writeIfChanged(autoActivationPath, autoActivationContent);
+  const outputFiles = [outputPath, autoActivationPath];
+  if (config?.pathSpecificInstructions !== false) {
+    const pathSpecificFiles = generatePathSpecificInstructions(stack, githubDir);
+    outputFiles.push(...pathSpecificFiles);
+  }
+  return outputFiles;
+}
 
 // src/generators/mcp.ts
+import fs7 from "node:fs";
+import path7 from "node:path";
 function writeMcpServerConfig(outputDir, options) {
   const mcpJsonPath = path7.join(outputDir, ".vscode", "mcp.json");
   let existing = {};
@@ -1549,11 +1589,12 @@ function writeMcpServerConfig(outputDir, options) {
   fs7.writeFileSync(mcpJsonPath, JSON.stringify(existing, null, 2) + "\n", "utf-8");
   return mcpJsonPath;
 }
-function generateMcpJson(stack, outputDir, _options) {
-  const allTools = getMcpToolsForStack(stack);
+function generateMcpJson(stack, outputDir, options) {
+  const strictFiltering = options?.config?.strictStackFiltering !== false;
+  const { activeTools, availableButInactive } = getMcpToolsPartitioned(stack, strictFiltering);
   writeMcpServerConfig(outputDir);
   const toolsJsonPath = path7.join(outputDir, ".github", "ai-os", "tools.json");
-  writeIfChanged(toolsJsonPath, JSON.stringify(allTools, null, 2));
+  writeIfChanged(toolsJsonPath, JSON.stringify({ activeTools, availableButInactive }, null, 2));
   return [toolsJsonPath];
 }
 
@@ -1792,7 +1833,7 @@ function getLatestPublishedTagVersion() {
     );
     if (result.status !== 0 || !result.stdout) return null;
     const versions = result.stdout.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((line) => {
-      const match = line.match(/refs\/tags\/(v\d+\.\d+\.\d+)$/);
+      const match = line.match(/refs\/tags\/v(\d+\.\d+\.\d+)$/);
       return match?.[1] ?? null;
     }).filter((v) => v !== null);
     if (versions.length === 0) return null;
@@ -1925,9 +1966,11 @@ var DEFAULT_AI_OS_CONFIG = {
   recommendations: true,
   sessionContextCard: true,
   updateCheckEnabled: true,
+  skillsStrategy: "creator-only",
   agentFlowMode: "create",
   persistentRules: [],
-  exclude: ["node_modules", "dist", ".next", ".nuxt", "build", "out"]
+  exclude: ["node_modules", "dist", ".next", ".nuxt", "build", "out"],
+  strictStackFiltering: true
 };
 function readAiOsConfig(outputDir) {
   const configPath = path10.join(outputDir, ".github", "ai-os", "config.json");
@@ -2544,9 +2587,11 @@ function generateContextDocs(stack, outputDir, options) {
     recommendations: existingConfig?.recommendations ?? DEFAULT_AI_OS_CONFIG.recommendations,
     sessionContextCard: existingConfig?.sessionContextCard ?? DEFAULT_AI_OS_CONFIG.sessionContextCard,
     updateCheckEnabled: existingConfig?.updateCheckEnabled ?? DEFAULT_AI_OS_CONFIG.updateCheckEnabled,
+    skillsStrategy: existingConfig?.skillsStrategy ?? DEFAULT_AI_OS_CONFIG.skillsStrategy,
     agentFlowMode: existingConfig?.agentFlowMode ?? DEFAULT_AI_OS_CONFIG.agentFlowMode,
     persistentRules: existingConfig?.persistentRules ?? DEFAULT_AI_OS_CONFIG.persistentRules,
-    exclude: existingConfig?.exclude ?? DEFAULT_AI_OS_CONFIG.exclude
+    exclude: existingConfig?.exclude ?? DEFAULT_AI_OS_CONFIG.exclude,
+    strictStackFiltering: existingConfig?.strictStackFiltering ?? DEFAULT_AI_OS_CONFIG.strictStackFiltering
   };
   const aiOsDir = path10.join(outputDir, ".github", "ai-os");
   writeIfChanged(track(path10.join(aiOsDir, "config.json")), JSON.stringify(config, null, 2));
@@ -3180,6 +3225,16 @@ function buildSkillSpecs(stack, cwd) {
 async function generateSkillsWithOptions(stack, cwd, options) {
   const skillsDir = path12.join(cwd, SKILLS_DIR);
   fs12.mkdirSync(skillsDir, { recursive: true });
+  if (options.strategy === "creator-only") {
+    if (options.refreshExisting && fs12.existsSync(skillsDir)) {
+      const onDisk = fs12.readdirSync(skillsDir).filter((f) => f.startsWith("ai-os-") && f.endsWith(".md"));
+      for (const stale of onDisk) {
+        fs12.rmSync(path12.join(skillsDir, stale));
+        console.log(`  \u{1F5D1}\uFE0F  Pruned predefined skill (creator-only mode): ${stale}`);
+      }
+    }
+    return [];
+  }
   const specs = buildSkillSpecs(stack, cwd);
   const generatedPaths = [];
   for (const spec of specs) {
@@ -3209,7 +3264,10 @@ async function generateSkillsWithOptions(stack, cwd, options) {
   return generatedPaths;
 }
 async function generateSkills(stack, cwd, options) {
-  return generateSkillsWithOptions(stack, cwd, { refreshExisting: options?.refreshExisting ?? false });
+  return generateSkillsWithOptions(stack, cwd, {
+    refreshExisting: options?.refreshExisting ?? false,
+    strategy: options?.strategy ?? "creator-only"
+  });
 }
 var BUNDLED_SKILLS = [
   { dirName: "skill-creator", label: "skill-creator" }
@@ -4139,15 +4197,35 @@ function generateRecommendationsDoc(stack, collected) {
     lines.push("```");
     lines.push("");
   }
-  if (collected.skills.length > 0) {
-    lines.push("## Agent Skills to Install", "");
-    for (const item of collected.skills) {
+  const stackSkills = collected.skills.filter((s) => s.trigger !== "universal");
+  const universalSkills = collected.skills.filter((s) => s.trigger === "universal");
+  if (stackSkills.length > 0) {
+    lines.push("## Stack-Specific Agent Skills", "");
+    lines.push("> These skills are recommended because they match your detected stack.");
+    lines.push("");
+    for (const item of stackSkills) {
       lines.push(`- **${item.name}** \u2014 for \`${item.trigger}\``);
     }
     lines.push("");
     lines.push("**Install via skills CLI:**");
     lines.push("```bash");
-    for (const item of collected.skills) {
+    for (const item of stackSkills) {
+      lines.push(`npx -y skills add --skill ${item.name} -g -a github-copilot`);
+    }
+    lines.push("```");
+    lines.push("");
+  }
+  if (universalSkills.length > 0) {
+    lines.push("## Universal Skills (Optional)", "");
+    lines.push("> These skills are generally useful but not specific to your stack.");
+    lines.push("");
+    for (const item of universalSkills) {
+      lines.push(`- **${item.name}**`);
+    }
+    lines.push("");
+    lines.push("**Install via skills CLI:**");
+    lines.push("```bash");
+    for (const item of universalSkills) {
       lines.push(`npx -y skills add --skill ${item.name} -g -a github-copilot`);
     }
     lines.push("```");
@@ -4354,7 +4432,7 @@ function printSummary(stack, outputDir, written, skipped, pruned, agents, preser
   console.log("");
 }
 function printContextualNextSteps(mode, onboardingPlan, updateStatus, recommendationsEnabled) {
-  const refreshCmd = `npx -y github:marinvch/ai-os#v${updateStatus.toolVersion} --refresh-existing`;
+  const refreshCmd = `npx -y "github:marinvch/ai-os#v${updateStatus.latestVersion}" --refresh-existing`;
   const recommendationsPath = ".github/ai-os/recommendations.md";
   const printInstructionStrategy = () => {
     console.log("  \u{1F4CC} First action after install/refresh:");
@@ -4582,13 +4660,18 @@ async function main() {
   const previousFiles = new Set(previousManifest?.files ?? []);
   const contextFiles = generateContextDocs(stack, cwd, { preserveContextFiles });
   const config = readAiOsConfig(cwd) ?? existingConfig;
+  const skillsStrategy = config?.skillsStrategy ?? "creator-only";
   const instructionFiles = generateInstructions(stack, cwd, { refreshExisting: mode === "refresh-existing", preserveContextFiles, config: config ?? void 0 });
-  const mcpFiles = generateMcpJson(stack, cwd, { refreshExisting: mode === "refresh-existing" });
+  const mcpFiles = generateMcpJson(stack, cwd, { refreshExisting: mode === "refresh-existing", config: config ?? void 0 });
   const agentFiles = await generateAgents(stack, cwd, { refreshExisting: mode === "refresh-existing", preserveExistingAgents: preserveContextFiles, config: config ?? void 0 });
-  const skillFiles = await generateSkills(stack, cwd, { refreshExisting: mode === "refresh-existing" });
+  const skillFiles = await generateSkills(stack, cwd, {
+    refreshExisting: mode === "refresh-existing",
+    strategy: skillsStrategy
+  });
   const promptFiles = await generatePrompts(stack, cwd, { refreshExisting: mode === "refresh-existing" });
   const workflowFiles = generateWorkflows(cwd, { config: config ?? void 0 });
   await deployBundledSkills(cwd, { refreshExisting: mode === "refresh-existing" });
+  console.log(`  \u{1F9E0} Skills strategy: ${skillsStrategy}`);
   const recommendationFiles = [];
   if (config?.recommendations !== false) {
     const recPath = generateRecommendations(stack, cwd);

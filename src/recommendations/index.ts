@@ -131,15 +131,40 @@ function generateRecommendationsDoc(stack: DetectedStack, collected: CollectedRe
     lines.push('');
   }
 
-  if (collected.skills.length > 0) {
-    lines.push('## Agent Skills to Install', '');
-    for (const item of collected.skills) {
+  // Split skills into stack-specific (triggered by a detected dep/framework) and
+  // universal/generic (triggered by 'universal'). Show stack skills first; move
+  // universal skills to a collapsed optional section so they don't obscure stack context.
+  const stackSkills = collected.skills.filter(s => s.trigger !== 'universal');
+  const universalSkills = collected.skills.filter(s => s.trigger === 'universal');
+
+  if (stackSkills.length > 0) {
+    lines.push('## Stack-Specific Agent Skills', '');
+    lines.push('> These skills are recommended because they match your detected stack.');
+    lines.push('');
+    for (const item of stackSkills) {
       lines.push(`- **${item.name}** — for \`${item.trigger}\``);
     }
     lines.push('');
     lines.push('**Install via skills CLI:**');
     lines.push('```bash');
-    for (const item of collected.skills) {
+    for (const item of stackSkills) {
+      lines.push(`npx -y skills add --skill ${item.name} -g -a github-copilot`);
+    }
+    lines.push('```');
+    lines.push('');
+  }
+
+  if (universalSkills.length > 0) {
+    lines.push('## Universal Skills (Optional)', '');
+    lines.push('> These skills are generally useful but not specific to your stack.');
+    lines.push('');
+    for (const item of universalSkills) {
+      lines.push(`- **${item.name}**`);
+    }
+    lines.push('');
+    lines.push('**Install via skills CLI:**');
+    lines.push('```bash');
+    for (const item of universalSkills) {
       lines.push(`npx -y skills add --skill ${item.name} -g -a github-copilot`);
     }
     lines.push('```');

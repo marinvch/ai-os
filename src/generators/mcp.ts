@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { DetectedStack } from '../types.js';
-import { getMcpToolsForStack } from '../mcp-tools.js';
+import type { DetectedStack, AiOsConfig } from '../types.js';
+import { getMcpToolsPartitioned } from '../mcp-tools.js';
 import { writeIfChanged } from './utils.js';
 
 interface McpServerConfig {
@@ -19,6 +19,7 @@ interface WriteMcpServerConfigOptions {
 
 interface GenerateMcpOptions {
   refreshExisting?: boolean;
+  config?: AiOsConfig;
 }
 
 /**
@@ -52,17 +53,19 @@ export function writeMcpServerConfig(outputDir: string, options?: WriteMcpServer
 }
 
 /** Returns absolute paths of all managed files (manifest-tracked). */
-export function generateMcpJson(stack: DetectedStack, outputDir: string, _options?: GenerateMcpOptions): string[] {
-  const allTools = getMcpToolsForStack(stack);
+export function generateMcpJson(stack: DetectedStack, outputDir: string, options?: GenerateMcpOptions): string[] {
+  const strictFiltering = options?.config?.strictStackFiltering !== false;
+  const { activeTools, availableButInactive } = getMcpToolsPartitioned(stack, strictFiltering);
 
   // Write the official VS Code MCP config (.vscode/mcp.json) with the ai-os
   // server entry. installLocalMcpRuntime() rewrites this entry with the resolved
   // local Node executable path for reliable startup, especially on Windows.
   writeMcpServerConfig(outputDir);
 
-  // Write tool definitions for reference
+  // Write tool definitions for reference — new format separates active (stack-eligible)
+  // tools from available-but-inactive ones so the MCP runtime can filter at startup.
   const toolsJsonPath = path.join(outputDir, '.github', 'ai-os', 'tools.json');
-  writeIfChanged(toolsJsonPath, JSON.stringify(allTools, null, 2));
+  writeIfChanged(toolsJsonPath, JSON.stringify({ activeTools, availableButInactive }, null, 2));
 
   // .vscode/mcp.json is intentionally NOT tracked in the AI OS manifest because
   // it is a shared config file that may contain user-added servers.

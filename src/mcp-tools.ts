@@ -311,3 +311,30 @@ export function getMcpToolsForStack(stack: DetectedStack): Array<Omit<McpToolDef
 export function getAllMcpTools(): Array<Omit<McpToolDefinition, 'condition'>> {
   return MCP_TOOL_DEFINITIONS.map(({ condition: _condition, ...tool }) => tool);
 }
+
+export interface McpToolsPartitioned {
+  /** Tools whose conditions match the detected stack (or have no condition). Always exposed. */
+  activeTools: Array<Omit<McpToolDefinition, 'condition'>>;
+  /** Tools whose conditions do NOT match the detected stack. Hidden when strictStackFiltering is on. */
+  availableButInactive: Array<Omit<McpToolDefinition, 'condition'>>;
+}
+
+/**
+ * Partitions MCP tools into active (stack-eligible) and inactive (not relevant for this stack).
+ * When `strictFiltering` is false, all tools are placed in activeTools.
+ */
+export function getMcpToolsPartitioned(stack: DetectedStack, strictFiltering = true): McpToolsPartitioned {
+  const activeTools: Array<Omit<McpToolDefinition, 'condition'>> = [];
+  const availableButInactive: Array<Omit<McpToolDefinition, 'condition'>> = [];
+
+  for (const { condition, ...tool } of MCP_TOOL_DEFINITIONS) {
+    const isActive = !condition || condition(stack);
+    if (!strictFiltering || isActive) {
+      activeTools.push(tool);
+    } else {
+      availableButInactive.push(tool);
+    }
+  }
+
+  return { activeTools, availableButInactive };
+}
