@@ -498,13 +498,31 @@ function checkMcpHealth(dir: string, fixtureName: string, results: CheckResult[]
   }
 
   results.push({ fixture: fixtureName, check: 'tools.json is valid JSON', passed: true });
+
+  // tools.json is now a structured object with `activeTools` and `availableButInactive` arrays
+  const isStructured =
+    toolsConfig !== null &&
+    typeof toolsConfig === 'object' &&
+    !Array.isArray(toolsConfig) &&
+    'activeTools' in (toolsConfig as object) &&
+    Array.isArray((toolsConfig as { activeTools: unknown }).activeTools);
+
   results.push({
     fixture: fixtureName,
-    check: 'tools.json contains MCP tool definitions',
-    passed: Array.isArray(toolsConfig) && toolsConfig.length > 0,
-    detail: Array.isArray(toolsConfig)
-      ? (toolsConfig.length > 0 ? undefined : 'tools.json is an empty array')
-      : 'tools.json is not an array',
+    check: 'tools.json contains activeTools section with MCP tool definitions',
+    passed: isStructured && ((toolsConfig as { activeTools: unknown[] }).activeTools.length > 0),
+    detail: isStructured
+      ? ((toolsConfig as { activeTools: unknown[] }).activeTools.length > 0 ? undefined : 'tools.json activeTools is empty')
+      : 'tools.json is missing activeTools array (expected structured format with activeTools and availableButInactive)',
+  });
+
+  results.push({
+    fixture: fixtureName,
+    check: 'tools.json contains availableButInactive section',
+    passed: isStructured && 'availableButInactive' in (toolsConfig as object) && Array.isArray((toolsConfig as { availableButInactive: unknown }).availableButInactive),
+    detail: isStructured && !('availableButInactive' in (toolsConfig as object))
+      ? 'tools.json is missing availableButInactive array'
+      : undefined,
   });
 }
 

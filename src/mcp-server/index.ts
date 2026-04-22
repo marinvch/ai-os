@@ -12,7 +12,7 @@
  * Note: @github/copilot-sdk is only required when passing --copilot flag
  */
 import path from 'node:path';
-import { getAllMcpTools, type McpToolDefinition } from './tool-definitions.js';
+import { getAllMcpTools, getActiveToolsForProject, type McpToolDefinition } from './tool-definitions.js';
 import {
   getProjectRoot,
   readAiOsFile,
@@ -279,7 +279,7 @@ async function main(): Promise<void> {
 
   const session = await client.createSession({
     model: 'gpt-4.1',
-    tools: getAllMcpTools().map((tool: McpToolDefinition) => ({
+    tools: getActiveToolsForProject().map((tool: McpToolDefinition) => ({
       name: tool.name,
       description: tool.description,
       parameters: tool.inputSchema as unknown as Record<string, unknown>,
@@ -342,7 +342,7 @@ function handleJsonRpcMessage(raw: string): void {
 
   if (method === 'tools/list') {
     sendResponse(id, {
-      tools: getAllMcpTools().map((tool: McpToolDefinition) => ({
+      tools: getActiveToolsForProject().map((tool: McpToolDefinition) => ({
         name: tool.name,
         description: tool.description,
         inputSchema: tool.inputSchema,
@@ -355,6 +355,7 @@ function handleJsonRpcMessage(raw: string): void {
     const toolName = (params?.name as string) ?? '';
     const input = (params?.arguments ?? {}) as ToolInput;
 
+    // Allow calling any tool by name (active or not) — listing is filtered but execution is not blocked
     const toolExists = getAllMcpTools().some((tool: McpToolDefinition) => tool.name === toolName);
     if (!toolExists) {
       sendError(id, -32601, `Unknown tool: ${toolName}`);

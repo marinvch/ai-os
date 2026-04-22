@@ -122,4 +122,11 @@ export interface AiOsConfig {
    * - 'skip'    : do not generate sequential agents
    */
   agentFlowMode?: 'create' | 'hook' | 'skip';
+  /**
+   * When true (default), generated artifacts (tools.json, recommendations.md, MCP tool list)
+   * show only items relevant to the detected stack. Stack-irrelevant tools/skills are tracked
+   * separately as `availableButInactive` in tools.json. Set to false to show all tools regardless
+   * of the detected stack (not recommended — causes context drift).
+   */
+  strictStackFiltering?: boolean;
 }

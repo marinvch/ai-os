@@ -713,3 +713,115 @@ describe('skills strategy', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 });
+
+// ---------------------------------------------------------------------------
+// strictStackFiltering — tools.json structure
+// ---------------------------------------------------------------------------
+
+describe('strictStackFiltering', () => {
+  it('generateMcpJson writes activeTools and availableButInactive sections with strictStackFiltering ON', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const { generateMcpJson } = await import('../generators/mcp.js');
+
+    const stack = makeStack({ allDependencies: ['react'] }); // no Prisma/tRPC
+    const tmpDir = path.join(os.tmpdir(), 'ai-os-strict-filter-' + Date.now());
+    fs.mkdirSync(path.join(tmpDir, '.github', 'ai-os'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.vscode'), { recursive: true });
+
+    generateMcpJson(stack, tmpDir, {
+      config: {
+        version: '0.0.0',
+        installedAt: new Date().toISOString(),
+        projectName: 'test',
+        primaryLanguage: 'TypeScript',
+        primaryFramework: null,
+        frameworks: [],
+        packageManager: 'npm',
+        hasTypeScript: true,
+        agentsMd: false,
+        pathSpecificInstructions: true,
+        recommendations: true,
+        sessionContextCard: true,
+        updateCheckEnabled: true,
+        persistentRules: [],
+        exclude: [],
+        strictStackFiltering: true,
+      },
+    });
+
+    const toolsJson = JSON.parse(fs.readFileSync(path.join(tmpDir, '.github', 'ai-os', 'tools.json'), 'utf-8')) as { activeTools: unknown[]; availableButInactive: unknown[] };
+    expect(Array.isArray(toolsJson.activeTools)).toBe(true);
+    expect(Array.isArray(toolsJson.availableButInactive)).toBe(true);
+
+    const activeNames = (toolsJson.activeTools as Array<{ name: string }>).map(t => t.name);
+    const inactiveNames = (toolsJson.availableButInactive as Array<{ name: string }>).map(t => t.name);
+
+    // Prisma/tRPC tools must be in inactive, not active, for a plain React stack
+    expect(activeNames).not.toContain('get_prisma_schema');
+    expect(activeNames).not.toContain('get_trpc_procedures');
+    expect(inactiveNames).toContain('get_prisma_schema');
+    expect(inactiveNames).toContain('get_trpc_procedures');
+
+    // Always-on tools must be in active
+    expect(activeNames).toContain('search_codebase');
+    expect(activeNames).toContain('get_project_structure');
+
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('generateMcpJson hides availableButInactive when strictStackFiltering is OFF', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const { generateMcpJson } = await import('../generators/mcp.js');
+
+    const stack = makeStack({ allDependencies: ['react'] });
+    const tmpDir = path.join(os.tmpdir(), 'ai-os-no-strict-filter-' + Date.now());
+    fs.mkdirSync(path.join(tmpDir, '.github', 'ai-os'), { recursive: true });
+    fs.mkdirSync(path.join(tmpDir, '.vscode'), { recursive: true });
+
+    generateMcpJson(stack, tmpDir, {
+      config: {
+        version: '0.0.0',
+        installedAt: new Date().toISOString(),
+        projectName: 'test',
+        primaryLanguage: 'TypeScript',
+        primaryFramework: null,
+        frameworks: [],
+        packageManager: 'npm',
+        hasTypeScript: true,
+        agentsMd: false,
+        pathSpecificInstructions: true,
+        recommendations: true,
+        sessionContextCard: true,
+        updateCheckEnabled: true,
+        persistentRules: [],
+        exclude: [],
+        strictStackFiltering: false,
+      },
+    });
+
+    const toolsJson = JSON.parse(fs.readFileSync(path.join(tmpDir, '.github', 'ai-os', 'tools.json'), 'utf-8')) as { activeTools: unknown[]; availableButInactive: unknown[] };
+    // With strictStackFiltering OFF, availableButInactive is empty (all included in active)
+    expect(Array.isArray(toolsJson.availableButInactive)).toBe(true);
+    expect(toolsJson.availableButInactive.length).toBe(0);
+    // But active tools still only contains stack-matching tools
+    const activeNames = (toolsJson.activeTools as Array<{ name: string }>).map(t => t.name);
+    expect(activeNames).not.toContain('get_prisma_schema');
+
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('collectRecommendations does not include Prisma/tRPC for a React+RTK project', () => {
+    const stack = makeStack({
+      allDependencies: ['react', '@reduxjs/toolkit', 'react-redux', 'vite'],
+      frameworks: [{ name: 'React', category: 'frontend', template: 'react' }],
+    });
+    const recs = collectRecommendations(stack);
+    const skillNames = recs.skills.map(s => s.name);
+    const mcpPkgs = recs.mcp.map(m => m.package);
+    expect(skillNames).not.toContain('prisma');
+    expect(skillNames).not.toContain('trpc');
+    expect(mcpPkgs).not.toContain('prisma/mcp-server');
+  });
+});

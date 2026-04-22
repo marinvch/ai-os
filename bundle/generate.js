@@ -1524,6 +1524,9 @@ var MCP_TOOL_DEFINITIONS = [
 function getMcpToolsForStack(stack) {
   return MCP_TOOL_DEFINITIONS.filter((tool) => tool.condition ? tool.condition(stack) : true).map(({ condition: _condition, ...tool }) => tool);
 }
+function getInactiveMcpTools(stack) {
+  return MCP_TOOL_DEFINITIONS.filter((tool) => tool.condition && !tool.condition(stack)).map(({ condition: _condition, ...tool }) => tool);
+}
 
 // src/generators/mcp.ts
 function writeMcpServerConfig(outputDir, options) {
@@ -1549,11 +1552,14 @@ function writeMcpServerConfig(outputDir, options) {
   fs7.writeFileSync(mcpJsonPath, JSON.stringify(existing, null, 2) + "\n", "utf-8");
   return mcpJsonPath;
 }
-function generateMcpJson(stack, outputDir, _options) {
-  const allTools = getMcpToolsForStack(stack);
+function generateMcpJson(stack, outputDir, options) {
+  const activeTools = getMcpToolsForStack(stack);
+  const strictFiltering = options?.config?.strictStackFiltering ?? true;
   writeMcpServerConfig(outputDir);
   const toolsJsonPath = path7.join(outputDir, ".github", "ai-os", "tools.json");
-  writeIfChanged(toolsJsonPath, JSON.stringify(allTools, null, 2));
+  const inactiveTools = getInactiveMcpTools(stack);
+  const toolsPayload = strictFiltering ? { activeTools, availableButInactive: inactiveTools } : { activeTools, availableButInactive: [] };
+  writeIfChanged(toolsJsonPath, JSON.stringify(toolsPayload, null, 2));
   return [toolsJsonPath];
 }
 
@@ -1792,7 +1798,7 @@ function getLatestPublishedTagVersion() {
     );
     if (result.status !== 0 || !result.stdout) return null;
     const versions = result.stdout.split(/\r?\n/).map((line) => line.trim()).filter(Boolean).map((line) => {
-      const match = line.match(/refs\/tags\/(v\d+\.\d+\.\d+)$/);
+      const match = line.match(/refs\/tags\/v(\d+\.\d+\.\d+)$/);
       return match?.[1] ?? null;
     }).filter((v) => v !== null);
     if (versions.length === 0) return null;
@@ -1925,7 +1931,9 @@ var DEFAULT_AI_OS_CONFIG = {
   recommendations: true,
   sessionContextCard: true,
   updateCheckEnabled: true,
+  skillsStrategy: "creator-only",
   agentFlowMode: "create",
+  strictStackFiltering: true,
   persistentRules: [],
   exclude: ["node_modules", "dist", ".next", ".nuxt", "build", "out"]
 };
@@ -2544,6 +2552,7 @@ function generateContextDocs(stack, outputDir, options) {
     recommendations: existingConfig?.recommendations ?? DEFAULT_AI_OS_CONFIG.recommendations,
     sessionContextCard: existingConfig?.sessionContextCard ?? DEFAULT_AI_OS_CONFIG.sessionContextCard,
     updateCheckEnabled: existingConfig?.updateCheckEnabled ?? DEFAULT_AI_OS_CONFIG.updateCheckEnabled,
+    skillsStrategy: existingConfig?.skillsStrategy ?? DEFAULT_AI_OS_CONFIG.skillsStrategy,
     agentFlowMode: existingConfig?.agentFlowMode ?? DEFAULT_AI_OS_CONFIG.agentFlowMode,
     persistentRules: existingConfig?.persistentRules ?? DEFAULT_AI_OS_CONFIG.persistentRules,
     exclude: existingConfig?.exclude ?? DEFAULT_AI_OS_CONFIG.exclude
@@ -3180,6 +3189,16 @@ function buildSkillSpecs(stack, cwd) {
 async function generateSkillsWithOptions(stack, cwd, options) {
   const skillsDir = path12.join(cwd, SKILLS_DIR);
   fs12.mkdirSync(skillsDir, { recursive: true });
+  if (options.strategy === "creator-only") {
+    if (options.refreshExisting && fs12.existsSync(skillsDir)) {
+      const onDisk = fs12.readdirSync(skillsDir).filter((f) => f.startsWith("ai-os-") && f.endsWith(".md"));
+      for (const stale of onDisk) {
+        fs12.rmSync(path12.join(skillsDir, stale));
+        console.log(`  \u{1F5D1}\uFE0F  Pruned predefined skill (creator-only mode): ${stale}`);
+      }
+    }
+    return [];
+  }
   const specs = buildSkillSpecs(stack, cwd);
   const generatedPaths = [];
   for (const spec of specs) {
@@ -3209,7 +3228,10 @@ async function generateSkillsWithOptions(stack, cwd, options) {
   return generatedPaths;
 }
 async function generateSkills(stack, cwd, options) {
-  return generateSkillsWithOptions(stack, cwd, { refreshExisting: options?.refreshExisting ?? false });
+  return generateSkillsWithOptions(stack, cwd, {
+    refreshExisting: options?.refreshExisting ?? false,
+    strategy: options?.strategy ?? "creator-only"
+  });
 }
 var BUNDLED_SKILLS = [
   { dirName: "skill-creator", label: "skill-creator" }
@@ -4354,7 +4376,7 @@ function printSummary(stack, outputDir, written, skipped, pruned, agents, preser
   console.log("");
 }
 function printContextualNextSteps(mode, onboardingPlan, updateStatus, recommendationsEnabled) {
-  const refreshCmd = `npx -y github:marinvch/ai-os#v${updateStatus.toolVersion} --refresh-existing`;
+  const refreshCmd = `npx -y "github:marinvch/ai-os#v${updateStatus.latestVersion}" --refresh-existing`;
   const recommendationsPath = ".github/ai-os/recommendations.md";
   const printInstructionStrategy = () => {
     console.log("  \u{1F4CC} First action after install/refresh:");
@@ -4582,13 +4604,18 @@ async function main() {
   const previousFiles = new Set(previousManifest?.files ?? []);
   const contextFiles = generateContextDocs(stack, cwd, { preserveContextFiles });
   const config = readAiOsConfig(cwd) ?? existingConfig;
+  const skillsStrategy = config?.skillsStrategy ?? "creator-only";
   const instructionFiles = generateInstructions(stack, cwd, { refreshExisting: mode === "refresh-existing", preserveContextFiles, config: config ?? void 0 });
-  const mcpFiles = generateMcpJson(stack, cwd, { refreshExisting: mode === "refresh-existing" });
+  const mcpFiles = generateMcpJson(stack, cwd, { refreshExisting: mode === "refresh-existing", config: config ?? void 0 });
   const agentFiles = await generateAgents(stack, cwd, { refreshExisting: mode === "refresh-existing", preserveExistingAgents: preserveContextFiles, config: config ?? void 0 });
-  const skillFiles = await generateSkills(stack, cwd, { refreshExisting: mode === "refresh-existing" });
+  const skillFiles = await generateSkills(stack, cwd, {
+    refreshExisting: mode === "refresh-existing",
+    strategy: skillsStrategy
+  });
   const promptFiles = await generatePrompts(stack, cwd, { refreshExisting: mode === "refresh-existing" });
   const workflowFiles = generateWorkflows(cwd, { config: config ?? void 0 });
   await deployBundledSkills(cwd, { refreshExisting: mode === "refresh-existing" });
+  console.log(`  \u{1F9E0} Skills strategy: ${skillsStrategy}`);
   const recommendationFiles = [];
   if (config?.recommendations !== false) {
     const recPath = generateRecommendations(stack, cwd);

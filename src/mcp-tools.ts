@@ -308,6 +308,12 @@ export function getMcpToolsForStack(stack: DetectedStack): Array<Omit<McpToolDef
     .map(({ condition: _condition, ...tool }) => tool);
 }
 
+export function getInactiveMcpTools(stack: DetectedStack): Array<Omit<McpToolDefinition, 'condition'>> {
+  return MCP_TOOL_DEFINITIONS
+    .filter((tool) => tool.condition && !tool.condition(stack))
+    .map(({ condition: _condition, ...tool }) => tool);
+}
+
 export function getAllMcpTools(): Array<Omit<McpToolDefinition, 'condition'>> {
   return MCP_TOOL_DEFINITIONS.map(({ condition: _condition, ...tool }) => tool);
 }
