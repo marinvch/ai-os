@@ -163,8 +163,8 @@ function checkMcpCommandResolves(cwd: string): DoctorCheck {
     };
   }
 
-  const command: string = entry.command ?? 'node';
-  const args: string[] = entry.args ?? [];
+  const command = entry.command ?? 'node';
+  const args = entry.args ?? [];
 
   // Expand ${workspaceFolder} placeholder using cwd
   const resolvedArgs = args.map(a =>
