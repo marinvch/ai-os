@@ -403,11 +403,12 @@ function readMemoryConfig(): { ttlDays: number; nearDuplicateThreshold: number }
 /**
  * Compute Jaccard similarity between two strings based on their word-sets.
  * Returns a value in [0, 1] where 1 means identical word sets.
+ * Returns 0 when either string produces an empty word set (empty/whitespace-only
+ * inputs should never be treated as duplicates of each other).
  */
 function jaccardSimilarity(a: string, b: string): number {
   const wordsA = new Set(a.toLowerCase().split(/\W+/).filter(Boolean));
   const wordsB = new Set(b.toLowerCase().split(/\W+/).filter(Boolean));
-  if (wordsA.size === 0 && wordsB.size === 0) return 1;
   if (wordsA.size === 0 || wordsB.size === 0) return 0;
   let intersection = 0;
   for (const word of wordsA) {

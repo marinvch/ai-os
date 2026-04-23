@@ -157,3 +157,4 @@ export interface AiOsConfig {
    * Range: 0.5–1.0. Default: 0.85.
    */
   memoryNearDuplicateThreshold?: number;
+}

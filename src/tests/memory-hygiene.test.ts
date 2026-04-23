@@ -41,7 +41,7 @@ describe('memory hygiene — near-duplicate detection', () => {
       createdAt: thirtyDaysAgo,
       updatedAt: thirtyDaysAgo,
       title: 'Build command',
-      // Jaccard similarity with a2 content: 13/15 ≈ 0.867 > 0.85 threshold
+    // Jaccard similarity: 13 shared words / 15 union words ≈ 0.867, above default 0.85 threshold
       content: 'Use npm run build to compile TypeScript sources and generate the distribution bundle output',
       category: 'build',
       tags: [],
