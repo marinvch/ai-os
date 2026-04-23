@@ -59,7 +59,8 @@ export const PROFILE_PRESETS: Record<InstallProfile, ProfileFlags> = {
 };
 
 /**
- * Apply profile flags to an existing config object (mutates and returns it).
+ * Apply profile flags to a config object and return a new config with the
+ * profile applied.  The original object is not mutated.
  * Profile-controlled fields are overwritten; all other fields are preserved.
  */
 export function applyProfile(config: AiOsConfig, profile: InstallProfile): AiOsConfig {
