@@ -1,6 +1,7 @@
 import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 import {
   captureContextSnapshot,
@@ -13,7 +14,7 @@ import {
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 function makeTempDir(): string {
-  const dir = path.join(os.tmpdir(), `ai-os-freshness-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  const dir = path.join(os.tmpdir(), `ai-os-freshness-${Date.now()}-${crypto.randomBytes(8).toString('hex')}`);
   fs.mkdirSync(dir, { recursive: true });
   return dir;
 }

@@ -147,18 +147,12 @@ export function captureContextSnapshot(rootDir: string, aiOsVersion: string): Co
   }
 
   // Also capture a structural hash of the src/ directory if it exists
+  let trackedFileCount = Object.keys(sourceHashes).length;
   const srcDir = path.join(rootDir, 'src');
   if (fs.existsSync(srcDir)) {
     const { count, hash } = hashDirectory(srcDir);
     sourceHashes['src/'] = hash;
-    const snapshot: ContextSnapshot = {
-      capturedAt: new Date().toISOString(),
-      aiOsVersion,
-      artifactHashes,
-      sourceHashes,
-      trackedFileCount: count,
-    };
-    return snapshot;
+    trackedFileCount = count;
   }
 
   return {
@@ -166,7 +160,7 @@ export function captureContextSnapshot(rootDir: string, aiOsVersion: string): Co
     aiOsVersion,
     artifactHashes,
     sourceHashes,
-    trackedFileCount: Object.keys(sourceHashes).length,
+    trackedFileCount,
   };
 }
 
@@ -307,7 +301,7 @@ export function computeFreshnessReport(rootDir: string): FreshnessReport {
   }
 
   return {
-    score: Math.round(score * 100) / 100,
+    score,
     status,
     staleArtifacts,
     changedSourceFiles,
