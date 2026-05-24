@@ -18,19 +18,23 @@ See [docs/architecture.md](architecture.md) for the full component map and data 
 
 ```bash
 npm run build           # Compile TypeScript
-npm test                # Run Vitest suite
-npm run test:coverage   # Coverage report (threshold: 40%)
+npm test                # Run Vitest suite (548 tests, 42 files)
+npm run test:coverage   # Coverage report (thresholds: 60% stmts / 50% branches / 65% fns / 60% lines)
+npm run format          # Prettier format all src/**/*.ts files
+npm run format:check    # CI Prettier check (non-destructive)
 npm run validate:fast   # build + test
 npm run validate:full   # build + test + regression
 npm run validate:smoke  # Feature health checks
 npm run scorecard:check # Verify scorecard KPIs
 npm run lint            # ESLint (src/**/*.ts)
 npm run lint:fix        # Auto-fix lint issues
+npm run ci              # format:check + lint + build + test
 ```
 
 ## Branch Workflow
 
 - Default development branch: `dev`
+- **All feature work must be on `feat/*`, `fix/*`, or `docs/*` branches — never commit directly to `dev` or `master`**
 - PRs target `dev`
 - `master` is the release branch — PRs from `dev` → `master` trigger automated releases
 
@@ -40,12 +44,16 @@ npm run lint:fix        # Auto-fix lint issues
 - **Test directory:** `src/tests/`
 - **Mocking:** Use `vi.mock()` for ESM module mocking
 - Coverage is reported with `@vitest/coverage-v8`
+- Coverage thresholds: `statements: 60`, `branches: 50`, `functions: 65`, `lines: 60`
 
 All new features should have test coverage in `src/tests/`.
 
 ## Code Conventions
 
-- TypeScript strict mode, no `any` unless at a documented boundary
+- **TypeScript strict mode**: `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride` are all enabled — `arr[i]` has type `T | undefined`; use `arr[i]!` when bounds are guaranteed
+- **No `any`** unless at a documented external boundary
+- **Prettier** enforced on every commit via lint-staged pre-commit hook (`.prettierrc`: singleQuote, semi, printWidth:100, trailingComma:all, tabWidth:2)
+- **ESLint** max-lines rule warns at 500 lines — prefer splitting large files into focused modules
 - Prefer `spawnSync(cmd, argsArray)` over `execSync(shellString)` for shell injection prevention
 - Use `writeIfChanged()` from `src/generators/utils.ts` for all file writes
 - Use `writeFileAtomic()` for writes that must not be partially written

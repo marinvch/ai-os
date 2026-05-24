@@ -20,10 +20,16 @@ src/
   user-blocks.ts      — USER_BLOCK hybrid content preservation
 
   actions/
-    apply.ts          — Full generation orchestration (runs all generators, pruning, summary)
+    apply.ts          — Generation orchestrator (~345 lines; delegates to focused sub-modules below)
+    apply-prune.ts    — ProtectConfig + runPruneAndProtect (prune/protect-restore/hybrid-merge loop)
+    apply-output.ts   — All print* output functions + autoInstallSuperpowers
+    mcp-runtime.ts    — installLocalMcpRuntime (MCP server bundle install + .gitignore wiring)
     summary.ts        — GenerationSummary type + buildGenerationSummary/formatGenerationSummary
     plan.ts           — --plan action (onboarding plan display)
     preview.ts        — --preview action (onboarding preview)
+
+  lib/
+    diff.ts           — computeLineDiff (LCS-based diff) + printDryRunDiff
 
   detectors/
     language.ts       — Language detection (30+ languages)
@@ -44,9 +50,18 @@ src/
     utils.ts          — writeIfChanged, writeManifest, hashContent, writeFileAtomic
 
   mcp-server/
-    index.ts          — MCP JSON-RPC stdio server entry point (includes prompts capability)
-    tool-definitions.ts — Tool handlers (reads from .github/ai-os/)
-    utils.ts          — Memory, session, freshness utilities
+    index.ts              — MCP entry point: --healthcheck, --copilot SDK mode, default stdio mode
+    sdk-server.ts         — createSdkServer() factory: registers all 37 tools + 3 prompts via @modelcontextprotocol/sdk
+    tool-definitions.ts   — Tool catalog (reads from .github/ai-os/)
+    filesystem.ts         — readFile, listDirectory, runTests, runLint, runBuild
+    memory.ts             — Repo memory CRUD (memory.jsonl)
+    session.ts            — Session state: active plan, checkpoints, failure ledger, watchdog
+    search.ts             — searchFiles, buildFileTree (ripgrep-backed)
+    project-introspection.ts — getEnvVars, getFileSummary, getPrismaSchema, getTrpcProcedures
+    freshness-bridge.ts   — getContextFreshness (delegates to detectors/freshness.ts)
+    recommendations-bridge.ts — getRecommendations, suggestImprovements
+    shared.ts             — ROOT resolution, readAiOsFile
+    utils.ts              — Barrel re-exporter + getProjectRoot, getSessionContext, checkForUpdates
 
   recommendations/
     index.ts          — Stack-aware recommendation engine
@@ -76,6 +91,22 @@ CLI flags + cwd
             │
             ▼
       buildGenerationSummary()  ← written/skipped/pruned counts + duration
+```
+
+### apply.ts orchestration (actions/)
+
+`apply.ts` is a pure orchestrator that delegates to focused sub-modules:
+
+```
+runApply(opts)
+  ├──► runPruneAndProtect(opts)      ← apply-prune.ts
+  │       Prune stale artifacts, protect user blocks (hybrid merge), restore protected paths
+  ├──► installLocalMcpRuntime(...)   ← mcp-runtime.ts
+  │       Copy bundled MCP server, wire .gitignore entry
+  ├──► computeLineDiff(...)          ← lib/diff.ts (used in --dry-run mode)
+  │       LCS-based line diff for per-file change preview
+  └──► printSummary/printContextualNextSteps/... ← apply-output.ts
+          All terminal output, skill-routing validation, autoInstallSuperpowers
 ```
 
 ## Error Handling
@@ -194,3 +225,24 @@ User blocks use `<!-- AI-OS:USER_BLOCK:START id="..." -->` / `<!-- AI-OS:USER_BL
 **Frameworks:** Next.js, React, Vue, Angular, Svelte, Express, FastAPI, Django, Spring Boot, .NET, Laravel, Rails, Nuxt, Astro, Remix, tRPC, Prisma, and more
 
 **Tools:** ESLint, Prettier, Vitest, Jest, Playwright, Docker, GitHub Actions, all major package managers
+
+## TypeScript Compiler Configuration
+
+`tsconfig.json` enables three extra strict flags beyond `"strict": true`:
+
+| Flag | Effect |
+|---|---|
+| `noUncheckedIndexedAccess` | `arr[i]` has type `T \| undefined`; use `arr[i]!` when bounds are proven |
+| `exactOptionalPropertyTypes` | `prop?: T` does not accept explicit `undefined`; use `prop?: T \| undefined` at the interface level |
+| `noImplicitOverride` | Class method overrides must be annotated with `override` |
+
+## Code Formatting
+
+All source files are formatted with **Prettier** (enforced via lint-staged pre-commit hook):
+
+```json
+{ "singleQuote": true, "semi": true, "printWidth": 100, "trailingComma": "all", "tabWidth": 2 }
+```
+
+Run `npm run format` to format in-place, or `npm run format:check` for CI (read-only).
+
