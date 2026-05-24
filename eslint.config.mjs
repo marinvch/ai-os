@@ -25,6 +25,10 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'warn',
       // Allow non-null assertions (useful in generator outputs)
       '@typescript-eslint/no-non-null-assertion': 'warn',
+      // Warn when a file grows large; error at an upper hard limit.
+      // Thresholds will be tightened after arch-refactor splits apply.ts.
+      'max-lines': ['warn', { max: 500, skipBlankLines: true, skipComments: true }],
+
       // Disallow switch fallthrough bugs
       'no-fallthrough': 'error',
 
