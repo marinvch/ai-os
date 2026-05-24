@@ -10,9 +10,9 @@ import path from 'node:path';
 
 export interface WorkflowStep {
   agent: string;
-  input?: string;
-  output?: string;
-  description?: string;
+  input?: string | undefined;
+  output?: string | undefined;
+  description?: string | undefined;
 }
 
 export interface WorkflowDefinition {
@@ -32,8 +32,8 @@ export interface WorkflowRunPlan {
   steps: Array<{
     index: number;
     agent: string;
-    inputFrom?: string;
-    outputAs?: string;
+    inputFrom?: string | undefined;
+    outputAs?: string | undefined;
     prompt: string;
   }>;
   dryRun: boolean;
@@ -53,13 +53,13 @@ export function parseWorkflowYaml(yaml: string): WorkflowDefinition {
     // Top-level fields
     const nameMatch = line.match(/^name:\s*(.+)/);
     if (nameMatch) {
-      result.name = nameMatch[1].trim().replace(/^['"]|['"]$/g, '');
+      result.name = nameMatch[1]!.trim().replace(/^['"]|['"]$/g, '');
       continue;
     }
 
     const descMatch = line.match(/^description:\s*(.+)/);
     if (descMatch) {
-      result.description = descMatch[1].trim().replace(/^['"]|['"]$/g, '');
+      result.description = descMatch[1]!.trim().replace(/^['"]|['"]$/g, '');
       continue;
     }
 
@@ -77,7 +77,7 @@ export function parseWorkflowYaml(yaml: string): WorkflowDefinition {
       const inline = line.slice(4).trim();
       const inlineAgentMatch = inline.match(/^agent:\s*(.+)/);
       if (inlineAgentMatch)
-        currentStep.agent = inlineAgentMatch[1].trim().replace(/^['"]|['"]$/g, '');
+        currentStep.agent = inlineAgentMatch[1]!.trim().replace(/^['"]|['"]$/g, '');
       continue;
     }
 
@@ -86,25 +86,25 @@ export function parseWorkflowYaml(yaml: string): WorkflowDefinition {
     // Step fields
     const agentMatch = line.match(/^    agent:\s*(.+)/);
     if (agentMatch) {
-      currentStep.agent = agentMatch[1].trim().replace(/^['"]|['"]$/g, '');
+      currentStep.agent = agentMatch[1]!.trim().replace(/^['"]|['"]$/g, '');
       continue;
     }
 
     const inputMatch = line.match(/^    input:\s*(.+)/);
     if (inputMatch) {
-      currentStep.input = inputMatch[1].trim().replace(/^['"]|['"]$/g, '');
+      currentStep.input = inputMatch[1]!.trim().replace(/^['"]|['"]$/g, '');
       continue;
     }
 
     const outputMatch = line.match(/^    output:\s*(.+)/);
     if (outputMatch) {
-      currentStep.output = outputMatch[1].trim().replace(/^['"]|['"]$/g, '');
+      currentStep.output = outputMatch[1]!.trim().replace(/^['"]|['"]$/g, '');
       continue;
     }
 
     const descStepMatch = line.match(/^    description:\s*(.+)/);
     if (descStepMatch) {
-      currentStep.description = descStepMatch[1].trim().replace(/^['"]|['"]$/g, '');
+      currentStep.description = descStepMatch[1]!.trim().replace(/^['"]|['"]$/g, '');
       continue;
     }
   }
@@ -124,7 +124,7 @@ export function validateWorkflow(wf: WorkflowDefinition): WorkflowValidationErro
   const knownOutputs = new Set<string>();
 
   for (let i = 0; i < wf.steps.length; i++) {
-    const step = wf.steps[i];
+    const step = wf.steps[i]!;
     if (!step.agent) {
       errors.push({
         step: i,

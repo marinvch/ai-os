@@ -47,9 +47,9 @@ describe('MCP tool definition parity', () => {
 
     for (let i = 0; i < generatorTools.length; i++) {
       expect(runtimeTools[i]).toEqual({
-        name: generatorTools[i].name,
-        description: generatorTools[i].description,
-        inputSchema: generatorTools[i].inputSchema,
+        name: generatorTools[i]!.name,
+        description: generatorTools[i]!.description,
+        inputSchema: generatorTools[i]!.inputSchema,
       });
     }
   });
@@ -138,7 +138,7 @@ describe('getActiveToolsForProject', () => {
 
     const tools = getActiveToolsForProject(tmpDir);
     expect(tools.length).toBe(1);
-    expect(tools[0].name).toBe('search_codebase');
+    expect(tools[0]!.name).toBe('search_codebase');
 
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });

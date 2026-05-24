@@ -32,7 +32,7 @@ export interface BootstrapPlanItem {
   installCmd?: string;
   status: BootstrapItemStatus;
   /** Error message when status === 'failed' */
-  error?: string;
+  error?: string | undefined;
 }
 
 export interface BootstrapReport {

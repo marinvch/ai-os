@@ -38,8 +38,8 @@ describe('detectLanguages', () => {
     write(tmp, 'src/b.ts', 'export const y = 2;');
     const { detectLanguages } = await import('../detectors/language.js');
     const langs = detectLanguages(tmp);
-    expect(langs[0].name).toBe('TypeScript');
-    expect(langs[0].fileCount).toBe(2);
+    expect(langs[0]!.name).toBe('TypeScript');
+    expect(langs[0]!.fileCount).toBe(2);
   });
 
   it('returns multiple languages sorted by file count', async () => {
@@ -48,8 +48,8 @@ describe('detectLanguages', () => {
     write(tmp, 'c.py', '');
     const { detectLanguages } = await import('../detectors/language.js');
     const langs = detectLanguages(tmp);
-    expect(langs[0].name).toBe('TypeScript');
-    expect(langs[1].name).toBe('Python');
+    expect(langs[0]!.name).toBe('TypeScript');
+    expect(langs[1]!.name).toBe('Python');
   });
 
   it('ignores node_modules directory', async () => {

@@ -3,7 +3,7 @@ import type { AiOsConfig } from '../types.js';
 import { writeIfChanged } from './utils.js';
 
 interface GenerateWorkflowOptions {
-  config?: AiOsConfig;
+  config?: AiOsConfig | undefined;
 }
 
 export function generateWorkflows(outputDir: string, options?: GenerateWorkflowOptions): string[] {

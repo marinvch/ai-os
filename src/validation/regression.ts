@@ -24,7 +24,7 @@ interface CheckResult {
   fixture: string;
   check: string;
   passed: boolean;
-  detail?: string;
+  detail?: string | undefined;
 }
 
 // ---------------------------------------------------------------------------

@@ -101,7 +101,7 @@ function getLatestWeekStart(weeks: WeekMetrics[]): string {
 
   const sorted = [...weeks].map((w) => w.weekStart).sort((a, b) => b.localeCompare(a));
 
-  return sorted[0];
+  return sorted[0]!;
 }
 
 function run(): void {

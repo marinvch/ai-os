@@ -57,7 +57,7 @@ describe('generateWorkflows', () => {
     const files = generateWorkflows(tmp);
     expect(files).toHaveLength(1);
     expect(files[0]).toContain('ai-os-update-check.yml');
-    expect(fs.existsSync(files[0])).toBe(true);
+    expect(fs.existsSync(files[0]!)).toBe(true);
   });
 
   it('skips workflow when updateCheckEnabled is false', async () => {
@@ -96,7 +96,7 @@ describe('generateWorkflows', () => {
   it('workflow content includes correct schedule cron', async () => {
     const { generateWorkflows } = await import('../generators/workflows.js');
     const files = generateWorkflows(tmp);
-    const content = fs.readFileSync(files[0], 'utf-8');
+    const content = fs.readFileSync(files[0]!, 'utf-8');
     expect(content).toContain('cron:');
     expect(content).toContain('workflow_dispatch');
   });

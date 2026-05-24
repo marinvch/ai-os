@@ -10,7 +10,7 @@ import { SEVERITY_LEVELS } from './review-severity.js';
 interface SmokeCheck {
   name: string;
   passed: boolean;
-  detail?: string;
+  detail?: string | undefined;
 }
 
 interface ScorecardWeek {

@@ -230,8 +230,8 @@ function computeLineDiff(
     const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
     for (let i = 1; i <= m; i++)
       for (let j = 1; j <= n; j++)
-        dp[i][j] =
-          a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
+        dp[i]![j] =
+          a[i - 1] === b[j - 1] ? dp[i - 1]![j - 1]! + 1 : Math.max(dp[i - 1]![j]!, dp[i]![j - 1]!);
     const pairs: Array<[number, number]> = [];
     let i = m,
       j = n;
@@ -240,7 +240,7 @@ function computeLineDiff(
         pairs.unshift([i - 1, j - 1]);
         i--;
         j--;
-      } else if (dp[i - 1][j] >= dp[i][j - 1]) i--;
+      } else if (dp[i - 1]![j]! >= dp[i]![j - 1]!) i--;
       else j--;
     }
     return pairs;
@@ -251,14 +251,14 @@ function computeLineDiff(
     ai = 0,
     ci = 0;
   while (ci <= common.length) {
-    const bEnd = ci < common.length ? common[ci][0] : bLines.length;
-    const aEnd = ci < common.length ? common[ci][1] : aLines.length;
-    while (bi < bEnd) result.push({ type: '-', line: bLines[bi++] });
-    while (ai < aEnd) result.push({ type: '+', line: aLines[ai++] });
+    const bEnd = ci < common.length ? common[ci]![0]! : bLines.length;
+    const aEnd = ci < common.length ? common[ci]![1]! : aLines.length;
+    while (bi < bEnd) result.push({ type: '-', line: bLines[bi++] ?? '' });
+    while (ai < aEnd) result.push({ type: '+', line: aLines[ai++] ?? '' });
     if (ci < common.length) {
-      result.push({ type: ' ', line: bLines[common[ci][0]] });
-      bi = common[ci][0] + 1;
-      ai = common[ci][1] + 1;
+      result.push({ type: ' ', line: bLines[common[ci]![0]!] ?? '' });
+      bi = common[ci]![0]! + 1;
+      ai = common[ci]![1]! + 1;
     }
     ci++;
   }
@@ -305,11 +305,11 @@ function printDryRunDiff(
         let linesPrinted = 0;
         let i = 0;
         while (i < hunks.length && linesPrinted < MAX_LINES) {
-          if (hunks[i].type !== ' ') {
+          if (hunks[i]!.type !== ' ') {
             const start = Math.max(0, i - CONTEXT);
             const end = Math.min(hunks.length, i + CONTEXT + 1);
             for (let j = start; j < end && linesPrinted < MAX_LINES; j++) {
-              const h = hunks[j];
+              const h = hunks[j]!;
               const color = h.type === '+' ? '\x1b[32m' : h.type === '-' ? '\x1b[31m' : '';
               process.stdout.write(`    ${color}${h.type}${h.line}\x1b[0m\n`);
               linesPrinted++;

@@ -11,10 +11,10 @@ interface WeekMetrics {
   avgTimeToFixMinutes: number;
   contextHitRate: number;
   // Robustness KPIs (optional — populated when validation is run)
-  skillContractPassRate?: number;
-  startupProtocolCompliance?: number;
-  severityReviewAdoption?: number;
-  notes?: string;
+  skillContractPassRate?: number | undefined;
+  startupProtocolCompliance?: number | undefined;
+  severityReviewAdoption?: number | undefined;
+  notes?: string | undefined;
   updatedAt: string;
 }
 
@@ -106,7 +106,7 @@ function showScorecard(scorecard: ScorecardFile): void {
     return;
   }
 
-  const latest = [...scorecard.weeks].sort((a, b) => b.weekStart.localeCompare(a.weekStart))[0];
+  const latest = [...scorecard.weeks].sort((a, b) => b.weekStart.localeCompare(a.weekStart))[0]!;
   console.log(`Scorecard path: ${SCORECARD_PATH}`);
   console.log(`Last updated: ${scorecard.updatedAt}`);
   console.log(`Latest week: ${latest.weekStart}`);

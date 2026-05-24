@@ -24,7 +24,7 @@ function getProjectName(rootDir: string): string {
   try {
     const goMod = fs.readFileSync(path.join(rootDir, 'go.mod'), 'utf-8');
     const match = goMod.match(/^module\s+(\S+)/m);
-    if (match) return match[1].split('/').pop() ?? path.basename(rootDir);
+    if (match) return match[1]!.split('/').pop() ?? path.basename(rootDir);
   } catch {
     /* ignore */
   }
@@ -32,7 +32,7 @@ function getProjectName(rootDir: string): string {
   try {
     const cargo = fs.readFileSync(path.join(rootDir, 'Cargo.toml'), 'utf-8');
     const match = cargo.match(/^name\s*=\s*"([^"]+)"/m);
-    if (match) return match[1];
+    if (match) return match[1]!;
   } catch {
     /* ignore */
   }
@@ -115,7 +115,7 @@ function getAllDependencies(rootDir: string): string[] {
     const depSection = cargo.match(/\[dependencies\]([\s\S]*?)(\[|\Z)/)?.[1] ?? '';
     depSection.split('\n').forEach((line) => {
       const m = line.match(/^(\w[\w-]*)\s*=/);
-      if (m) deps.add(m[1].toLowerCase());
+      if (m) deps.add(m[1]!.toLowerCase());
     });
   } catch {
     /* ignore */
@@ -387,9 +387,9 @@ function detectBuildCommands(rootDir: string): BuildCommands {
       const scriptSection = toml.match(/\[tool\.poetry\.scripts\]([\s\S]*?)(\[|\s*$)/)?.[1] ?? '';
       const scriptEntries = [...scriptSection.matchAll(/^(\w[\w-]*)\s*=\s*"([^"]+)"/gm)];
       for (const [, name] of scriptEntries) {
-        if (!commands.start && /^(start|serve|run)/.test(name))
-          commands.start = `poetry run ${name}`;
-        if (!commands.test && /^(test|pytest)/.test(name)) commands.test = `poetry run ${name}`;
+        if (!commands.start && /^(start|serve|run)/.test(name!))
+          commands.start = `poetry run ${name!}`;
+        if (!commands.test && /^(test|pytest)/.test(name!)) commands.test = `poetry run ${name!}`;
       }
 
       // Detect pytest / unittest

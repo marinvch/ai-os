@@ -59,7 +59,9 @@ export function getSessionContext(): string {
   const conventions = _readAiOsFile('context/conventions.md');
   if (conventions) {
     const firstSection = conventions.split('\n##')[0];
-    lines.push(firstSection.split('\n').slice(0, 15).join('\n'));
+    if (firstSection) {
+      lines.push(firstSection.split('\n').slice(0, 15).join('\n'));
+    }
   }
   lines.push('');
   lines.push('Call `get_conventions` and `get_repo_memory` for full context.');

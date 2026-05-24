@@ -87,7 +87,7 @@ function parseImports(content: string, filePath: string): string[] {
     const pyRelRe = /^from\s+(\.[\w.]*)\s+import/gm;
     let m: RegExpExecArray | null;
     while ((m = pyRelRe.exec(content)) !== null) {
-      imports.push(m[1]);
+      imports.push(m[1] ?? '');
     }
   }
 
@@ -114,11 +114,11 @@ function parseExports(content: string, ext: string): string[] {
       /export\s+(?:default\s+)?(?:async\s+)?(?:function|class|const|let|var|type|interface|enum)\s+(\w+)/g;
     let m: RegExpExecArray | null;
     while ((m = namedRe.exec(content)) !== null) {
-      exports.push(m[1]);
+      exports.push(m[1] ?? '');
     }
     const groupedRe = /export\s*\{([^}]+)\}/g;
     while ((m = groupedRe.exec(content)) !== null) {
-      const names = m[1]
+      const names = (m[1] ?? '')
         .split(',')
         .map(
           (s) =>

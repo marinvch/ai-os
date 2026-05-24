@@ -26,7 +26,7 @@ export function adaptForClaude(content: string): string {
   const wrapped = sections.map((section) => {
     const match = section.match(/^## (.+)\n/);
     if (!match) return section;
-    const heading = match[1]
+    const heading = (match[1] ?? '')
       .trim()
       .toLowerCase()
       .replace(/\s+/g, '-')
@@ -101,7 +101,7 @@ export function adaptForLocal(content: string): string {
   for (const line of lines) {
     const headingMatch = line.match(/^#+\s+(.+)/);
     if (headingMatch) {
-      const heading = headingMatch[1]
+      const heading = (headingMatch[1] ?? '')
         .toLowerCase()
         .replace(/[^a-z0-9 ]/g, '')
         .trim();

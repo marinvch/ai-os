@@ -54,12 +54,12 @@ export function parseArgs(): ParsedArgs {
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--cwd' && args[i + 1]) {
-      cwd = path.resolve(args[i + 1]);
+      cwd = path.resolve(args[i + 1]!);
       i++;
     } else if (args[i] === '--cwd' && !args[i + 1]) {
       throw new Error('--cwd requires a path value');
     } else if (args[i]?.startsWith('--cwd=')) {
-      cwd = path.resolve(args[i].slice('--cwd='.length));
+      cwd = path.resolve(args[i]!.slice('--cwd='.length));
     } else if (args[i] === '--dry-run') {
       dryRun = true;
     } else if (args[i] === '--refresh-existing') {
@@ -105,19 +105,19 @@ export function parseArgs(): ParsedArgs {
     } else if (args[i] === '--prune-custom-artifacts') {
       pruneCustomArtifacts = true;
     } else if (args[i] === '--profile' && args[i + 1]) {
-      const parsed = parseProfile(args[i + 1]);
+      const parsed = parseProfile(args[i + 1]!);
       if (!parsed)
         throw new Error(`--profile must be one of: minimal, standard, full (got "${args[i + 1]}")`);
       profile = parsed;
       i++;
     } else if (args[i]?.startsWith('--profile=')) {
-      const raw = args[i].slice('--profile='.length);
+      const raw = args[i]!.slice('--profile='.length);
       const parsed = parseProfile(raw);
       if (!parsed)
         throw new Error(`--profile must be one of: minimal, standard, full (got "${raw}")`);
       profile = parsed;
     } else if (args[i] === '--editor' && args[i + 1]) {
-      const parsed = parseEditorTarget(args[i + 1]);
+      const parsed = parseEditorTarget(args[i + 1]!);
       if (!parsed)
         throw new Error(
           `--editor must be one of: vscode, cursor, jetbrains, neovim, all (got "${args[i + 1]}")`,
@@ -125,7 +125,7 @@ export function parseArgs(): ParsedArgs {
       if (!editorTargets.includes(parsed)) editorTargets.push(parsed);
       i++;
     } else if (args[i]?.startsWith('--editor=')) {
-      const raw = args[i].slice('--editor='.length);
+      const raw = args[i]!.slice('--editor='.length);
       const parsed = parseEditorTarget(raw);
       if (!parsed)
         throw new Error(
@@ -133,7 +133,7 @@ export function parseArgs(): ParsedArgs {
         );
       if (!editorTargets.includes(parsed)) editorTargets.push(parsed);
     } else if (args[i] === '--model' && args[i + 1]) {
-      const parsed = parseModelTarget(args[i + 1]);
+      const parsed = parseModelTarget(args[i + 1]!);
       if (!parsed)
         throw new Error(
           `--model must be one of: copilot, claude, gemini, local (got "${args[i + 1]}")`,
@@ -141,7 +141,7 @@ export function parseArgs(): ParsedArgs {
       model = parsed;
       i++;
     } else if (args[i]?.startsWith('--model=')) {
-      const raw = args[i].slice('--model='.length);
+      const raw = args[i]!.slice('--model='.length);
       const parsed = parseModelTarget(raw);
       if (!parsed)
         throw new Error(`--model must be one of: copilot, claude, gemini, local (got "${raw}")`);

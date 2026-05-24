@@ -18,8 +18,8 @@ interface WriteMcpServerConfigOptions {
 }
 
 interface GenerateMcpOptions {
-  refreshExisting?: boolean;
-  config?: AiOsConfig;
+  refreshExisting?: boolean | undefined;
+  config?: AiOsConfig | undefined;
 }
 
 type JsonObject = Record<string, unknown>;

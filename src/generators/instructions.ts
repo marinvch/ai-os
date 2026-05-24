@@ -137,10 +137,10 @@ function fillTemplate(
 }
 
 interface GenerateInstructionsOptions {
-  refreshExisting?: boolean;
+  refreshExisting?: boolean | undefined;
   /** When true, skip overwriting copilot-instructions.md if it already exists. */
-  preserveContextFiles?: boolean;
-  config?: AiOsConfig;
+  preserveContextFiles?: boolean | undefined;
+  config?: AiOsConfig | undefined;
 }
 
 /** Enforce an 8 KB cap on copilot-instructions.md. Truncates at the last section boundary that fits. */

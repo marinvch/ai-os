@@ -18,16 +18,16 @@ import {
 interface RepoMemoryEntry {
   id: string;
   createdAt: string;
-  updatedAt?: string;
+  updatedAt?: string | undefined;
   title: string;
   content: string;
   category: string;
   tags: string[];
-  fingerprint?: string;
-  status?: 'active' | 'stale';
-  staleReason?: string;
-  supersedesId?: string;
-  conflictWithId?: string;
+  fingerprint?: string | undefined;
+  status?: 'active' | 'stale' | undefined;
+  staleReason?: string | undefined;
+  supersedesId?: string | undefined;
+  conflictWithId?: string | undefined;
 }
 
 interface MemoryReadResult {
@@ -220,9 +220,11 @@ function applyStalePolicy(entries: RepoMemoryEntry[], ttlDays?: number): RepoMem
     if (list.length <= 1) continue;
     list.sort(sortByRecencyDesc);
     for (let i = 1; i < list.length; i++) {
-      list[i].status = 'stale';
-      list[i].staleReason = 'superseded-by-newer-version';
-      list[i].updatedAt = toIsoDate(list[i].updatedAt);
+      const entry = list[i];
+      if (!entry) continue;
+      entry.status = 'stale';
+      entry.staleReason = 'superseded-by-newer-version';
+      entry.updatedAt = toIsoDate(entry.updatedAt);
     }
   }
 
@@ -262,6 +264,7 @@ function markNearDuplicates(entries: RepoMemoryEntry[], threshold: number): numb
       for (let j = i + 1; j < active.length; j++) {
         const newer = active[i];
         const older = active[j];
+        if (!newer || !older) continue;
         if (
           (newer.fingerprint ?? buildFingerprint(newer)) !==
             (older.fingerprint ?? buildFingerprint(older)) &&

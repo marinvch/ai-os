@@ -32,8 +32,8 @@ export interface DoctorCheck {
   /** When true the overall doctor run exits non-zero if this check fails. */
   critical: boolean;
   passed: boolean;
-  detail?: string;
-  fixCommand?: string;
+  detail?: string | undefined;
+  fixCommand?: string | undefined;
 }
 
 export interface DoctorResult {

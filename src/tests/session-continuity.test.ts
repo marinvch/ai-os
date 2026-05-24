@@ -119,8 +119,8 @@ describe('session continuity memory tools', () => {
       .map((line) => JSON.parse(line) as { occurrences: number; outcome: string });
 
     expect(rows.length).toBe(1);
-    expect(rows[0].occurrences).toBe(2);
-    expect(rows[0].outcome).toBe('resolved');
+    expect(rows[0]!.occurrences).toBe(2);
+    expect(rows[0]!.outcome).toBe('resolved');
   });
 
   it('compacts session context into a single recovery artifact', async () => {

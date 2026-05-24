@@ -17,8 +17,8 @@ interface AgentSpec {
   name: string;
   description: string;
   argumentHint: string;
-  model?: string;
-  tools?: string[];
+  model?: string | undefined;
+  tools?: string[] | undefined;
   replacements: Record<string, string>;
 }
 
@@ -515,7 +515,7 @@ interface GenerateAgentsOptions {
   refreshExisting?: boolean;
   /** When true, skip overwriting agent files that already exist (safe refresh default). */
   preserveExistingAgents?: boolean;
-  config?: AiOsConfig | null;
+  config?: AiOsConfig | null | undefined;
 }
 
 async function generateAgentsWithOptions(

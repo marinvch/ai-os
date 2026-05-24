@@ -95,8 +95,8 @@ describe('generateToolsets', () => {
       fs.readFileSync(path.join(tmpDir, '.vscode', 'toolsets.json'), 'utf-8'),
     ) as Record<string, { tools: string[] }>;
 
-    expect(config['ai-os-context'].tools).toContain('get_session_context');
-    expect(config['ai-os-context'].tools).toContain('get_repo_memory');
+    expect(config['ai-os-context']!.tools).toContain('get_session_context');
+    expect(config['ai-os-context']!.tools).toContain('get_repo_memory');
   });
 
   it('does NOT include ai-os-backend for a pure frontend stack', async () => {
@@ -121,8 +121,8 @@ describe('generateToolsets', () => {
     ) as Record<string, { tools: string[] }>;
 
     expect(config).toHaveProperty('ai-os-backend');
-    expect(config['ai-os-backend'].tools).toContain('get_prisma_schema');
-    expect(config['ai-os-backend'].tools).toContain('get_api_routes');
+    expect(config['ai-os-backend']!.tools).toContain('get_prisma_schema');
+    expect(config['ai-os-backend']!.tools).toContain('get_api_routes');
   });
 
   it('includes ai-os-backend with get_trpc_procedures when tRPC is detected', async () => {
@@ -135,7 +135,7 @@ describe('generateToolsets', () => {
     ) as Record<string, { tools: string[] }>;
 
     expect(config).toHaveProperty('ai-os-backend');
-    expect(config['ai-os-backend'].tools).toContain('get_trpc_procedures');
+    expect(config['ai-os-backend']!.tools).toContain('get_trpc_procedures');
   });
 
   it('includes ai-os-backend for a Next.js stack without Prisma', async () => {

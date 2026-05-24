@@ -22,8 +22,8 @@ interface ActivePlan {
   objective: string;
   acceptanceCriteria: string;
   status: 'active' | 'paused' | 'completed';
-  currentStep?: string;
-  nextStep?: string;
+  currentStep?: string | undefined;
+  nextStep?: string | undefined;
   blockers: string[];
   createdAt: string;
   updatedAt: string;
@@ -33,10 +33,10 @@ interface CheckpointEntry {
   id: string;
   title: string;
   status: 'open' | 'closed';
-  notes?: string;
-  toolCallCount?: number;
+  notes?: string | undefined;
+  toolCallCount?: number | undefined;
   createdAt: string;
-  closedAt?: string;
+  closedAt?: string | undefined;
 }
 
 interface FailurePatternEntry {
@@ -254,14 +254,19 @@ export function closeCheckpoint(checkpointId: string, notes?: string): string {
       }
 
       const now = new Date().toISOString();
-      const existingNotes = entries[index].notes?.trim();
+      const entry = entries[index];
+      const existingNotes = entry && entry.notes ? entry.notes.trim() : undefined;
+      if (!entry) return `Checkpoint not found: ${id}`;
       const closingNotes = notes?.trim();
       const mergedNotes = [existingNotes, closingNotes].filter(Boolean).join(' | ');
 
       entries[index] = {
-        ...entries[index],
+        id: entry.id,
+        title: entry.title,
         status: 'closed',
-        notes: mergedNotes || undefined,
+        notes: mergedNotes ? mergedNotes : undefined,
+        toolCallCount: entry.toolCallCount,
+        createdAt: entry.createdAt,
         closedAt: now,
       };
 

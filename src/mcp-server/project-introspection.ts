@@ -349,7 +349,7 @@ export function getFileSummary(filePath: string): string {
         const match = line.match(
           /^export\s+(?:default\s+)?(?:function|class|const|interface|type|enum)\s+(\w+)/,
         );
-        if (match) exports.push(match[1]);
+        if (match) exports.push(match[1] ?? '');
       }
       // Python functions/classes
       if (ext === '.py' && /^(def|class)\s+(\w+)/.test(line)) {

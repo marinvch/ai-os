@@ -14,16 +14,16 @@ import { buildSkillsInstallCommand } from './cli-compat.js';
 interface CollectedRecommendations {
   mcp: Array<{ trigger: string; package: string; description: string }>;
   vscode: Array<{ trigger: string; id: string }>;
-  skills: Array<{ trigger: string; name: string; source?: string }>;
+  skills: Array<{ trigger: string; name: string; source?: string | undefined }>;
   copilotExtensions: Array<{ trigger: string; name: string; url: string }>;
   /** Whether this entry came from a universal (always-on) recommendation */
-  universalSkills: Array<{ trigger: string; name: string; source?: string }>;
+  universalSkills: Array<{ trigger: string; name: string; source?: string | undefined }>;
   /** Plugin install steps for agent harnesses (Claude Code, GitHub Copilot CLI, Cursor, etc.) */
   pluginInstalls: Array<{
     trigger: string;
     name: string;
     description: string;
-    skillSource?: string;
+    skillSource?: string | undefined;
     steps: Array<{ harness: string; command: string }>;
   }>;
 }

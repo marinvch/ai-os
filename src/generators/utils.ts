@@ -350,5 +350,5 @@ export function resolveTemplatesDir(runtimeDir: string): string {
   }
 
   // Return the primary candidate so callers can produce deterministic errors.
-  return candidates[0];
+  return candidates[0] ?? '';
 }

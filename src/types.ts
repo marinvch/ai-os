@@ -8,16 +8,16 @@ export interface DetectedLanguage {
 export interface DetectedFramework {
   name: string;
   category: 'frontend' | 'backend' | 'fullstack' | 'mobile' | 'cli' | 'library' | 'unknown';
-  version?: string;
+  version?: string | undefined;
   template: string;
 }
 
 export interface DetectedPatterns {
   namingConvention: 'camelCase' | 'snake_case' | 'PascalCase' | 'kebab-case' | 'mixed';
-  testFramework?: string;
-  linter?: string;
-  formatter?: string;
-  bundler?: string;
+  testFramework?: string | undefined;
+  linter?: string | undefined;
+  formatter?: string | undefined;
+  bundler?: string | undefined;
   packageManager:
     | 'npm'
     | 'yarn'
@@ -36,18 +36,18 @@ export interface DetectedPatterns {
   hasTypeScript: boolean;
   hasDockerfile: boolean;
   hasCiCd: boolean;
-  ciCdProvider?: string;
+  ciCdProvider?: string | undefined;
   monorepo: boolean;
   srcDirectory: boolean;
-  testDirectory?: string;
+  testDirectory?: string | undefined;
 }
 
 export interface BuildCommands {
-  build?: string;
-  test?: string;
-  dev?: string;
-  lint?: string;
-  start?: string;
+  build?: string | undefined;
+  test?: string | undefined;
+  dev?: string | undefined;
+  lint?: string | undefined;
+  start?: string | undefined;
   [key: string]: string | undefined;
 }
 
@@ -55,16 +55,16 @@ export interface DetectedStack {
   projectName: string;
   primaryLanguage: DetectedLanguage;
   languages: DetectedLanguage[];
-  primaryFramework?: DetectedFramework;
+  primaryFramework?: DetectedFramework | undefined;
   frameworks: DetectedFramework[];
   patterns: DetectedPatterns;
   keyFiles: string[];
   rootDir: string;
   /** All dependency keys from package.json / pyproject.toml / Cargo.toml etc. */
   allDependencies: string[];
-  packageProfiles?: PackageProfile[];
+  packageProfiles?: PackageProfile[] | undefined;
   /** Detected build/test commands from package.json, Makefile, pyproject.toml, etc. */
-  buildCommands?: BuildCommands;
+  buildCommands?: BuildCommands | undefined;
 }
 
 export interface PackageProfile {
@@ -132,7 +132,7 @@ export interface AiOsConfig {
    * - 'creator-only'      : deploy only bundled skill-creator (default)
    * - 'predefined+creator': also generate stack-based predefined skills in .github/copilot/skills
    */
-  skillsStrategy?: 'creator-only' | 'predefined+creator';
+  skillsStrategy?: 'creator-only' | 'predefined+creator' | undefined;
   /**
    * Persistent rules injected verbatim into copilot-instructions.md and
    * preserved through refreshes. Edit here to survive regeneration.
@@ -146,7 +146,7 @@ export interface AiOsConfig {
    * - 'hook'    : print a guide for connecting ai-os to existing agents instead of creating new ones
    * - 'skip'    : do not generate sequential agents
    */
-  agentFlowMode?: 'create' | 'hook' | 'skip';
+  agentFlowMode?: 'create' | 'hook' | 'skip' | undefined;
   /**
    * Strict stack filtering for generated MCP tool catalog and recommendations.
    * When true (default), tools.json is split into activeTools (stack-eligible) and
@@ -154,51 +154,51 @@ export interface AiOsConfig {
    * stack-specific items from universal/optional ones.
    * Set to false to revert to a flat, unfiltered tool catalog.
    */
-  strictStackFiltering?: boolean;
+  strictStackFiltering?: boolean | undefined;
   /**
    * Installation profile used when the repo was first set up (or last refreshed
    * with an explicit --profile flag).  Persisted so that subsequent refreshes
    * without a flag maintain the same density level.
    */
-  profile?: InstallProfile;
+  profile?: InstallProfile | undefined;
   /**
    * Memory entry TTL in days. Entries older than this threshold are marked stale
    * and will be removed on the next prune/compact run.
    * Default: 180 days.
    */
-  memoryTtlDays?: number;
+  memoryTtlDays?: number | undefined;
   /**
    * Jaccard similarity threshold for near-duplicate detection.
    * Entries with the same title+category and content similarity above this value
    * are treated as near-duplicates; the older one is marked stale.
    * Range: 0.5–1.0. Default: 0.85.
    */
-  memoryNearDuplicateThreshold?: number;
+  memoryNearDuplicateThreshold?: number | undefined;
   /**
    * When false, skip generating .github/instructions/prompt-quality.instructions.md.
    * Default: true.
    */
-  promptQualityPack?: boolean;
+  promptQualityPack?: boolean | undefined;
   /**
    * Skill version tracking: maps skill name to SHA-256 content hash.
    * Populated by --refresh-existing. Checked by --doctor and detect_drift.
    */
-  skillVersions?: Record<string, string>;
+  skillVersions?: Record<string, string> | undefined;
   /**
    * Allow run_tests, run_lint, and run_build MCP tools to execute shell commands.
    * Default: false (must be explicitly enabled or set AI_OS_ALLOW_RUN_TOOLS=1).
    */
-  allowRunTools?: boolean;
+  allowRunTools?: boolean | undefined;
   /**
    * Target AI model for generated instructions.
    * Defaults to 'copilot' (standard Markdown). Other values produce companion files.
    */
-  model?: 'copilot' | 'claude' | 'gemini' | 'local';
+  model?: 'copilot' | 'claude' | 'gemini' | 'local' | undefined;
   /**
    * Additional editor targets for generated configs.
    * 'vscode' is always included. Others produce companion files.
    */
-  editorTargets?: Array<'vscode' | 'cursor' | 'jetbrains' | 'neovim' | 'all'>;
+  editorTargets?: Array<'vscode' | 'cursor' | 'jetbrains' | 'neovim' | 'all'> | undefined;
 }
 
 /** Runtime type guard for AiOsConfig JSON artifacts. */

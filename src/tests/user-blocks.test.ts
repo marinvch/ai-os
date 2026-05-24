@@ -164,7 +164,7 @@ describe('mergeUserBlocks — strategy 3: conflict', () => {
 
     expect(preserved).toHaveLength(0);
     expect(conflicts).toHaveLength(1);
-    expect(conflicts[0].blockId).toBe('orphaned');
+    expect(conflicts[0]!.blockId).toBe('orphaned');
     // Content should contain the block wrapped in CONFLICT markers
     expect(content).toContain('AI-OS:CONFLICT');
     expect(content).toContain('some user content');
@@ -176,7 +176,7 @@ describe('mergeUserBlocks — strategy 3: conflict', () => {
     const generated = `# No Matching Section\nContent\n`;
 
     const { conflicts } = mergeUserBlocks(generated, previous);
-    expect(conflicts[0].reason).toBe('anchor-lost');
+    expect(conflicts[0]!.reason).toBe('anchor-lost');
   });
 
   it('classifies reason as block-id-missing when block had no anchor (file start)', () => {
@@ -186,7 +186,7 @@ describe('mergeUserBlocks — strategy 3: conflict', () => {
 
     const { conflicts } = mergeUserBlocks(generated, previous);
     // anchorBefore is '' so it falls to block-id-missing
-    expect(conflicts[0].reason).toBe('block-id-missing');
+    expect(conflicts[0]!.reason).toBe('block-id-missing');
   });
 
   it('mixed: some blocks preserved, some conflict', () => {

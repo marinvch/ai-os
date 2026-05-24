@@ -60,7 +60,7 @@ export function detectSkillsCliMode(opts?: { timeout?: number }): SkillsCliMode 
  * @param mode  - CLI capability mode (default: 'source-based')
  */
 export function buildSkillsInstallCommand(
-  skill: { name: string; source?: string },
+  skill: { name: string; source?: string | undefined },
   mode: SkillsCliMode = 'source-based',
 ): string {
   if (mode === 'source-based') {

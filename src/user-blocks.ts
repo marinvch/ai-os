@@ -80,9 +80,9 @@ export function extractUserBlocks(content: string): Map<string, UserBlock> {
   let match: RegExpExecArray | null;
 
   while ((match = BLOCK_GLOBAL_RE.exec(content)) !== null) {
-    const id = match[1];
-    const innerContent = match[2];
-    const fullMatch = match[0];
+    const id = match[1]!;
+    const innerContent = match[2]!;
+    const fullMatch = match[0]!;
 
     if (blocks.has(id)) continue; // first occurrence wins
 

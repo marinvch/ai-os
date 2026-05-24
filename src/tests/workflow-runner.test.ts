@@ -40,11 +40,11 @@ describe('parseWorkflowYaml', () => {
   it('parses steps with agent, input, output, description', () => {
     const wf = parseWorkflowYaml(FEATURE_PIPELINE_YAML);
     expect(wf.steps).toHaveLength(3);
-    expect(wf.steps[0].agent).toBe('ai-os — Feature Enhancement Advisor');
-    expect(wf.steps[0].output).toBe('enhancement-report');
-    expect(wf.steps[1].input).toBe('enhancement-report');
-    expect(wf.steps[1].output).toBe('approved-work-order');
-    expect(wf.steps[2].input).toBe('approved-work-order');
+    expect(wf.steps[0]!.agent).toBe('ai-os — Feature Enhancement Advisor');
+    expect(wf.steps[0]!.output).toBe('enhancement-report');
+    expect(wf.steps[1]!.input).toBe('enhancement-report');
+    expect(wf.steps[1]!.output).toBe('approved-work-order');
+    expect(wf.steps[2]!.input).toBe('approved-work-order');
   });
 
   it('throws on missing name', () => {
@@ -72,7 +72,7 @@ steps:
 `;
     const wf = parseWorkflowYaml(yaml);
     expect(wf.steps).toHaveLength(1);
-    expect(wf.steps[0].agent).toBe('my-agent');
+    expect(wf.steps[0]!.agent).toBe('my-agent');
   });
 });
 
@@ -93,8 +93,8 @@ steps:
 `);
     const errors = validateWorkflow(wf);
     expect(errors.length).toBeGreaterThan(0);
-    expect(errors[0].field).toBe('input');
-    expect(errors[0].message).toContain('nonexistent-output');
+    expect(errors[0]!.field).toBe('input');
+    expect(errors[0]!.message).toContain('nonexistent-output');
   });
 
   it('reports error for step missing agent field', () => {
@@ -118,15 +118,15 @@ describe('buildWorkflowRunPlan', () => {
   it('assigns 1-based step indices', () => {
     const wf = parseWorkflowYaml(FEATURE_PIPELINE_YAML);
     const plan = buildWorkflowRunPlan(wf);
-    expect(plan.steps[0].index).toBe(1);
-    expect(plan.steps[2].index).toBe(3);
+    expect(plan.steps[0]!.index).toBe(1);
+    expect(plan.steps[2]!.index).toBe(3);
   });
 
   it('carries inputFrom and outputAs fields', () => {
     const wf = parseWorkflowYaml(FEATURE_PIPELINE_YAML);
     const plan = buildWorkflowRunPlan(wf);
-    expect(plan.steps[1].inputFrom).toBe('enhancement-report');
-    expect(plan.steps[1].outputAs).toBe('approved-work-order');
+    expect(plan.steps[1]!.inputFrom).toBe('enhancement-report');
+    expect(plan.steps[1]!.outputAs).toBe('approved-work-order');
   });
 });
 
