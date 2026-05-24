@@ -56,7 +56,7 @@ import {
 } from '../workflow-runner.js';
 
 /** Wraps a synchronous tool handler with watchdog tracking and error boundary. */
-function wrap(toolName: string, fn: (args: Record<string, unknown>) => string) {
+export function wrap(toolName: string, fn: (args: Record<string, unknown>) => string) {
   return async (args: Record<string, unknown>) => {
     const watchdog = recordToolCallAndRunWatchdog(toolName);
     try {
