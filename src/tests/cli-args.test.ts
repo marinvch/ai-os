@@ -177,4 +177,18 @@ describe('parseArgs', () => {
       expect(parseArgs().action).toBe('check-drift');
     });
   });
+
+  it('sets action=rollback when --rollback is passed', () => {
+    withArgv(['--rollback'], () => {
+      expect(parseArgs().action).toBe('rollback');
+    });
+  });
+
+  it('sets action=rollback and snapshotName when --rollback=<name> is passed', () => {
+    withArgv(['--rollback=2026-05-24T06-30-00Z'], () => {
+      const result = parseArgs();
+      expect(result.action).toBe('rollback');
+      expect(result.snapshotName).toBe('2026-05-24T06-30-00Z');
+    });
+  });
 });

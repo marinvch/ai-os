@@ -5,7 +5,7 @@ import { parseEditorTarget, type EditorTarget } from '../generators/multi-editor
 import { parseModelTarget, type ModelTarget } from '../generators/multi-model.js';
 
 export type GenerateMode = 'safe' | 'refresh-existing' | 'update';
-export type GenerateAction = 'apply' | 'plan' | 'preview' | 'check-hygiene' | 'doctor' | 'bootstrap' | 'check-freshness' | 'compact-memory' | 'uninstall' | 'check-drift' | 'init';
+export type GenerateAction = 'apply' | 'plan' | 'preview' | 'check-hygiene' | 'doctor' | 'bootstrap' | 'check-freshness' | 'compact-memory' | 'uninstall' | 'check-drift' | 'init' | 'rollback';
 
 export interface ParsedArgs {
   cwd: string;
@@ -22,6 +22,7 @@ export interface ParsedArgs {
   fullDiff: boolean;
   editorTargets: EditorTarget[];
   model: ModelTarget;
+  snapshotName?: string;
 }
 
 export function parseArgs(): ParsedArgs {
@@ -40,6 +41,7 @@ export function parseArgs(): ParsedArgs {
   let fullDiff = false;
   const editorTargets: EditorTarget[] = ['vscode'];
   let model: ModelTarget = 'copilot';
+  let snapshotName: string | undefined;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--cwd' && args[i + 1]) {
@@ -83,6 +85,11 @@ export function parseArgs(): ParsedArgs {
       action = 'init';
     } else if (args[i] === '--uninstall') {
       action = 'uninstall';
+    } else if (args[i] === '--rollback') {
+      action = 'rollback';
+    } else if (args[i]?.startsWith('--rollback=')) {
+      action = 'rollback';
+      snapshotName = args[i].slice('--rollback='.length);
     } else if (args[i] === '--json') {
       json = true;
     } else if (args[i] === '--full-diff') {
@@ -126,5 +133,5 @@ export function parseArgs(): ParsedArgs {
     }
   }
 
-  return { cwd, dryRun, mode, action, prune, verbose, cleanUpdate, regenerateContext, pruneCustomArtifacts, profile, json, fullDiff, editorTargets, model };
+  return { cwd, dryRun, mode, action, prune, verbose, cleanUpdate, regenerateContext, pruneCustomArtifacts, profile, json, fullDiff, editorTargets, model, snapshotName };
 }

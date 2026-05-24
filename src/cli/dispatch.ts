@@ -6,6 +6,7 @@ import { runCheckFreshnessAction } from '../actions/check-freshness.js';
 import { runCompactMemoryAction } from '../actions/compact-memory.js';
 import { runCheckDriftAction } from '../actions/check-drift.js';
 import { runApply } from '../actions/apply.js';
+import { runRollbackAction } from '../actions/rollback.js';
 import { runUninstall, formatUninstallReport } from '../uninstall.js';
 import { runInitWizard } from '../actions/init.js';
 import { analyze } from '../analyze.js';
@@ -67,6 +68,11 @@ export async function main(): Promise<void> {
   if (action === 'uninstall') {
     const report = runUninstall(cwd, { dryRun: args.dryRun, verbose: args.verbose });
     console.log(formatUninstallReport(report));
+    return;
+  }
+
+  if (action === 'rollback') {
+    runRollbackAction(cwd, { snapshotName: args.snapshotName, json: args.json });
     return;
   }
 

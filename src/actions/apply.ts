@@ -23,6 +23,7 @@ import { mergeUserBlocks } from '../user-blocks.js';
 import { captureContextSnapshot, writeContextSnapshot, computeFreshnessReport } from '../detectors/freshness.js';
 import { runMemoryMaintenance } from '../mcp-server/utils.js';
 import { runBootstrap, formatBootstrapReport, installSkill } from '../bootstrap.js';
+import { takeContextSnapshot, SNAPSHOTS_DIR_REL } from '../generators/snapshot.js';
 import { runPlanAction } from './plan.js';
 import { runPreviewAction } from './preview.js';
 import { buildGenerationSummary, formatGenerationSummary } from './summary.js';
@@ -792,6 +793,24 @@ export async function runApply(args: ParsedArgs): Promise<void> {
   setPrevHashes(previousManifest?.hashes ?? {});
 
   // Phase 1: Core context files (config.json is written here, with user fields preserved)
+  // Take a context snapshot before refresh so users can roll back if needed.
+  if (isRefresh && !dryRun) {
+    try {
+      const snapshotDir = takeContextSnapshot(cwd);
+      if (snapshotDir) {
+        ensureGitignoreEntry(cwd, `${SNAPSHOTS_DIR_REL}/`);
+        if (verbose) {
+          console.log(`  📸 Context snapshot saved: ${snapshotDir.replace(/\\/g, '/')}`);
+        } else {
+          console.log(`  📸 Context snapshot saved (roll back with --rollback if needed).`);
+        }
+        console.log('');
+      }
+    } catch {
+      // Non-fatal: snapshots are best-effort
+    }
+  }
+
   const contextFiles = generateContextDocs(stack, cwd, { preserveContextFiles });
   // Read the freshly-written config to get feature flags for remaining generators.
   // If a --profile flag was passed, apply it now (it overrides individual flags but is
