@@ -218,23 +218,40 @@ export function isAiOsConfig(obj: unknown): obj is AiOsConfig {
   );
 }
 
-/** One entry in the agent registry — A2A-inspired AgentCard for a generated agent. */
+/** A skill declared on an A2A AgentCard — maps to an agent capability. */
+export interface A2ASkill {
+  id: string;
+  name: string;
+  description?: string;
+  tags?: string[];
+}
+
+/** One entry in the agent registry — full A2A AgentCard for a generated agent. */
 export interface AgentRegistryEntry {
   /** Display name of the agent (e.g. "Payments Expert") */
   name: string;
   /** Filename in .github/agents/ (e.g. "expert-payments.agent.md") */
   file: string;
+  /** One-sentence summary used in the orchestrator's agent list */
+  description: string;
   /** What this agent can do (used by orchestrator to match tasks) */
   capabilities: string[];
   /** Lowercase keywords that trigger routing to this agent */
   triggers: string[];
-  /** One-sentence summary used in the orchestrator's agent list */
-  description: string;
+  // A2A AgentCard compliance fields (https://google.github.io/A2A/specification/)
+  /** Supported input content types. Default: ["text"] */
+  inputModes: string[];
+  /** Supported output content types. Default: ["text"] */
+  outputModes: string[];
+  /** Whether the agent supports streaming responses. Always false for static agents. */
+  streaming: false;
+  /** Skills exposed by this agent in A2A skill format. Derived from capabilities. */
+  skills: A2ASkill[];
 }
 
 /** The full agent registry written to .github/ai-os/agents.json */
 export interface AgentRegistry {
-  version: '1';
+  version: '2';
   generatedAt: string;
   agents: AgentRegistryEntry[];
 }
@@ -243,17 +260,22 @@ export interface AgentRegistry {
 export function isAgentRegistry(value: unknown): value is AgentRegistry {
   if (typeof value !== 'object' || value === null) return false;
   const v = value as Record<string, unknown>;
-  if (v['version'] !== '1') return false;
+  if (v['version'] !== '2') return false;
   if (typeof v['generatedAt'] !== 'string') return false;
   if (!Array.isArray(v['agents'])) return false;
-  return v['agents'].every(
-    (a) =>
-      typeof a === 'object' &&
-      a !== null &&
-      typeof (a as Record<string, unknown>)['name'] === 'string' &&
-      typeof (a as Record<string, unknown>)['file'] === 'string' &&
-      Array.isArray((a as Record<string, unknown>)['capabilities']) &&
-      Array.isArray((a as Record<string, unknown>)['triggers']) &&
-      typeof (a as Record<string, unknown>)['description'] === 'string'
-  );
+  return v['agents'].every((a) => {
+    if (typeof a !== 'object' || a === null) return false;
+    const e = a as Record<string, unknown>;
+    return (
+      typeof e['name'] === 'string' &&
+      typeof e['file'] === 'string' &&
+      typeof e['description'] === 'string' &&
+      Array.isArray(e['capabilities']) &&
+      Array.isArray(e['triggers']) &&
+      Array.isArray(e['inputModes']) &&
+      Array.isArray(e['outputModes']) &&
+      e['streaming'] === false &&
+      Array.isArray(e['skills'])
+    );
+  });
 }

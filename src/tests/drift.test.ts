@@ -131,7 +131,7 @@ describe('detectDrift', () => {
     // agents.json says 3 agents, but only 1 .agent.md file exists
     writeFileSync(
       join(tmpDir, '.github', 'ai-os', 'agents.json'),
-      JSON.stringify([{ name: 'a' }, { name: 'b' }, { name: 'c' }])
+      JSON.stringify({ version: '2', generatedAt: new Date().toISOString(), agents: [{ name: 'a' }, { name: 'b' }, { name: 'c' }] })
     );
     writeFileSync(join(tmpDir, '.github', 'agents', 'my-agent.agent.md'), '## Goal\nDo things\n## Constraints\nNone');
     const report = detectDrift(tmpDir);
@@ -143,7 +143,7 @@ describe('detectDrift', () => {
     mkdirSync(join(tmpDir, '.github', 'agents'), { recursive: true });
     writeFileSync(
       join(tmpDir, '.github', 'ai-os', 'agents.json'),
-      JSON.stringify([{ name: 'a' }])
+      JSON.stringify({ version: '2', generatedAt: new Date().toISOString(), agents: [{ name: 'a' }] })
     );
     writeFileSync(join(tmpDir, '.github', 'agents', 'my-agent.agent.md'), '## Goal\nDo things\n## Constraints\nNone');
     const report = detectDrift(tmpDir);

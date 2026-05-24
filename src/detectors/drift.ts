@@ -77,8 +77,12 @@ function detectSemanticDrift(cwd: string, warnings: DriftItem[]): void {
   const agentsRegistryPath = join(cwd, '.github/ai-os/agents.json');
   if (existsSync(agentsRegistryPath)) {
     try {
-      const registry = JSON.parse(readFileSync(agentsRegistryPath, 'utf8')) as unknown[];
-      const registryCount = Array.isArray(registry) ? registry.length : 0;
+      const raw = JSON.parse(readFileSync(agentsRegistryPath, 'utf8')) as unknown;
+      const registry = typeof raw === 'object' && raw !== null
+        ? (raw as Record<string, unknown>)
+        : null;
+      const agentsList = registry?.['agents'];
+      const registryCount = Array.isArray(agentsList) ? agentsList.length : 0;
       const agentFiles = globFiles({ dir: '.github/agents', ext: '.agent.md' }, cwd);
       const fileCount = agentFiles.length;
 

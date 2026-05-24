@@ -12,6 +12,7 @@ import { generatePrompts } from '../generators/prompts.js';
 import { generateWorkflows } from '../generators/workflows.js';
 import { generateHooks } from '../generators/hooks.js';
 import { generateCloudAgent } from '../generators/cloud-agent.js';
+import { generateAgentRegistry } from '../generators/agent-registry.js';
 import { generateToolsets } from '../generators/toolsets.js';
 import { generateChatModes } from '../generators/chatmodes.js';
 import { getMcpToolsForStack } from '../mcp-tools.js';
@@ -852,6 +853,8 @@ export async function runApply(args: ParsedArgs): Promise<void> {
   const workflowFiles = generateWorkflows(cwd, { config: config ?? undefined });
   const hookFiles = generateHooks(cwd, { config: config ?? undefined });
   const cloudAgentFiles = generateCloudAgent(cwd, stack, { config: config ?? undefined });
+  // Agent registry must run after agents are generated (reads .agent.md files from disk)
+  const agentRegistryFiles = generateAgentRegistry(cwd);
   if (!dryRun) {
     await deployBundledSkills(cwd, { refreshExisting: mode === 'refresh-existing' });
   }
@@ -882,6 +885,7 @@ export async function runApply(args: ParsedArgs): Promise<void> {
     ...workflowFiles,
     ...hookFiles,
     ...cloudAgentFiles,
+    ...agentRegistryFiles,
     ...recommendationFiles,
   ];
   const toRel = (p: string) => path.relative(cwd, p).replace(/\\/g, '/');
