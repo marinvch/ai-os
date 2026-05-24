@@ -24,6 +24,18 @@ Unlike generic Copilot prompts, AI OS installs a persistent context layer: it sc
 
 ## Install in 60 Seconds
 
+### Choose your method
+
+| Method | Command | When to use |
+|--------|---------|-------------|
+| `npx` (recommended) | `npx -y github:marinvch/ai-os` | Fastest. No clone needed. Best for first install or CI. |
+| `curl \| bash` | `curl -fsSL https://raw.githubusercontent.com/marinvch/ai-os/master/bootstrap.sh \| bash` | Terminals without npx. Auto-installs Node.js via nvm if missing. |
+| Local clone | `bash ~/ai-os/install.sh --cwd /path` | Specific local version, or when contributing to AI OS itself. |
+
+All three methods run the same installer logic and produce identical output. The `curl` method additionally handles Node.js auto-install via nvm.
+
+### Quick start
+
 1. Open a terminal in your project root.
 2. Run:
 
@@ -153,6 +165,31 @@ AI OS supports three install profiles:
 ```bash
 npx -y github:marinvch/ai-os --profile full
 ```
+
+### Pin to a specific release
+
+```bash
+npx -y "github:marinvch/ai-os#v0.21.0"
+```
+
+### Verify bundle integrity
+
+Each [GitHub Release](https://github.com/marinvch/ai-os/releases) includes SHA-256 checksums in the **Bundle Provenance** section of the release notes. To verify locally:
+
+```bash
+sha256sum bundle/generate.js dist/server.js
+```
+
+### Optional global skill installs
+
+The following commands install **global user skills** into your GitHub Copilot profile — once per developer machine, not once per project:
+
+```bash
+npx -y skills add anthropics/skills@skill-creator -g -a github-copilot  # skill authoring toolkit
+npx -y skills add vercel-labs/skills@find-skills -g -a github-copilot   # skill discovery
+```
+
+These are separate from the per-repo skills AI OS installs in `.github/copilot/skills/`.
 
 ---
 

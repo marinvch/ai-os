@@ -14,6 +14,8 @@ AI OS is a framework that installs structured AI context into any repository so 
 npx -y github:marinvch/ai-os
 ```
 
+For more options — `curl | bash`, local clone, profiles, pinning to a release — see [Getting Started →](docs/GETTING-STARTED.md).
+
 ## What you get
 
 - **`copilot-instructions.md`** — tailored Copilot rules for your stack (TypeScript, Python, Java, Go, Ruby, etc.)
@@ -24,15 +26,6 @@ npx -y github:marinvch/ai-os
 - **Multi-editor** — generate configs for VS Code, Cursor, JetBrains, Neovim with `--editor`
 - **Multi-model** — adapt instructions for Claude, Gemini, or local LLMs with `--model`
 - **Workflow chaining** — YAML agent pipelines via the `run_workflow` MCP tool
-
-## Documentation
-
-- [Getting Started →](docs/GETTING-STARTED.md) — Install guide for any tech stack
-- [User Guide →](docs/USER-GUIDE.md) — All CLI flags, agents, skills, MCP tools
-- [MCP Tools Reference →](docs/mcp-tools.md) — All 37 Copilot tools documented
-- [Changelog →](CHANGELOG.md)
-
----
 
 ## What it does
 
@@ -59,89 +52,17 @@ AI OS initializes a persistent repository memory store at `.github/ai-os/memory/
 
 **Target repositories do not need Node.js** — the MCP server is a pre-built, self-contained bundle.
 
-## Quick Install
-
-```bash
-# One-liner bootstrap (paste in any target repo terminal)
-curl -fsSL https://raw.githubusercontent.com/marinvch/ai-os/master/bootstrap.sh | bash
-```
-
-Or with `npx`:
-
-```bash
-npx -y "github:marinvch/ai-os"
-```
-
-### Local clone
-
-```bash
-git clone https://github.com/marinvch/ai-os ~/ai-os
-bash ~/ai-os/install.sh --cwd /path/to/your/repo
-```
-
-### Refresh existing install
-
-```bash
-bash install.sh --refresh-existing
-# or:
-npx -y github:marinvch/ai-os --refresh-existing
-```
-
-### Install with a profile
-
-```bash
-bash install.sh --profile minimal    # instructions + MCP wiring only
-bash install.sh --profile standard   # balanced default (recommended)
-bash install.sh --profile full       # all integrations, agents, skills
-```
-
-### Pin to a specific release tag
-
-```bash
-npx -y "github:marinvch/ai-os#v0.6.26"
-```
-
-### Verifying bundle integrity
-
-Each [GitHub Release](https://github.com/marinvch/ai-os/releases) includes SHA-256 checksums. To verify:
-
-```bash
-sha256sum bundle/generate.js dist/server.js
-```
-
-Compare against the **Bundle Provenance** section in the release notes.
-
-## Optional skill installs
-
-```bash
-npx -y skills add anthropics/skills@skill-creator -g -a github-copilot
-npx -y skills add vercel-labs/skills@find-skills -g -a github-copilot
-```
-
-## Re-running (idempotent)
-
-Safe to run multiple times. `write-if-changed` skips files with identical content. The manifest tracks all owned files, and `--refresh-existing` prunes stale artifacts automatically.
-
-To uninstall cleanly:
-
-```bash
-bash install.sh --uninstall
-```
-
-## What gets detected
-
-- **Languages:** TypeScript, JavaScript, Python, Go, Rust, Java, C#, PHP, Ruby, Swift, Kotlin, 30+ more
-- **Frameworks:** Next.js, React, Vue, Angular, Svelte, Express, FastAPI, Django, Spring Boot, .NET, Laravel, Rails, Nuxt, Astro, Remix, tRPC, Prisma, and more
-- **Tools:** ESLint, Prettier, Vitest, Jest, Playwright, Docker, GitHub Actions, package managers
-
-## Full Documentation
+## Documentation
 
 | Page | Contents |
 | --- | --- |
-| [docs/cli.md](docs/cli.md) | All CLI flags, actions, profiles, dry-run output |
-| [docs/mcp-tools.md](docs/mcp-tools.md) | MCP tools reference, server modes, bundle architecture |
-| [docs/architecture.md](docs/architecture.md) | Components, data flow, manifest contract, memory |
-| [docs/contributing.md](docs/contributing.md) | Dev setup, testing, conventions, release process |
+| [Getting Started](docs/GETTING-STARTED.md) | Install guide, profiles, refresh, drift detection |
+| [User Guide](docs/USER-GUIDE.md) | CLI flags, agents, skills, MCP tools |
+| [MCP Tools Reference](docs/mcp-tools.md) | All 37 Copilot tools documented |
+| [CLI Reference](docs/cli.md) | All CLI flags, actions, profiles, dry-run output |
+| [Architecture](docs/architecture.md) | Components, data flow, manifest contract, memory |
+| [Contributing](docs/contributing.md) | Dev setup, testing, conventions, release process |
+| [Changelog](CHANGELOG.md) | Release history |
 
 ## Supported framework templates
 

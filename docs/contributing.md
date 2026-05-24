@@ -60,6 +60,19 @@ All new features should have test coverage in `src/tests/`.
 4. Add tests in `src/tests/generators-extended.test.ts` or a new test file
 5. Run `npm run build && npm test` to verify
 
+## Template System (Two-Layer Architecture)
+
+AI OS has two layers of templates — understanding the distinction prevents editing the wrong copy:
+
+| Layer | Location | Purpose |
+|-------|---------|---------|
+| **Source templates** | `src/templates/` | The authoritative templates shipped inside AI OS. Compiled into the bundle. Edit these to change AI OS defaults. |
+| **Deployed context** | `.github/ai-os/context/templates/` | Copies deployed into the target repository. Auto-overwritten on `--refresh-existing`. **Do not edit these** — changes will be lost on the next refresh. |
+
+**Rule:** Always edit templates in `src/templates/`. Changes there flow through to all target repos on next refresh.
+
+**User overrides** (per-repo customization) go in `.github/ai-os/templates/<type>/<name>.md` — these are checked before falling back to built-in templates and are preserved across refreshes.
+
 ## Adding a New MCP Tool
 
 1. Add the tool definition to `MCP_TOOL_DEFINITIONS` in `src/mcp-tools.ts`
