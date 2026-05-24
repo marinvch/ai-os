@@ -62,6 +62,7 @@ AI OS initializes a persistent repository memory store at `.github/ai-os/memory/
 | [CLI Reference](docs/cli.md) | All CLI flags, actions, profiles, dry-run output |
 | [Architecture](docs/architecture.md) | Components, data flow, manifest contract, memory |
 | [Contributing](docs/contributing.md) | Dev setup, testing, conventions, release process |
+| [Copilot Compat](docs/COPILOT_COMPAT.md) | VS Code/Copilot version compatibility notes |
 | [Changelog](CHANGELOG.md) | Release history |
 
 ## Supported framework templates
