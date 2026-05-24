@@ -172,6 +172,15 @@ export interface AiOsConfig {
    */
   gitHooks?: boolean;
   /**
+   * Generate `.github/copilot-setup-steps.yml` for Copilot Cloud Agent.
+   * When true, AI OS generates stack-appropriate environment setup steps so the
+   * Cloud Agent can pre-install dependencies before running coding tasks.
+   * Default: false (opt-in).
+   *
+   * Documentation: https://docs.github.com/en/copilot/how-tos/use-copilot-agents/copilot-setup-steps
+   */
+  cloudAgent?: boolean;
+  /**
    * Skill version tracking: maps skill name to SHA-256 content hash.
    * Populated by --refresh-existing. Checked by --doctor and detect_drift.
    */
