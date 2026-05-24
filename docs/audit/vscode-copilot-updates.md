@@ -1,3 +1,8 @@
+> **Historical Audit Artifact** — This document was produced during the AI OS codebase audit (May 2026).
+> It is preserved as contributor reference. All action items have been resolved as of v0.21.0.
+> See the [CHANGELOG](../CHANGELOG.md) for implementation details.
+
+---
 # VS Code & GitHub Copilot — Latest Updates (2025-2026)
 
 > Compiled: June 2025 | Coverage: VS Code v1.99–v1.101 + GitHub Copilot Changelog (Apr 2025–May 2026)
@@ -239,3 +244,4 @@
 5. **Copilot Cloud Agent** — fully autonomous background coding agent — AI OS context enrichment becomes even more critical for cloud agent quality
 6. **BYOK GA** — organizations can bring their own models while keeping AI OS context infrastructure
 7. **Custom chat modes** — enables repo-specific agent behaviors via `.chatprompt.md` files — AI OS could generate these
+

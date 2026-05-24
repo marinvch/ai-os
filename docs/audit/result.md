@@ -1,3 +1,8 @@
+> **Historical Audit Artifact** — This document was produced during the AI OS codebase audit (May 2026).
+> It is preserved as contributor reference. All action items have been resolved as of v0.21.0.
+> See the [CHANGELOG](../CHANGELOG.md) for implementation details.
+
+---
 # AI OS — State-of-the-Art Gap Analysis & Roadmap
 
 > Synthesis of: [vscode-copilot-updates.md](./vscode-copilot-updates.md) × [codebase-features.md](./codebase-features.md) × [github-issues.md](./github-issues.md)
@@ -447,3 +452,4 @@ AI OS has a strong foundation that is well-aligned with where VS Code and GitHub
 5. **Stale backlog** — two large refactoring issues are likely already done; closing them signals project health
 
 Addressing these in the order listed above would make AI OS the unambiguous state-of-the-art Copilot context framework for any language or framework.
+

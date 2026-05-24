@@ -1,7 +1,18 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  AI OS Bootstrap
-#  Run from any target repository to fetch and execute AI OS installer.
+#  AI OS Bootstrap — REMOTE installer
+#
+#  PURPOSE: This script is the *remote* entry point. It clones the AI OS repo
+#  to a temporary directory and then delegates to install.sh (the local installer).
+#  Use this when you don't have the AI OS repo cloned locally — e.g.:
+#
+#    curl -fsSL https://raw.githubusercontent.com/marinvch/ai-os/master/bootstrap.sh | bash
+#
+#  If you already have the repo cloned, run install.sh directly instead:
+#
+#    bash install.sh --cwd /path/to/your-project
+#
+#  See docs/contributing.md for the distinction between bootstrap.sh and install.sh.
 # =============================================================================
 
 set -euo pipefail

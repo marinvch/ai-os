@@ -75,11 +75,39 @@ All new features should have test coverage in `src/tests/`.
 
 Types: `feat`, `fix`, `ci`, `chore`, `docs`, `test`, `refactor`
 
+## Repository Structure
+
+| Path | Purpose |
+|------|---------|
+| `src/` | TypeScript source — generators, detectors, MCP server, CLI |
+| `bundle/` | Pre-built distribution bundles committed for `npx` installs (see `bundle/README.md`) |
+| `docs/` | Product documentation (architecture, CLI reference, guides) |
+| `docs/audit/` | Historical audit artifacts from May 2026 — preserved as contributor reference |
+| `examples/` | Sample repo structures used for snapshot tests |
+| `tools/skill-creator/` | Meta-tool for building and evaluating AI OS skills |
+| `.superpowers/` | Ephemeral brainstorming and session artifacts (gitignored) |
+
+## Install Scripts
+
+AI OS ships two install scripts with distinct purposes:
+
+| Script | Purpose | When to use |
+|--------|---------|-------------|
+| `bootstrap.sh` | **Remote bootstrap** — clones the AI OS repo to a temp dir, then runs `install.sh`. Used with `curl \| bash` or when you don't have the repo locally. | `curl -fsSL .../bootstrap.sh \| bash` |
+| `install.sh` | **Local installer** — runs from inside the cloned repo. Does the actual work: runs the generator, installs skills, runs `--doctor`. | `bash install.sh --cwd /path/to/target` |
+
+When contributing to the install scripts, edit `install.sh` for installer logic and `bootstrap.sh` only for the remote-fetch wrapper.
+
+## Bundle Updates
+
+Always run `npm run bundle` after source changes before committing a release. See `bundle/README.md` for details on why compiled artifacts are committed.
+
 ## Release Process
 
 Releases are fully automated via `.github/workflows/release-automation.yml`. To release:
 
 1. Bump `version` in `package.json` on `dev`
-2. Merge `dev` → `master` via PR
-3. The release workflow tags and publishes the GitHub Release automatically
-4. A follow-up PR bumps `package.json` to the next patch version on `dev`
+2. Run `npm run build && npm run bundle` to update compiled artifacts
+3. Merge `dev` → `master` via PR
+4. The release workflow tags and publishes the GitHub Release automatically
+5. A follow-up PR bumps `package.json` to the next patch version on `dev`

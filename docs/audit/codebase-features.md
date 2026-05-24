@@ -1,3 +1,8 @@
+> **Historical Audit Artifact** — This document was produced during the AI OS codebase audit (May 2026).
+> It is preserved as contributor reference. All action items have been resolved as of v0.21.0.
+> See the [CHANGELOG](../CHANGELOG.md) for implementation details.
+
+---
 # AI OS — Codebase Features Analysis
 
 > Analysis Date: June 2025 | Version: ~v0.13.0 | Repo: marinvch/ai-os
@@ -536,3 +541,4 @@ Based on open GitHub issues (as of June 2025):
 | **Stack coverage** | No PHP/WordPress detection — falls back to "Unknown" (issue #104) |
 | **CI** | No supply-chain audit (`npm audit`) gate (issue #119) |
 | **UX** | `--dry-run` shows planned actions but not actual content diff (issue #116) |
+

@@ -1,3 +1,8 @@
+> **Historical Audit Artifact** — This document was produced during the AI OS codebase audit (May 2026).
+> It is preserved as contributor reference. All action items have been resolved as of v0.21.0.
+> See the [CHANGELOG](../CHANGELOG.md) for implementation details.
+
+---
 # AI OS — Senior Developer Prioritized Checklist
 
 > Based on: security audit × github-issues.md × vscode-copilot-updates.md × result.md  
@@ -84,3 +89,4 @@ Potential next directions:
 - Monitor OpenSSF Scorecard badge and address any new findings
 - Review `npm audit` output for new CVEs as they are disclosed
 - Revisit P1 test coverage targets as new generators are added
+

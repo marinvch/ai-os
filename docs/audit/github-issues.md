@@ -1,3 +1,8 @@
+> **Historical Audit Artifact** — This document was produced during the AI OS codebase audit (May 2026).
+> It is preserved as contributor reference. All action items have been resolved as of v0.21.0.
+> See the [CHANGELOG](../CHANGELOG.md) for implementation details.
+
+---
 # AI OS — GitHub Issues Analysis
 
 > Repository: marinvch/ai-os | Analysis Date: June 2025 | Issues Fetched: ~50
@@ -353,3 +358,4 @@ Based on issue analysis and codebase state:
 14. **#112** — Verify mcp-server/utils.ts split is done; close if so
 15. **#122** — Verify docs/ split is done; close if so
 16. **#111** — Auto-generate MCP tool reference docs
+
