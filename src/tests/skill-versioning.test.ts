@@ -91,14 +91,18 @@ describe('detectDrift — skill version checking', () => {
   it('reports missing skill as warning when tracked in config', () => {
     const aiOsDir = join(tmpDir, '.github', 'ai-os');
     mkdirSync(aiOsDir, { recursive: true });
-    writeFileSync(join(aiOsDir, 'config.json'), JSON.stringify({
-      skillVersions: { 'my-skill': 'abc123def456' },
-    }), 'utf-8');
+    writeFileSync(
+      join(aiOsDir, 'config.json'),
+      JSON.stringify({
+        skillVersions: { 'my-skill': 'abc123def456' },
+      }),
+      'utf-8',
+    );
 
     const report = detectDrift(tmpDir);
-    expect(report.warnings.some(w =>
-      w.message.includes('my-skill') && w.kind === 'missing'
-    )).toBe(true);
+    expect(
+      report.warnings.some((w) => w.message.includes('my-skill') && w.kind === 'missing'),
+    ).toBe(true);
   });
 
   it('reports hash mismatch as warning when skill content changed', () => {
@@ -109,17 +113,21 @@ describe('detectDrift — skill version checking', () => {
 
     const originalContent = 'Original skill content';
     const originalHash = hashContent(originalContent);
-    writeFileSync(join(aiOsDir, 'config.json'), JSON.stringify({
-      skillVersions: { 'my-skill': originalHash },
-    }), 'utf-8');
+    writeFileSync(
+      join(aiOsDir, 'config.json'),
+      JSON.stringify({
+        skillVersions: { 'my-skill': originalHash },
+      }),
+      'utf-8',
+    );
 
     // Write DIFFERENT content to simulate modification
     writeFileSync(join(skillsDir, 'my-skill.md'), 'Modified skill content', 'utf-8');
 
     const report = detectDrift(tmpDir);
-    expect(report.warnings.some(w =>
-      w.message.includes('my-skill') && w.kind === 'stale'
-    )).toBe(true);
+    expect(report.warnings.some((w) => w.message.includes('my-skill') && w.kind === 'stale')).toBe(
+      true,
+    );
   });
 
   it('reports healthy when skill hash matches', () => {
@@ -130,15 +138,19 @@ describe('detectDrift — skill version checking', () => {
 
     const content = 'Unchanged skill content';
     const hash = hashContent(content);
-    writeFileSync(join(aiOsDir, 'config.json'), JSON.stringify({
-      skillVersions: { 'my-skill': hash },
-    }), 'utf-8');
+    writeFileSync(
+      join(aiOsDir, 'config.json'),
+      JSON.stringify({
+        skillVersions: { 'my-skill': hash },
+      }),
+      'utf-8',
+    );
     writeFileSync(join(skillsDir, 'my-skill.md'), content, 'utf-8');
 
     const report = detectDrift(tmpDir);
     // No warnings about this skill
-    expect(report.warnings.some(w => w.message.includes('my-skill'))).toBe(false);
-    expect(report.healthy.some(h => h.includes('my-skill'))).toBe(true);
+    expect(report.warnings.some((w) => w.message.includes('my-skill'))).toBe(false);
+    expect(report.healthy.some((h) => h.includes('my-skill'))).toBe(true);
   });
 
   it('no skill version issues when skillVersions is empty or absent', () => {
@@ -148,6 +160,8 @@ describe('detectDrift — skill version checking', () => {
 
     const report = detectDrift(tmpDir);
     // Should not have skill-related warnings from versioning
-    expect(report.warnings.some(w => w.kind === 'stale' && w.path.includes('skills'))).toBe(false);
+    expect(report.warnings.some((w) => w.kind === 'stale' && w.path.includes('skills'))).toBe(
+      false,
+    );
   });
 });

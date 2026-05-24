@@ -18,10 +18,10 @@ import { collectRecommendations } from './recommendations/index.js';
 export type BootstrapItemCategory = 'skill' | 'mcp' | 'vscode' | 'copilot-extension';
 
 export type BootstrapItemStatus =
-  | 'pending'     // dry-run: would be applied
-  | 'applied'     // successfully installed / configured
-  | 'skipped'     // already installed / not applicable
-  | 'failed';     // attempted but the skills CLI returned a non-zero exit code
+  | 'pending' // dry-run: would be applied
+  | 'applied' // successfully installed / configured
+  | 'skipped' // already installed / not applicable
+  | 'failed'; // attempted but the skills CLI returned a non-zero exit code
 
 export interface BootstrapPlanItem {
   category: BootstrapItemCategory;
@@ -64,13 +64,19 @@ function buildInstallCmd(skillName: string, source?: string): string {
  * Attempt to install a single skill via the skills CLI.
  * Returns { success, error }.
  */
-export function installSkill(skillName: string, source?: string): { success: boolean; error?: string } {
+export function installSkill(
+  skillName: string,
+  source?: string,
+): { success: boolean; error?: string } {
   const args = ['skills', 'add'];
   if (source) {
     args.push(`${source}@${skillName}`);
   } else {
     // Unknown source — cannot auto-install; mark as skipped
-    return { success: false, error: `No known source for skill "${skillName}" — cannot auto-install` };
+    return {
+      success: false,
+      error: `No known source for skill "${skillName}" — cannot auto-install`,
+    };
   }
   args.push('-g', '-a', 'github-copilot', '-y');
 
@@ -102,7 +108,10 @@ export function installSkill(skillName: string, source?: string): { success: boo
  * In dry-run mode all items have status 'pending'; no side effects.
  * In apply mode skill items are attempted via the skills CLI.
  */
-export function runBootstrap(stack: DetectedStack, options: BootstrapOptions = {}): BootstrapReport {
+export function runBootstrap(
+  stack: DetectedStack,
+  options: BootstrapOptions = {},
+): BootstrapReport {
   const { dryRun = false } = options;
   const recs = collectRecommendations(stack);
 
@@ -110,8 +119,8 @@ export function runBootstrap(stack: DetectedStack, options: BootstrapOptions = {
 
   // ── Skills (stack-specific + universal) ──────────────────────────────────
   const allSkills = [
-    ...recs.skills.map(s => ({ ...s, universal: false })),
-    ...recs.universalSkills.map(s => ({ ...s, universal: true })),
+    ...recs.skills.map((s) => ({ ...s, universal: false })),
+    ...recs.universalSkills.map((s) => ({ ...s, universal: true })),
   ];
 
   for (const skill of allSkills) {
@@ -119,7 +128,9 @@ export function runBootstrap(stack: DetectedStack, options: BootstrapOptions = {
     const item: BootstrapPlanItem = {
       category: 'skill',
       name: skill.name,
-      reason: skill.universal ? 'universal — recommended for every project' : `triggered by: ${skill.trigger}`,
+      reason: skill.universal
+        ? 'universal — recommended for every project'
+        : `triggered by: ${skill.trigger}`,
       installCmd,
       status: 'pending',
     };
@@ -175,15 +186,15 @@ export function runBootstrap(stack: DetectedStack, options: BootstrapOptions = {
     });
   }
 
-  const appliedCount = items.filter(i => i.status === 'applied').length;
-  const skippedCount = items.filter(i => i.status === 'skipped').length;
-  const failedCount = items.filter(i => i.status === 'failed').length;
-  const pendingCount = items.filter(i => i.status === 'pending').length;
+  const appliedCount = items.filter((i) => i.status === 'applied').length;
+  const skippedCount = items.filter((i) => i.status === 'skipped').length;
+  const failedCount = items.filter((i) => i.status === 'failed').length;
+  const pendingCount = items.filter((i) => i.status === 'pending').length;
 
   return {
     projectName: stack.projectName,
     detectedLanguage: stack.primaryLanguage.name,
-    detectedFrameworks: stack.frameworks.map(f => f.name),
+    detectedFrameworks: stack.frameworks.map((f) => f.name),
     packageManager: stack.patterns.packageManager,
     hasTypeScript: stack.patterns.hasTypeScript,
     dryRun,
@@ -215,7 +226,9 @@ export function formatBootstrapReport(report: BootstrapReport): string {
   lines.push('');
   lines.push('  Detected Stack:');
   lines.push(`    Language:    ${report.detectedLanguage}`);
-  lines.push(`    Frameworks:  ${report.detectedFrameworks.length > 0 ? report.detectedFrameworks.join(', ') : '(none)'}`);
+  lines.push(
+    `    Frameworks:  ${report.detectedFrameworks.length > 0 ? report.detectedFrameworks.join(', ') : '(none)'}`,
+  );
   lines.push(`    Pkg Manager: ${report.packageManager}`);
   lines.push(`    TypeScript:  ${report.hasTypeScript ? 'Yes' : 'No'}`);
   lines.push('');
@@ -232,15 +245,21 @@ export function formatBootstrapReport(report: BootstrapReport): string {
 
   for (const item of report.items) {
     const icon =
-      item.status === 'applied' ? '✅' :
-      item.status === 'skipped' ? '📋' :
-      item.status === 'failed'  ? '❌' :
-      '🔲'; // pending (dry-run)
+      item.status === 'applied'
+        ? '✅'
+        : item.status === 'skipped'
+          ? '📋'
+          : item.status === 'failed'
+            ? '❌'
+            : '🔲'; // pending (dry-run)
 
     const cat = pad(`[${item.category}]`, 20);
     const name = pad(item.name, 32);
     lines.push(`  ${icon} ${cat} ${name}  ← ${item.reason}`);
-    if (item.installCmd && (item.status === 'skipped' || item.status === 'pending' || item.status === 'failed')) {
+    if (
+      item.installCmd &&
+      (item.status === 'skipped' || item.status === 'pending' || item.status === 'failed')
+    ) {
       lines.push(`       Install: ${item.installCmd}`);
     }
     if (item.error && item.status === 'failed') {
@@ -267,9 +286,15 @@ export function formatBootstrapReport(report: BootstrapReport): string {
     if (report.skippedCount > 0) {
       lines.push('');
       lines.push('  📋 Informational items (manual action required):');
-      lines.push('     - MCP servers: add to .mcp.json (Copilot CLI) or .vscode/mcp.json (VS Code/Copilot Chat)');
-      lines.push('     - VS Code extensions: install via VS Code Marketplace or code --install-extension <id>');
-      lines.push('     - Skills with unknown source: find the hosting repo and run the install command');
+      lines.push(
+        '     - MCP servers: add to .mcp.json (Copilot CLI) or .vscode/mcp.json (VS Code/Copilot Chat)',
+      );
+      lines.push(
+        '     - VS Code extensions: install via VS Code Marketplace or code --install-extension <id>',
+      );
+      lines.push(
+        '     - Skills with unknown source: find the hosting repo and run the install command',
+      );
     }
   }
 

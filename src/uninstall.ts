@@ -42,7 +42,7 @@ function readProtectedPaths(cwd: string): Set<string> {
       files.push(...(obj['hybrid'] as string[]));
     }
     // Resolve relative paths to absolute
-    return new Set(files.map(f => path.resolve(cwd, f)));
+    return new Set(files.map((f) => path.resolve(cwd, f)));
   } catch {
     return new Set();
   }
@@ -66,13 +66,18 @@ function removeEmptyDirs(dirs: string[]): void {
       if (fs.existsSync(dir) && fs.readdirSync(dir).length === 0) {
         fs.rmdirSync(dir);
       }
-    } catch { /* best effort */ }
+    } catch {
+      /* best effort */
+    }
   }
 }
 
 // ── Core uninstall logic ──────────────────────────────────────────────────────
 
-export function runUninstall(cwd: string, options: { dryRun?: boolean; verbose?: boolean } = {}): UninstallReport {
+export function runUninstall(
+  cwd: string,
+  options: { dryRun?: boolean; verbose?: boolean } = {},
+): UninstallReport {
   const { dryRun = false, verbose = false } = options;
 
   const report: UninstallReport = {
@@ -135,10 +140,7 @@ export function runUninstall(cwd: string, options: { dryRun?: boolean; verbose?:
   }
 
   // Also remove AI OS runtime directory and manifest itself
-  const managedDirs = [
-    path.join(cwd, '.ai-os', 'mcp-server'),
-    path.join(cwd, '.ai-os'),
-  ];
+  const managedDirs = [path.join(cwd, '.ai-os', 'mcp-server'), path.join(cwd, '.ai-os')];
   const manifestPath = path.join(cwd, '.github', 'ai-os', 'manifest.json');
 
   if (!dryRun) {
@@ -160,7 +162,9 @@ export function runUninstall(cwd: string, options: { dryRun?: boolean; verbose?:
         fs.unlinkSync(manifestPath);
         if (verbose) console.log(`  🗑️  removed    .github/ai-os/manifest.json`);
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     // Prune empty managed directories
     const dirsToCheck = [
@@ -183,7 +187,8 @@ export function formatUninstallReport(report: UninstallReport): string {
 
   lines.push(`\n  ✅ AI OS uninstall complete${mode}`);
   lines.push(`     Removed:   ${report.removed.length} file(s)`);
-  if (report.skipped.length > 0) lines.push(`     Skipped:   ${report.skipped.length} file(s)  (user content preserved)`);
+  if (report.skipped.length > 0)
+    lines.push(`     Skipped:   ${report.skipped.length} file(s)  (user content preserved)`);
   if (report.notFound.length > 0) lines.push(`     Not found: ${report.notFound.length} file(s)`);
   if (report.errors.length > 0) lines.push(`     Errors:    ${report.errors.length} file(s)`);
 

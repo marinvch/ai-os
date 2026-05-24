@@ -1,0 +1,5 @@
+dist/
+bundle/
+node_modules/
+*.js
+*.mjs

@@ -38,19 +38,19 @@ describe('MCP Prompts contract', () => {
   });
 
   it('session_start prompt exists and has correct name', () => {
-    const p = KNOWN_PROMPTS.find(p => p.name === 'session_start');
+    const p = KNOWN_PROMPTS.find((p) => p.name === 'session_start');
     expect(p).toBeDefined();
     expect(p!.name).toBe('session_start');
   });
 
   it('pre_commit_check prompt exists and has correct name', () => {
-    const p = KNOWN_PROMPTS.find(p => p.name === 'pre_commit_check');
+    const p = KNOWN_PROMPTS.find((p) => p.name === 'pre_commit_check');
     expect(p).toBeDefined();
     expect(p!.name).toBe('pre_commit_check');
   });
 
   it('architecture_review prompt exists and has correct name', () => {
-    const p = KNOWN_PROMPTS.find(p => p.name === 'architecture_review');
+    const p = KNOWN_PROMPTS.find((p) => p.name === 'architecture_review');
     expect(p).toBeDefined();
     expect(p!.name).toBe('architecture_review');
   });
@@ -68,7 +68,10 @@ describe('MCP Prompts contract', () => {
     const { fileURLToPath } = await import('url');
     const { join, dirname } = await import('path');
     const __dirname = dirname(fileURLToPath(import.meta.url));
-    const sdkServerSrc = readFileSync(join(__dirname, '..', 'mcp-server', 'sdk-server.ts'), 'utf-8');
+    const sdkServerSrc = readFileSync(
+      join(__dirname, '..', 'mcp-server', 'sdk-server.ts'),
+      'utf-8',
+    );
     // The SDK server must declare a prompts capability via registerPrompt
     expect(sdkServerSrc).toContain('registerPrompt');
     // All three prompt names must be registered

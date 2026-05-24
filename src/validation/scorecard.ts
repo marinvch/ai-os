@@ -24,7 +24,10 @@ interface ScorecardFile {
   weeks: WeekMetrics[];
 }
 
-const SCORECARD_PATH = path.resolve(import.meta.dirname, '../../.github/ai-os/metrics/scorecard.json');
+const SCORECARD_PATH = path.resolve(
+  import.meta.dirname,
+  '../../.github/ai-os/metrics/scorecard.json',
+);
 
 function readScorecard(): ScorecardFile {
   if (!fs.existsSync(SCORECARD_PATH)) {
@@ -97,7 +100,9 @@ function resolveWeekStart(input: string | undefined): string {
 function showScorecard(scorecard: ScorecardFile): void {
   if (scorecard.weeks.length === 0) {
     console.log(`Scorecard has no weekly entries yet: ${SCORECARD_PATH}`);
-    console.log('Add one with npm run scorecard:update -- --first-pass=0.8 --tool-success=0.95 --rework=0.15 --time-to-fix=30 --context-hit=0.7');
+    console.log(
+      'Add one with npm run scorecard:update -- --first-pass=0.8 --tool-success=0.95 --rework=0.15 --time-to-fix=30 --context-hit=0.7',
+    );
     return;
   }
 
@@ -114,7 +119,9 @@ function showScorecard(scorecard: ScorecardFile): void {
     console.log(`- skillContractPassRate: ${(latest.skillContractPassRate * 100).toFixed(1)}%`);
   }
   if (latest.startupProtocolCompliance !== undefined) {
-    console.log(`- startupProtocolCompliance: ${(latest.startupProtocolCompliance * 100).toFixed(1)}%`);
+    console.log(
+      `- startupProtocolCompliance: ${(latest.startupProtocolCompliance * 100).toFixed(1)}%`,
+    );
   }
   if (latest.severityReviewAdoption !== undefined) {
     console.log(`- severityReviewAdoption: ${(latest.severityReviewAdoption * 100).toFixed(1)}%`);
@@ -134,9 +141,20 @@ function upsertWeek(scorecard: ScorecardFile): void {
     avgTimeToFixMinutes: parsePositive(getArg('--time-to-fix'), '--time-to-fix'),
     contextHitRate: parsePercent(getArg('--context-hit'), '--context-hit'),
     notes: getArg('--notes'),
-    ...(getArg('--skill-contract') !== undefined ? { skillContractPassRate: parsePercent(getArg('--skill-contract'), '--skill-contract') } : {}),
-    ...(getArg('--startup-protocol') !== undefined ? { startupProtocolCompliance: parsePercent(getArg('--startup-protocol'), '--startup-protocol') } : {}),
-    ...(getArg('--severity-review') !== undefined ? { severityReviewAdoption: parsePercent(getArg('--severity-review'), '--severity-review') } : {}),
+    ...(getArg('--skill-contract') !== undefined
+      ? { skillContractPassRate: parsePercent(getArg('--skill-contract'), '--skill-contract') }
+      : {}),
+    ...(getArg('--startup-protocol') !== undefined
+      ? {
+          startupProtocolCompliance: parsePercent(
+            getArg('--startup-protocol'),
+            '--startup-protocol',
+          ),
+        }
+      : {}),
+    ...(getArg('--severity-review') !== undefined
+      ? { severityReviewAdoption: parsePercent(getArg('--severity-review'), '--severity-review') }
+      : {}),
     updatedAt: new Date().toISOString(),
   };
 

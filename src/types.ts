@@ -18,7 +18,21 @@ export interface DetectedPatterns {
   linter?: string;
   formatter?: string;
   bundler?: string;
-  packageManager: 'npm' | 'yarn' | 'pnpm' | 'bun' | 'pip' | 'poetry' | 'cargo' | 'go' | 'maven' | 'gradle' | 'dotnet' | 'composer' | 'bundler' | 'unknown';
+  packageManager:
+    | 'npm'
+    | 'yarn'
+    | 'pnpm'
+    | 'bun'
+    | 'pip'
+    | 'poetry'
+    | 'cargo'
+    | 'go'
+    | 'maven'
+    | 'gradle'
+    | 'dotnet'
+    | 'composer'
+    | 'bundler'
+    | 'unknown';
   hasTypeScript: boolean;
   hasDockerfile: boolean;
   hasCiCd: boolean;
@@ -239,6 +253,6 @@ export function isAgentRegistry(value: unknown): value is AgentRegistry {
       typeof (a as Record<string, unknown>)['file'] === 'string' &&
       Array.isArray((a as Record<string, unknown>)['capabilities']) &&
       Array.isArray((a as Record<string, unknown>)['triggers']) &&
-      typeof (a as Record<string, unknown>)['description'] === 'string'
+      typeof (a as Record<string, unknown>)['description'] === 'string',
   );
 }

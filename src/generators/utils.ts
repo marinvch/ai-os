@@ -83,9 +83,14 @@ export function writeFileAtomic(filePath: string, content: string): void {
     fs.writeFileSync(tmpPath, content, 'utf-8');
     fs.renameSync(tmpPath, filePath);
   } catch (err) {
-    try { fs.unlinkSync(tmpPath); } catch { /* ignore cleanup errors */ }
-    const isPermission = (err as NodeJS.ErrnoException).code === 'EACCES'
-      || (err as NodeJS.ErrnoException).code === 'EPERM';
+    try {
+      fs.unlinkSync(tmpPath);
+    } catch {
+      /* ignore cleanup errors */
+    }
+    const isPermission =
+      (err as NodeJS.ErrnoException).code === 'EACCES' ||
+      (err as NodeJS.ErrnoException).code === 'EPERM';
     if (isPermission) {
       throw new AiOsError(
         'WRITE_FAILED',
@@ -113,7 +118,11 @@ export function writeIfChanged(filePath: string, content: string): WriteResult {
 
   // Fast-path: compare against previous manifest hash before reading disk.
   // Only skip if the file actually exists — a deleted file must always be recreated.
-  if (_prevHashes[filePath] !== undefined && _prevHashes[filePath] === contentHash && fs.existsSync(filePath)) {
+  if (
+    _prevHashes[filePath] !== undefined &&
+    _prevHashes[filePath] === contentHash &&
+    fs.existsSync(filePath)
+  ) {
     if (_verbose) console.log(`  ⏭️  skip    ${filePath}  (hash-match)`);
     if (_dryRun) _dryRunCaptures.push({ filePath, newContent: content, existingContent: content });
     return 'skipped';
@@ -124,7 +133,8 @@ export function writeIfChanged(filePath: string, content: string): WriteResult {
     if (existing === content) {
       if (_verbose) console.log(`  ⏭️  skip    ${filePath}  (unchanged)`);
       // In dry-run capture mode: still record unchanged entries
-      if (_dryRun) _dryRunCaptures.push({ filePath, newContent: content, existingContent: existing });
+      if (_dryRun)
+        _dryRunCaptures.push({ filePath, newContent: content, existingContent: existing });
       return 'skipped';
     }
   }
@@ -256,9 +266,9 @@ export function writeManifest(
 // ── Diff tracking (#11) ───────────────────────────────────────────────────────
 
 export interface FileDiff {
-  written: string[];   // new content differs from existing / file didn't exist
-  skipped: string[];   // content identical — no write needed
-  pruned: string[];    // existed in previous manifest, not generated this run
+  written: string[]; // new content differs from existing / file didn't exist
+  skipped: string[]; // content identical — no write needed
+  pruned: string[]; // existed in previous manifest, not generated this run
 }
 
 export function makeFileDiff(): FileDiff {
@@ -303,16 +313,21 @@ export function sha256(content: string): string {
  *  4. Cap to `maxLength` characters (default 128) to prevent token-flooding.
  */
 export function sanitizeForInstructions(value: string, maxLength = 128): string {
-  return value
-    // Strip C0 control chars (except 0x09 tab, 0x0A LF, 0x0D CR handled below),
-    // C1 control chars, and Unicode invisible/zero-width characters.
-    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\u0080-\u009F\u200B-\u200D\u2028\u2029\uFEFF]/g, '')
-    // Collapse newlines / CR / tabs → single space (no line breaks in inline fields).
-    .replace(/[\r\n\t]+/g, ' ')
-    // Collapse consecutive spaces.
-    .replace(/ {2,}/g, ' ')
-    .trim()
-    .slice(0, maxLength);
+  return (
+    value
+      // Strip C0 control chars (except 0x09 tab, 0x0A LF, 0x0D CR handled below),
+      // C1 control chars, and Unicode invisible/zero-width characters.
+      .replace(
+        /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\u0080-\u009F\u200B-\u200D\u2028\u2029\uFEFF]/g,
+        '',
+      )
+      // Collapse newlines / CR / tabs → single space (no line breaks in inline fields).
+      .replace(/[\r\n\t]+/g, ' ')
+      // Collapse consecutive spaces.
+      .replace(/ {2,}/g, ' ')
+      .trim()
+      .slice(0, maxLength)
+  );
 }
 
 // ── Templates dir resolution ──────────────────────────────────────────────────
@@ -323,8 +338,8 @@ export function sanitizeForInstructions(value: string, maxLength = 128): string 
  */
 export function resolveTemplatesDir(runtimeDir: string): string {
   const candidates = [
-    path.join(runtimeDir, '..', 'templates'),              // bundle/generate.js → templates/  |  dist/generators/ → dist/templates/
-    path.join(runtimeDir, '..', 'src', 'templates'),       // bundle/generate.js → src/templates/ ✓  |  src/generators/ → src/templates/ ✓
+    path.join(runtimeDir, '..', 'templates'), // bundle/generate.js → templates/  |  dist/generators/ → dist/templates/
+    path.join(runtimeDir, '..', 'src', 'templates'), // bundle/generate.js → src/templates/ ✓  |  src/generators/ → src/templates/ ✓
     path.join(runtimeDir, '..', '..', 'src', 'templates'), // dist/generators/ → src/templates/ ✓ (tsc compiled layout)
   ];
 

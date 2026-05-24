@@ -50,26 +50,26 @@ describe('examples/nextjs-trpc-prisma — stack detection', () => {
     const stack = analyze(tmpDir);
     expect(stack.patterns.hasTypeScript).toBe(true);
     // Primary language may be JSON or TypeScript depending on file count, but TS must be present
-    const langs = stack.languages.map(l => l.name);
+    const langs = stack.languages.map((l) => l.name);
     expect(langs).toContain('TypeScript');
   });
 
   it('detects Next.js framework', () => {
     const stack = analyze(tmpDir);
-    const fw = stack.frameworks.map(f => f.name.toLowerCase());
-    expect(fw.some(n => n.includes('next'))).toBe(true);
+    const fw = stack.frameworks.map((f) => f.name.toLowerCase());
+    expect(fw.some((n) => n.includes('next'))).toBe(true);
   });
 
   it('detects tRPC dependency', () => {
     const stack = analyze(tmpDir);
-    const deps = stack.allDependencies.map(d => d.toLowerCase());
-    expect(deps.some(d => d.includes('trpc'))).toBe(true);
+    const deps = stack.allDependencies.map((d) => d.toLowerCase());
+    expect(deps.some((d) => d.includes('trpc'))).toBe(true);
   });
 
   it('detects Prisma dependency', () => {
     const stack = analyze(tmpDir);
-    const deps = stack.allDependencies.map(d => d.toLowerCase());
-    expect(deps.some(d => d.includes('prisma'))).toBe(true);
+    const deps = stack.allDependencies.map((d) => d.toLowerCase());
+    expect(deps.some((d) => d.includes('prisma'))).toBe(true);
   });
 
   it('generates instructions file containing Next.js content', async () => {
@@ -94,7 +94,7 @@ describe('examples/nextjs-trpc-prisma — stack detection', () => {
       primaryLanguage: stack.primaryLanguage.name,
       hasTypeScript: stack.patterns.hasTypeScript,
       packageManager: stack.patterns.packageManager,
-      frameworks: stack.frameworks.map(f => f.name).sort(),
+      frameworks: stack.frameworks.map((f) => f.name).sort(),
     }).toMatchSnapshot();
   });
 });
@@ -120,8 +120,8 @@ describe('examples/python-fastapi — stack detection', () => {
 
   it('detects FastAPI dependency', () => {
     const stack = analyze(tmpDir);
-    const deps = stack.allDependencies.map(d => d.toLowerCase());
-    expect(deps.some(d => d.includes('fastapi'))).toBe(true);
+    const deps = stack.allDependencies.map((d) => d.toLowerCase());
+    expect(deps.some((d) => d.includes('fastapi'))).toBe(true);
   });
 
   it('generates instructions file', async () => {
@@ -143,7 +143,7 @@ describe('examples/python-fastapi — stack detection', () => {
     expect({
       primaryLanguage: stack.primaryLanguage.name,
       packageManager: stack.patterns.packageManager,
-      frameworks: stack.frameworks.map(f => f.name).sort(),
+      frameworks: stack.frameworks.map((f) => f.name).sort(),
     }).toMatchSnapshot();
   });
 });
@@ -186,7 +186,7 @@ describe('examples/go-service — stack detection', () => {
     expect({
       primaryLanguage: stack.primaryLanguage.name,
       packageManager: stack.patterns.packageManager,
-      frameworks: stack.frameworks.map(f => f.name).sort(),
+      frameworks: stack.frameworks.map((f) => f.name).sort(),
     }).toMatchSnapshot();
   });
 });

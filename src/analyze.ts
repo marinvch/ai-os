@@ -3,44 +3,75 @@ import path from 'node:path';
 import { detectLanguages } from './detectors/language.js';
 import { detectFrameworks } from './detectors/framework.js';
 import { detectPatterns } from './detectors/patterns.js';
-import type { DetectedStack, PackageProfile, DetectedLanguage, DetectedFramework, BuildCommands } from './types.js';
+import type {
+  DetectedStack,
+  PackageProfile,
+  DetectedLanguage,
+  DetectedFramework,
+  BuildCommands,
+} from './types.js';
 
 function getProjectName(rootDir: string): string {
   try {
-    const pkg = JSON.parse(fs.readFileSync(path.join(rootDir, 'package.json'), 'utf-8')) as { name?: string };
+    const pkg = JSON.parse(fs.readFileSync(path.join(rootDir, 'package.json'), 'utf-8')) as {
+      name?: string;
+    };
     if (pkg.name) return pkg.name.replace(/^@[^/]+\//, '');
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 
   try {
     const goMod = fs.readFileSync(path.join(rootDir, 'go.mod'), 'utf-8');
     const match = goMod.match(/^module\s+(\S+)/m);
     if (match) return match[1].split('/').pop() ?? path.basename(rootDir);
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 
   try {
     const cargo = fs.readFileSync(path.join(rootDir, 'Cargo.toml'), 'utf-8');
     const match = cargo.match(/^name\s*=\s*"([^"]+)"/m);
     if (match) return match[1];
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 
   return path.basename(rootDir);
 }
 
 function getKeyFiles(rootDir: string): string[] {
   const candidates = [
-    'README.md', 'package.json', 'go.mod', 'Cargo.toml', 'pyproject.toml',
-    'requirements.txt', 'pom.xml', 'build.gradle', 'composer.json', 'Gemfile',
+    'README.md',
+    'package.json',
+    'go.mod',
+    'Cargo.toml',
+    'pyproject.toml',
+    'requirements.txt',
+    'pom.xml',
+    'build.gradle',
+    'composer.json',
+    'Gemfile',
     'prisma/schema.prisma',
-    'src/index.ts', 'src/main.ts', 'src/app.ts',
-    'src/index.js', 'src/main.js', 'src/app.js',
-    'main.go', 'main.py', 'main.rs', 'app.py', 'index.py',
-    'docker-compose.yml', 'Dockerfile',
+    'src/index.ts',
+    'src/main.ts',
+    'src/app.ts',
+    'src/index.js',
+    'src/main.js',
+    'src/app.js',
+    'main.go',
+    'main.py',
+    'main.rs',
+    'app.py',
+    'index.py',
+    'docker-compose.yml',
+    'Dockerfile',
   ];
 
   return candidates
-    .map(c => path.join(rootDir, c))
-    .filter(p => fs.existsSync(p))
-    .map(p => path.relative(rootDir, p));
+    .map((c) => path.join(rootDir, c))
+    .filter((p) => fs.existsSync(p))
+    .map((p) => path.relative(rootDir, p));
 }
 
 function getAllDependencies(rootDir: string): string[] {
@@ -53,29 +84,42 @@ function getAllDependencies(rootDir: string): string[] {
       devDependencies?: Record<string, string>;
       peerDependencies?: Record<string, string>;
     };
-    for (const key of Object.keys({ ...pkg.dependencies, ...pkg.devDependencies, ...pkg.peerDependencies })) {
+    for (const key of Object.keys({
+      ...pkg.dependencies,
+      ...pkg.devDependencies,
+      ...pkg.peerDependencies,
+    })) {
       deps.add(key.toLowerCase());
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 
   // Python pyproject.toml / requirements.txt
   try {
     const req = fs.readFileSync(path.join(rootDir, 'requirements.txt'), 'utf-8');
-    req.split('\n').forEach(line => {
-      const pkg = line.split(/[>=<!;\s]/)[0]?.trim().toLowerCase();
+    req.split('\n').forEach((line) => {
+      const pkg = line
+        .split(/[>=<!;\s]/)[0]
+        ?.trim()
+        .toLowerCase();
       if (pkg) deps.add(pkg);
     });
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 
   // Cargo.toml
   try {
     const cargo = fs.readFileSync(path.join(rootDir, 'Cargo.toml'), 'utf-8');
     const depSection = cargo.match(/\[dependencies\]([\s\S]*?)(\[|\Z)/)?.[1] ?? '';
-    depSection.split('\n').forEach(line => {
+    depSection.split('\n').forEach((line) => {
       const m = line.match(/^(\w[\w-]*)\s*=/);
       if (m) deps.add(m[1].toLowerCase());
     });
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 
   return [...deps];
 }
@@ -120,8 +164,10 @@ function parsePnpmWorkspaceYaml(yaml: string): string[] {
       if (trimmed.startsWith('-')) {
         let pattern = trimmed.slice(1).trim();
         // Strip surrounding quotes
-        if ((pattern.startsWith("'") && pattern.endsWith("'")) ||
-            (pattern.startsWith('"') && pattern.endsWith('"'))) {
+        if (
+          (pattern.startsWith("'") && pattern.endsWith("'")) ||
+          (pattern.startsWith('"') && pattern.endsWith('"'))
+        ) {
           pattern = pattern.slice(1, -1);
         }
         if (pattern) globs.push(pattern);
@@ -154,7 +200,10 @@ function discoverPackageRoots(rootDir: string): string[] {
   try {
     const pnpmWs = fs.readFileSync(path.join(rootDir, 'pnpm-workspace.yaml'), 'utf-8');
     for (const glob of parsePnpmWorkspaceYaml(pnpmWs)) {
-      const normalized = glob.replace(/\\/g, '/').replace(/\/\*\*$/, '').replace(/\/\*$/, '');
+      const normalized = glob
+        .replace(/\\/g, '/')
+        .replace(/\/\*\*$/, '')
+        .replace(/\/\*$/, '');
       const absBase = path.join(rootDir, normalized);
       if (hasManifest(absBase)) packageRoots.add(absBase);
       addWorkspaceChildren(absBase, packageRoots);
@@ -172,7 +221,10 @@ function discoverPackageRoots(rootDir: string): string[] {
       ? pkg.workspaces
       : (pkg.workspaces?.packages ?? []);
     for (const glob of wsList) {
-      const normalized = glob.replace(/\\/g, '/').replace(/\/\*\*$/, '').replace(/\/\*$/, '');
+      const normalized = glob
+        .replace(/\\/g, '/')
+        .replace(/\/\*\*$/, '')
+        .replace(/\/\*$/, '');
       const absBase = path.join(rootDir, normalized);
       if (hasManifest(absBase)) packageRoots.add(absBase);
       addWorkspaceChildren(absBase, packageRoots);
@@ -187,7 +239,10 @@ function discoverPackageRoots(rootDir: string): string[] {
       packages?: string[];
     };
     for (const glob of lerna.packages ?? []) {
-      const normalized = glob.replace(/\\/g, '/').replace(/\/\*\*$/, '').replace(/\/\*$/, '');
+      const normalized = glob
+        .replace(/\\/g, '/')
+        .replace(/\/\*\*$/, '')
+        .replace(/\/\*$/, '');
       const absBase = path.join(rootDir, normalized);
       if (hasManifest(absBase)) packageRoots.add(absBase);
       addWorkspaceChildren(absBase, packageRoots);
@@ -290,21 +345,38 @@ function detectBuildCommands(rootDir: string): BuildCommands {
     const startAliases = ['start', 'serve', 'preview'];
 
     for (const k of buildAliases) {
-      if (scripts[k]) { commands.build = `npm run ${k}`; break; }
+      if (scripts[k]) {
+        commands.build = `npm run ${k}`;
+        break;
+      }
     }
     for (const k of testAliases) {
-      if (scripts[k]) { commands.test = `npm run ${k}`; break; }
+      if (scripts[k]) {
+        commands.test = `npm run ${k}`;
+        break;
+      }
     }
     for (const k of devAliases) {
-      if (scripts[k]) { commands.dev = `npm run ${k}`; break; }
+      if (scripts[k]) {
+        commands.dev = `npm run ${k}`;
+        break;
+      }
     }
     for (const k of lintAliases) {
-      if (scripts[k]) { commands.lint = `npm run ${k}`; break; }
+      if (scripts[k]) {
+        commands.lint = `npm run ${k}`;
+        break;
+      }
     }
     for (const k of startAliases) {
-      if (scripts[k]) { commands.start = `npm run ${k}`; break; }
+      if (scripts[k]) {
+        commands.start = `npm run ${k}`;
+        break;
+      }
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 
   // ── Python pyproject.toml ─────────────────────────────────────────────────
   if (!commands.test || !commands.build) {
@@ -313,9 +385,10 @@ function detectBuildCommands(rootDir: string): BuildCommands {
 
       // tool.poetry.scripts section
       const scriptSection = toml.match(/\[tool\.poetry\.scripts\]([\s\S]*?)(\[|\s*$)/)?.[1] ?? '';
-      const scriptEntries = [...scriptSection.matchAll(/^(\w[\w-]*)\s*=\s*"([^"]+)"/mg)];
+      const scriptEntries = [...scriptSection.matchAll(/^(\w[\w-]*)\s*=\s*"([^"]+)"/gm)];
       for (const [, name] of scriptEntries) {
-        if (!commands.start && /^(start|serve|run)/.test(name)) commands.start = `poetry run ${name}`;
+        if (!commands.start && /^(start|serve|run)/.test(name))
+          commands.start = `poetry run ${name}`;
         if (!commands.test && /^(test|pytest)/.test(name)) commands.test = `poetry run ${name}`;
       }
 
@@ -332,7 +405,9 @@ function detectBuildCommands(rootDir: string): BuildCommands {
       if (!commands.dev && toml.includes('django')) {
         commands.dev = 'python manage.py runserver';
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   // ── Python requirements.txt fallback ────────────────────────────────────
@@ -342,20 +417,24 @@ function detectBuildCommands(rootDir: string): BuildCommands {
       if (req.includes('pytest')) commands.test = 'pytest';
       if (!commands.dev && req.includes('fastapi')) commands.dev = 'uvicorn main:app --reload';
       if (!commands.dev && req.includes('django')) commands.dev = 'python manage.py runserver';
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   // ── Makefile ─────────────────────────────────────────────────────────────
   try {
     const makefile = fs.readFileSync(path.join(rootDir, 'Makefile'), 'utf-8');
-    const targets = [...makefile.matchAll(/^([a-zA-Z][\w-]*):/mg)].map(m => m[1]);
+    const targets = [...makefile.matchAll(/^([a-zA-Z][\w-]*):/gm)].map((m) => m[1]);
 
     if (!commands.build && targets.includes('build')) commands.build = 'make build';
     if (!commands.test && targets.includes('test')) commands.test = 'make test';
     if (!commands.dev && targets.includes('dev')) commands.dev = 'make dev';
     if (!commands.dev && targets.includes('run')) commands.dev = 'make run';
     if (!commands.lint && targets.includes('lint')) commands.lint = 'make lint';
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 
   // ── Go ────────────────────────────────────────────────────────────────────
   if (!commands.build && fs.existsSync(path.join(rootDir, 'go.mod'))) {
@@ -376,10 +455,11 @@ function detectBuildCommands(rootDir: string): BuildCommands {
   }
 
   // ── Java / Gradle ─────────────────────────────────────────────────────────
-  if (!commands.build && (
-    fs.existsSync(path.join(rootDir, 'build.gradle')) ||
-    fs.existsSync(path.join(rootDir, 'build.gradle.kts'))
-  )) {
+  if (
+    !commands.build &&
+    (fs.existsSync(path.join(rootDir, 'build.gradle')) ||
+      fs.existsSync(path.join(rootDir, 'build.gradle.kts')))
+  ) {
     commands.build = './gradlew build';
     if (!commands.test) commands.test = './gradlew test';
   }
@@ -407,7 +487,12 @@ export function analyze(rootDir: string): DetectedStack {
 
   return {
     projectName: getProjectName(absRoot),
-    primaryLanguage: languages[0] ?? { name: 'Unknown', percentage: 0, fileCount: 0, extensions: [] },
+    primaryLanguage: languages[0] ?? {
+      name: 'Unknown',
+      percentage: 0,
+      fileCount: 0,
+      extensions: [],
+    },
     languages,
     primaryFramework: frameworks[0],
     frameworks,

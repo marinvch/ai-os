@@ -28,7 +28,9 @@ function write(dir: string, relPath: string, content = ''): void {
 
 describe('detectLanguages', () => {
   let tmp: string;
-  beforeEach(() => { tmp = mkTmp(); });
+  beforeEach(() => {
+    tmp = mkTmp();
+  });
   afterEach(() => rmTmp(tmp));
 
   it('returns TypeScript as primary language for .ts files', async () => {
@@ -55,8 +57,8 @@ describe('detectLanguages', () => {
     write(tmp, 'src/index.ts', '');
     const { detectLanguages } = await import('../detectors/language.js');
     const langs = detectLanguages(tmp);
-    const jsLang = langs.find(l => l.name === 'JavaScript');
-    const tsLang = langs.find(l => l.name === 'TypeScript');
+    const jsLang = langs.find((l) => l.name === 'JavaScript');
+    const tsLang = langs.find((l) => l.name === 'TypeScript');
     expect(jsLang).toBeUndefined();
     expect(tsLang).toBeDefined();
   });
@@ -73,7 +75,7 @@ describe('detectLanguages', () => {
     write(tmp, 'b.tsx', '');
     const { detectLanguages } = await import('../detectors/language.js');
     const langs = detectLanguages(tmp);
-    const ts = langs.find(l => l.name === 'TypeScript');
+    const ts = langs.find((l) => l.name === 'TypeScript');
     expect(ts?.extensions).toEqual(expect.arrayContaining(['ts', 'tsx']));
   });
 
@@ -85,8 +87,8 @@ describe('detectLanguages', () => {
     const { detectLanguages } = await import('../detectors/language.js');
     const langs = detectLanguages(tmp);
     // 2 of 4 = 50% for both TypeScript and Python
-    const ts = langs.find(l => l.name === 'TypeScript');
-    const py = langs.find(l => l.name === 'Python');
+    const ts = langs.find((l) => l.name === 'TypeScript');
+    const py = langs.find((l) => l.name === 'Python');
     expect(ts?.percentage).toBe(50);
     expect(py?.percentage).toBe(50);
   });
@@ -96,7 +98,9 @@ describe('detectLanguages', () => {
 
 describe('detectPatterns', () => {
   let tmp: string;
-  beforeEach(() => { tmp = mkTmp(); });
+  beforeEach(() => {
+    tmp = mkTmp();
+  });
   afterEach(() => rmTmp(tmp));
 
   it('detects npm package manager from package-lock.json', async () => {
@@ -172,28 +176,30 @@ describe('detectPatterns', () => {
 
 describe('detectFrameworks', () => {
   let tmp: string;
-  beforeEach(() => { tmp = mkTmp(); });
+  beforeEach(() => {
+    tmp = mkTmp();
+  });
   afterEach(() => rmTmp(tmp));
 
   it('detects Next.js from package.json dependencies', async () => {
     write(tmp, 'package.json', JSON.stringify({ dependencies: { next: '^14.0.0' } }));
     const { detectFrameworks } = await import('../detectors/framework.js');
     const frameworks = detectFrameworks(tmp);
-    expect(frameworks.some(f => f.name === 'Next.js')).toBe(true);
+    expect(frameworks.some((f) => f.name === 'Next.js')).toBe(true);
   });
 
   it('detects React from package.json dependencies', async () => {
     write(tmp, 'package.json', JSON.stringify({ dependencies: { react: '^18.0.0' } }));
     const { detectFrameworks } = await import('../detectors/framework.js');
     const frameworks = detectFrameworks(tmp);
-    expect(frameworks.some(f => f.name === 'React')).toBe(true);
+    expect(frameworks.some((f) => f.name === 'React')).toBe(true);
   });
 
   it('detects Express from package.json dependencies', async () => {
     write(tmp, 'package.json', JSON.stringify({ dependencies: { express: '^4.0.0' } }));
     const { detectFrameworks } = await import('../detectors/framework.js');
     const frameworks = detectFrameworks(tmp);
-    expect(frameworks.some(f => f.name === 'Express')).toBe(true);
+    expect(frameworks.some((f) => f.name === 'Express')).toBe(true);
   });
 
   it('returns empty array for project with no recognized frameworks', async () => {
@@ -214,24 +220,28 @@ describe('detectFrameworks', () => {
     write(tmp, 'package.json', JSON.stringify({ devDependencies: { prisma: '^5.0.0' } }));
     const { detectFrameworks } = await import('../detectors/framework.js');
     const frameworks = detectFrameworks(tmp);
-    expect(frameworks.some(f => f.name === 'Prisma')).toBe(true);
+    expect(frameworks.some((f) => f.name === 'Prisma')).toBe(true);
   });
 
   // ── Bug fix regressions (#168, #169, #170, #172) ──────────────────────────────
 
   it('detects SvelteKit before Svelte when @sveltejs/kit is present', async () => {
-    write(tmp, 'package.json', JSON.stringify({ dependencies: { svelte: '^4.0.0', '@sveltejs/kit': '^2.0.0' } }));
+    write(
+      tmp,
+      'package.json',
+      JSON.stringify({ dependencies: { svelte: '^4.0.0', '@sveltejs/kit': '^2.0.0' } }),
+    );
     const { detectFrameworks } = await import('../detectors/framework.js');
     const frameworks = detectFrameworks(tmp);
-    expect(frameworks.some(f => f.name === 'SvelteKit')).toBe(true);
-    expect(frameworks.some(f => f.name === 'Svelte' && f.template !== 'sveltekit')).toBe(false);
+    expect(frameworks.some((f) => f.name === 'SvelteKit')).toBe(true);
+    expect(frameworks.some((f) => f.name === 'Svelte' && f.template !== 'sveltekit')).toBe(false);
   });
 
   it('detects Fastify with fastify template (not express)', async () => {
     write(tmp, 'package.json', JSON.stringify({ dependencies: { fastify: '^4.0.0' } }));
     const { detectFrameworks } = await import('../detectors/framework.js');
     const frameworks = detectFrameworks(tmp);
-    const f = frameworks.find(f => f.name === 'Fastify');
+    const f = frameworks.find((f) => f.name === 'Fastify');
     expect(f).toBeDefined();
     expect(f?.template).toBe('fastify');
   });
@@ -240,7 +250,7 @@ describe('detectFrameworks', () => {
     write(tmp, 'package.json', JSON.stringify({ dependencies: { hono: '^4.0.0' } }));
     const { detectFrameworks } = await import('../detectors/framework.js');
     const frameworks = detectFrameworks(tmp);
-    const f = frameworks.find(f => f.name === 'Hono');
+    const f = frameworks.find((f) => f.name === 'Hono');
     expect(f).toBeDefined();
     expect(f?.template).toBe('hono');
   });
@@ -249,7 +259,7 @@ describe('detectFrameworks', () => {
     write(tmp, 'package.json', JSON.stringify({ dependencies: { koa: '^2.0.0' } }));
     const { detectFrameworks } = await import('../detectors/framework.js');
     const frameworks = detectFrameworks(tmp);
-    const f = frameworks.find(f => f.name === 'Koa');
+    const f = frameworks.find((f) => f.name === 'Koa');
     expect(f).toBeDefined();
     expect(f?.template).toBe('koa');
   });
@@ -258,7 +268,7 @@ describe('detectFrameworks', () => {
     write(tmp, 'requirements.txt', 'flask==3.0.0\nclick==8.1.0\n');
     const { detectFrameworks } = await import('../detectors/framework.js');
     const frameworks = detectFrameworks(tmp);
-    const f = frameworks.find(f => f.name === 'Flask');
+    const f = frameworks.find((f) => f.name === 'Flask');
     expect(f).toBeDefined();
     expect(f?.template).toBe('python-flask');
   });
@@ -267,25 +277,33 @@ describe('detectFrameworks', () => {
     write(tmp, 'requirements.txt', 'starlette==0.36.0\nhttpx==0.26.0\n');
     const { detectFrameworks } = await import('../detectors/framework.js');
     const frameworks = detectFrameworks(tmp);
-    const f = frameworks.find(f => f.name === 'Starlette');
+    const f = frameworks.find((f) => f.name === 'Starlette');
     expect(f).toBeDefined();
     expect(f?.template).toBe('python-starlette');
   });
 
   it('detects Quarkus with java-quarkus template', async () => {
-    write(tmp, 'pom.xml', '<project><dependencies><groupId>io.quarkus</groupId></dependencies></project>');
+    write(
+      tmp,
+      'pom.xml',
+      '<project><dependencies><groupId>io.quarkus</groupId></dependencies></project>',
+    );
     const { detectFrameworks } = await import('../detectors/framework.js');
     const frameworks = detectFrameworks(tmp);
-    const f = frameworks.find(f => f.name === 'Quarkus');
+    const f = frameworks.find((f) => f.name === 'Quarkus');
     expect(f).toBeDefined();
     expect(f?.template).toBe('java-quarkus');
   });
 
   it('detects Micronaut with java-micronaut template', async () => {
-    write(tmp, 'pom.xml', '<project><dependencies><groupId>io.micronaut</groupId></dependencies></project>');
+    write(
+      tmp,
+      'pom.xml',
+      '<project><dependencies><groupId>io.micronaut</groupId></dependencies></project>',
+    );
     const { detectFrameworks } = await import('../detectors/framework.js');
     const frameworks = detectFrameworks(tmp);
-    const f = frameworks.find(f => f.name === 'Micronaut');
+    const f = frameworks.find((f) => f.name === 'Micronaut');
     expect(f).toBeDefined();
     expect(f?.template).toBe('java-micronaut');
   });
@@ -294,16 +312,22 @@ describe('detectFrameworks', () => {
     write(tmp, 'pom.xml', '<project><groupId>com.example</groupId></project>');
     const { detectFrameworks } = await import('../detectors/framework.js');
     const frameworks = detectFrameworks(tmp);
-    const f = frameworks.find(f => f.name === 'Java');
+    const f = frameworks.find((f) => f.name === 'Java');
     expect(f).toBeDefined();
     expect(f?.template).toBe('java');
   });
 
   it('does not duplicate Remix when @remix-run/react is present', async () => {
-    write(tmp, 'package.json', JSON.stringify({ dependencies: { '@remix-run/react': '^2.0.0', '@remix-run/node': '^2.0.0' } }));
+    write(
+      tmp,
+      'package.json',
+      JSON.stringify({
+        dependencies: { '@remix-run/react': '^2.0.0', '@remix-run/node': '^2.0.0' },
+      }),
+    );
     const { detectFrameworks } = await import('../detectors/framework.js');
     const frameworks = detectFrameworks(tmp);
-    const remix = frameworks.filter(f => f.name === 'Remix');
+    const remix = frameworks.filter((f) => f.name === 'Remix');
     expect(remix.length).toBe(1);
   });
 
@@ -311,7 +335,7 @@ describe('detectFrameworks', () => {
     write(tmp, 'bun.lockb', '');
     const { detectFrameworks } = await import('../detectors/framework.js');
     const frameworks = detectFrameworks(tmp);
-    const bun = frameworks.filter(f => f.name === 'Bun');
+    const bun = frameworks.filter((f) => f.name === 'Bun');
     expect(bun.length).toBe(1);
   });
 
@@ -319,7 +343,7 @@ describe('detectFrameworks', () => {
     write(tmp, 'package.json', JSON.stringify({ name: 'myapp', packageManager: 'bun@1.0.0' }));
     const { detectFrameworks } = await import('../detectors/framework.js');
     const frameworks = detectFrameworks(tmp);
-    expect(frameworks.some(f => f.name === 'Bun')).toBe(true);
+    expect(frameworks.some((f) => f.name === 'Bun')).toBe(true);
   });
 
   // ── Edge cases (#182) ─────────────────────────────────────────────────────────
@@ -344,14 +368,18 @@ describe('detectFrameworks', () => {
     write(tmp, 'requirements.txt', 'fastapi==0.110.0\n');
     const { detectFrameworks } = await import('../detectors/framework.js');
     const frameworks = detectFrameworks(tmp);
-    expect(frameworks.some(f => f.name === 'Express')).toBe(true);
-    expect(frameworks.some(f => f.name === 'FastAPI')).toBe(true);
+    expect(frameworks.some((f) => f.name === 'Express')).toBe(true);
+    expect(frameworks.some((f) => f.name === 'FastAPI')).toBe(true);
   });
 
   it('handles polyglot repo (JS + Python + Java) without crashing', async () => {
     write(tmp, 'package.json', JSON.stringify({ dependencies: { react: '^18.0.0' } }));
     write(tmp, 'requirements.txt', 'django==4.2\n');
-    write(tmp, 'pom.xml', '<project><dependencies><groupId>org.springframework.boot</groupId></dependencies></project>');
+    write(
+      tmp,
+      'pom.xml',
+      '<project><dependencies><groupId>org.springframework.boot</groupId></dependencies></project>',
+    );
     const { detectFrameworks } = await import('../detectors/framework.js');
     expect(() => detectFrameworks(tmp)).not.toThrow();
     const frameworks = detectFrameworks(tmp);

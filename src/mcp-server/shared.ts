@@ -99,7 +99,11 @@ export function writeTextAtomic(filePath: string, content: string): void {
 
 export function readJsonlFile<T>(filePath: string): T[] {
   if (!fs.existsSync(filePath)) return [];
-  const lines = fs.readFileSync(filePath, 'utf-8').split('\n').map((line) => line.trim()).filter(Boolean);
+  const lines = fs
+    .readFileSync(filePath, 'utf-8')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
   const rows: T[] = [];
   for (const line of lines) {
     try {
@@ -159,7 +163,11 @@ let _activeSessionLockPath: string | null = null;
 
 function _releaseSessionLockOnExit(): void {
   if (_activeSessionLockPath) {
-    try { fs.unlinkSync(_activeSessionLockPath); } catch { /* Best-effort cleanup. */ }
+    try {
+      fs.unlinkSync(_activeSessionLockPath);
+    } catch {
+      /* Best-effort cleanup. */
+    }
     _activeSessionLockPath = null;
   }
 }
@@ -185,7 +193,9 @@ export function withSessionLock<T>(fn: () => T): T {
           fs.unlinkSync(lockPath);
           continue;
         }
-      } catch { /* Best effort only. */ }
+      } catch {
+        /* Best effort only. */
+      }
 
       sleepSync(SESSION_LOCK_RETRY_MS);
     }
@@ -203,8 +213,16 @@ export function withSessionLock<T>(fn: () => T): T {
     return fn();
   } finally {
     _activeSessionLockPath = null;
-    try { fs.closeSync(lockFd); } catch { /* Best-effort cleanup. */ }
-    try { fs.unlinkSync(lockPath); } catch { /* Best-effort cleanup. */ }
+    try {
+      fs.closeSync(lockFd);
+    } catch {
+      /* Best-effort cleanup. */
+    }
+    try {
+      fs.unlinkSync(lockPath);
+    } catch {
+      /* Best-effort cleanup. */
+    }
   }
 }
 

@@ -22,7 +22,9 @@ function write(dir: string, relPath: string, content = ''): void {
 
 describe('analyze', () => {
   let tmp: string;
-  beforeEach(() => { tmp = mkTmp(); });
+  beforeEach(() => {
+    tmp = mkTmp();
+  });
   afterEach(() => rmTmp(tmp));
 
   it('returns a DetectedStack with projectName from package.json', async () => {
@@ -66,14 +68,18 @@ describe('analyze', () => {
   });
 
   it('detects Next.js framework from dependencies', async () => {
-    write(tmp, 'package.json', JSON.stringify({
-      name: 'test',
-      dependencies: { next: '^14.0.0', react: '^18.0.0' },
-    }));
+    write(
+      tmp,
+      'package.json',
+      JSON.stringify({
+        name: 'test',
+        dependencies: { next: '^14.0.0', react: '^18.0.0' },
+      }),
+    );
     write(tmp, 'package-lock.json', '{}');
     const { analyze } = await import('../analyze.js');
     const stack = analyze(tmp);
-    expect(stack.frameworks.some(f => f.name === 'Next.js')).toBe(true);
+    expect(stack.frameworks.some((f) => f.name === 'Next.js')).toBe(true);
     expect(stack.primaryFramework?.name).toBe('Next.js');
   });
 
@@ -83,15 +89,21 @@ describe('analyze', () => {
     write(tmp, 'package-lock.json', '{}');
     const { analyze } = await import('../analyze.js');
     const stack = analyze(tmp);
-    expect(stack.keyFiles.some(f => f.includes('README.md') || f.includes('package.json'))).toBe(true);
+    expect(stack.keyFiles.some((f) => f.includes('README.md') || f.includes('package.json'))).toBe(
+      true,
+    );
   });
 
   it('reports allDependencies as a flat list of package names', async () => {
-    write(tmp, 'package.json', JSON.stringify({
-      name: 'test',
-      dependencies: { react: '^18.0.0' },
-      devDependencies: { vitest: '^2.0.0' },
-    }));
+    write(
+      tmp,
+      'package.json',
+      JSON.stringify({
+        name: 'test',
+        dependencies: { react: '^18.0.0' },
+        devDependencies: { vitest: '^2.0.0' },
+      }),
+    );
     write(tmp, 'package-lock.json', '{}');
     const { analyze } = await import('../analyze.js');
     const stack = analyze(tmp);
@@ -108,7 +120,11 @@ describe('analyze', () => {
   });
 
   it('returns empty frameworks array when no framework is detected', async () => {
-    write(tmp, 'package.json', JSON.stringify({ name: 'test', dependencies: { lodash: '^4.0.0' } }));
+    write(
+      tmp,
+      'package.json',
+      JSON.stringify({ name: 'test', dependencies: { lodash: '^4.0.0' } }),
+    );
     write(tmp, 'package-lock.json', '{}');
     const { analyze } = await import('../analyze.js');
     const stack = analyze(tmp);
@@ -117,10 +133,14 @@ describe('analyze', () => {
   });
 
   it('detects test framework from devDependencies', async () => {
-    write(tmp, 'package.json', JSON.stringify({
-      name: 'test',
-      devDependencies: { jest: '^29.0.0' },
-    }));
+    write(
+      tmp,
+      'package.json',
+      JSON.stringify({
+        name: 'test',
+        devDependencies: { jest: '^29.0.0' },
+      }),
+    );
     write(tmp, 'package-lock.json', '{}');
     const { analyze } = await import('../analyze.js');
     const stack = analyze(tmp);

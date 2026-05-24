@@ -14,7 +14,9 @@ export function generateWorkflows(outputDir: string, options?: GenerateWorkflowO
   };
 
   if (options?.config?.updateCheckEnabled !== false) {
-    const workflowPath = track(path.join(outputDir, '.github', 'workflows', 'ai-os-update-check.yml'));
+    const workflowPath = track(
+      path.join(outputDir, '.github', 'workflows', 'ai-os-update-check.yml'),
+    );
     writeIfChanged(workflowPath, getUpdateCheckWorkflowContent());
   }
 

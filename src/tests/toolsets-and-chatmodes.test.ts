@@ -29,7 +29,12 @@ function makeStack(overrides: Partial<DetectedStack> = {}): DetectedStack {
   return {
     projectName: 'test-project',
     rootDir: '/tmp/test',
-    primaryLanguage: { name: 'TypeScript', percentage: 80, fileCount: 10, extensions: ['.ts', '.tsx'] },
+    primaryLanguage: {
+      name: 'TypeScript',
+      percentage: 80,
+      fileCount: 10,
+      extensions: ['.ts', '.tsx'],
+    },
     languages: [{ name: 'TypeScript', percentage: 80, fileCount: 10, extensions: ['.ts', '.tsx'] }],
     frameworks: [],
     keyFiles: ['package.json', 'tsconfig.json'],
@@ -71,7 +76,10 @@ describe('generateToolsets', () => {
     generateToolsets(stack, tmpDir);
 
     const toolsetsPath = path.join(tmpDir, '.vscode', 'toolsets.json');
-    const config = JSON.parse(fs.readFileSync(toolsetsPath, 'utf-8')) as Record<string, { tools: string[]; description: string }>;
+    const config = JSON.parse(fs.readFileSync(toolsetsPath, 'utf-8')) as Record<
+      string,
+      { tools: string[]; description: string }
+    >;
 
     expect(config).toHaveProperty('ai-os-context');
     expect(config).toHaveProperty('ai-os-explore');
@@ -199,7 +207,9 @@ describe('generateChatModes', () => {
 
     for (const f of files) {
       const content = fs.readFileSync(f, 'utf-8');
-      expect(content.startsWith('---\n'), `${path.basename(f)} should start with frontmatter`).toBe(true);
+      expect(content.startsWith('---\n'), `${path.basename(f)} should start with frontmatter`).toBe(
+        true,
+      );
       // description must be double-quoted to handle framework names with colons
       expect(content).toMatch(/^description: "/m);
       expect(content).toMatch(/^tools: \[/m);

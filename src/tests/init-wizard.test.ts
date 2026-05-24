@@ -22,7 +22,12 @@ function minimalStack(overrides: Partial<DetectedStack> = {}): DetectedStack {
     primaryLanguage: { name: 'TypeScript', fileCount: 10, percentage: 100, extensions: ['ts'] },
     languages: [{ name: 'TypeScript', fileCount: 10, percentage: 100, extensions: ['ts'] }],
     frameworks: [{ name: 'Next.js', category: 'fullstack', version: '14.0.0', template: 'nextjs' }],
-    primaryFramework: { name: 'Next.js', category: 'fullstack', version: '14.0.0', template: 'nextjs' },
+    primaryFramework: {
+      name: 'Next.js',
+      category: 'fullstack',
+      version: '14.0.0',
+      template: 'nextjs',
+    },
     allDependencies: ['next', 'react'],
     keyFiles: [],
     patterns: {
@@ -52,7 +57,9 @@ describe('formatStackSummary', () => {
 
   it('shows "No frameworks detected" when stack has no frameworks', async () => {
     const { formatStackSummary } = await import('../actions/init.js');
-    const summary = formatStackSummary(minimalStack({ frameworks: [], primaryFramework: undefined }));
+    const summary = formatStackSummary(
+      minimalStack({ frameworks: [], primaryFramework: undefined }),
+    );
     expect(summary).toContain('No frameworks detected');
   });
 });
@@ -80,8 +87,13 @@ describe('formatProfileDescription', () => {
 
 describe('runInitWizard', () => {
   let tmp: string;
-  beforeEach(() => { tmp = mkTmp(); });
-  afterEach(() => { rmTmp(tmp); vi.restoreAllMocks(); });
+  beforeEach(() => {
+    tmp = mkTmp();
+  });
+  afterEach(() => {
+    rmTmp(tmp);
+    vi.restoreAllMocks();
+  });
 
   it('returns chosen profile when user confirms', async () => {
     const { runWizardLogic } = await import('../actions/init.js');

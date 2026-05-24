@@ -53,19 +53,20 @@ function hasBackendTools(stack: DetectedStack): boolean {
   const frameworks = stack.frameworks.map((f) => f.name.toLowerCase());
   const hasPrisma = deps.includes('prisma') || deps.includes('@prisma/client');
   const hasTrpc = deps.includes('@trpc/server') || frameworks.includes('trpc');
-  const hasApiFramework = frameworks.some((f) =>
-    f.includes('next') ||
-    f.includes('express') ||
-    f.includes('fastapi') ||
-    f.includes('django') ||
-    f.includes('flask') ||
-    f.includes('spring') ||
-    f.includes('gin') ||
-    f.includes('actix') ||
-    f.includes('axum') ||
-    f.includes('fastify') ||
-    f.includes('hono') ||
-    f.includes('nest'),
+  const hasApiFramework = frameworks.some(
+    (f) =>
+      f.includes('next') ||
+      f.includes('express') ||
+      f.includes('fastapi') ||
+      f.includes('django') ||
+      f.includes('flask') ||
+      f.includes('spring') ||
+      f.includes('gin') ||
+      f.includes('actix') ||
+      f.includes('axum') ||
+      f.includes('fastify') ||
+      f.includes('hono') ||
+      f.includes('nest'),
   );
   return hasPrisma || hasTrpc || hasApiFramework;
 }

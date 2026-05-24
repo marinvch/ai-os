@@ -110,7 +110,10 @@ function buildMemoryKey(entry: Pick<RepoMemoryEntry, 'title' | 'category'>): str
 
 /** Version-family key: strips semver tokens so "AI OS refreshed to v0.16.0" and "AI OS refreshed to v0.13.0" share the same family key. */
 function buildVersionFamilyKey(entry: Pick<RepoMemoryEntry, 'title' | 'category'>): string {
-  const versionlessTitle = normalizeMemoryText(entry.title).replace(/v\d+\.\d+(?:\.\d+)?(?:-[\w.]+)*/g, '{version}');
+  const versionlessTitle = normalizeMemoryText(entry.title).replace(
+    /v\d+\.\d+(?:\.\d+)?(?:-[\w.]+)*/g,
+    '{version}',
+  );
   return `${normalizeMemoryText(entry.category)}::${versionlessTitle}`;
 }
 
@@ -134,17 +137,21 @@ function canonicalizeEntry(raw: Partial<RepoMemoryEntry>): RepoMemoryEntry | nul
   const content = typeof raw.content === 'string' ? normalizeWhitespace(raw.content) : '';
   if (!title || !content) return null;
 
-  const category = typeof raw.category === 'string' && raw.category.trim()
-    ? normalizeMemoryText(raw.category)
-    : 'general';
+  const category =
+    typeof raw.category === 'string' && raw.category.trim()
+      ? normalizeMemoryText(raw.category)
+      : 'general';
 
   const createdAt = toIsoDate(raw.createdAt);
   const updatedAt = raw.updatedAt ? toIsoDate(raw.updatedAt) : undefined;
-  const id = typeof raw.id === 'string' && raw.id.trim()
-    ? raw.id.trim()
-    : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const id =
+    typeof raw.id === 'string' && raw.id.trim()
+      ? raw.id.trim()
+      : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-  const tags = normalizeTags(Array.isArray(raw.tags) ? raw.tags.filter((tag): tag is string => typeof tag === 'string') : []);
+  const tags = normalizeTags(
+    Array.isArray(raw.tags) ? raw.tags.filter((tag): tag is string => typeof tag === 'string') : [],
+  );
   const status = raw.status === 'stale' ? 'stale' : 'active';
   const fingerprint = buildFingerprint({ title, content, category });
 
@@ -249,9 +256,7 @@ function markNearDuplicates(entries: RepoMemoryEntry[], threshold: number): numb
 
   let marked = 0;
   for (const [, list] of byKey) {
-    const active = list
-      .filter((e) => e.status !== 'stale')
-      .sort(sortByRecencyDesc);
+    const active = list.filter((e) => e.status !== 'stale').sort(sortByRecencyDesc);
 
     for (let i = 0; i < active.length; i++) {
       for (let j = i + 1; j < active.length; j++) {
@@ -259,7 +264,7 @@ function markNearDuplicates(entries: RepoMemoryEntry[], threshold: number): numb
         const older = active[j];
         if (
           (newer.fingerprint ?? buildFingerprint(newer)) !==
-          (older.fingerprint ?? buildFingerprint(older)) &&
+            (older.fingerprint ?? buildFingerprint(older)) &&
           jaccardSimilarity(newer.content, older.content) >= threshold
         ) {
           older.status = 'stale';
@@ -293,7 +298,9 @@ function dedupeEntries(entries: RepoMemoryEntry[]): RepoMemoryEntry[] {
 }
 
 function serializeEntries(entries: RepoMemoryEntry[]): string {
-  return entries.map((entry) => JSON.stringify(entry)).join('\n') + (entries.length > 0 ? '\n' : '');
+  return (
+    entries.map((entry) => JSON.stringify(entry)).join('\n') + (entries.length > 0 ? '\n' : '')
+  );
 }
 
 function writeMemoryEntriesAtomic(entries: RepoMemoryEntry[]): void {
@@ -304,7 +311,10 @@ function readMemoryEntries(): MemoryReadResult {
   ensureMemoryStore();
   const file = getMemoryFilePath();
   const content = fs.readFileSync(file, 'utf-8');
-  const lines = content.split('\n').map((line) => line.trim()).filter(Boolean);
+  const lines = content
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
   const entries: RepoMemoryEntry[] = [];
   let malformedCount = 0;
 
@@ -338,7 +348,10 @@ function recoverMalformedMemoryIfNeeded(result: MemoryReadResult): void {
 
 export function getMemoryGuidelines(): string {
   const guidelines = readAiOsFile('context/memory.md');
-  return guidelines || 'No memory guidelines found. Re-run AI OS generation to create .github/ai-os/context/memory.md.';
+  return (
+    guidelines ||
+    'No memory guidelines found. Re-run AI OS generation to create .github/ai-os/context/memory.md.'
+  );
 }
 
 export function getRepoMemory(query?: string, category?: string, limit?: number): string {
@@ -399,7 +412,12 @@ export function getRepoMemory(query?: string, category?: string, limit?: number)
   return lines.join('\n');
 }
 
-export function rememberRepoFact(title: string, content: string, category?: string, tags?: string): string {
+export function rememberRepoFact(
+  title: string,
+  content: string,
+  category?: string,
+  tags?: string,
+): string {
   const trimmedTitle = title.trim();
   const trimmedContent = content.trim();
   if (!trimmedTitle || !trimmedContent) {
@@ -433,7 +451,9 @@ export function rememberRepoFact(title: string, content: string, category?: stri
         .filter((entry) => buildMemoryKey(entry) === key)
         .sort(sortByRecencyDesc);
 
-      const sameFingerprint = sameKey.find((entry) => (entry.fingerprint ?? buildFingerprint(entry)) === incoming.fingerprint);
+      const sameFingerprint = sameKey.find(
+        (entry) => (entry.fingerprint ?? buildFingerprint(entry)) === incoming.fingerprint,
+      );
       if (sameFingerprint) {
         const mergedTags = normalizeTags([...sameFingerprint.tags, ...incoming.tags]);
         const tagsChanged = mergedTags.length !== sameFingerprint.tags.length;
@@ -463,7 +483,8 @@ export function rememberRepoFact(title: string, content: string, category?: stri
         const incomingFamilyKey = buildVersionFamilyKey(incoming);
         if (incomingFamilyKey.includes('{version}')) {
           const familyMatches = entries.filter(
-            (entry) => entry.status !== 'stale' && buildVersionFamilyKey(entry) === incomingFamilyKey,
+            (entry) =>
+              entry.status !== 'stale' && buildVersionFamilyKey(entry) === incomingFamilyKey,
           );
           for (const match of familyMatches) {
             match.status = 'stale';
@@ -507,7 +528,7 @@ export function syncHostedMemory(): string {
   const lines: string[] = [
     '## Sync Hosted Memory → memory.jsonl',
     '',
-    'This tool cannot access Copilot\'s hosted memory directly.',
+    "This tool cannot access Copilot's hosted memory directly.",
     'Follow these steps to mirror durable facts into `.github/ai-os/memory/memory.jsonl`:',
     '',
     '1. Review your current hosted/in-context memory for facts about this project.',
@@ -554,7 +575,10 @@ export function pruneMemory(): string {
       ensureMemoryStore();
       const file = getMemoryFilePath();
       const content = fs.readFileSync(file, 'utf-8');
-      const rawLines = content.split('\n').map((line) => line.trim()).filter(Boolean);
+      const rawLines = content
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean);
 
       const rawEntries: RepoMemoryEntry[] = [];
       let malformedCount = 0;
@@ -604,7 +628,10 @@ export function pruneMemory(): string {
         lines.push(`- Malformed lines skipped: ${summary.malformedSkipped}`);
       }
 
-      lines.push('', `TTL policy: ${ttlDays} days | Near-duplicate threshold: ${nearDuplicateThreshold}`);
+      lines.push(
+        '',
+        `TTL policy: ${ttlDays} days | Near-duplicate threshold: ${nearDuplicateThreshold}`,
+      );
 
       return lines.join('\n');
     });
@@ -621,7 +648,10 @@ export function runMemoryMaintenance(): MemoryHygieneSummary {
   ensureMemoryStore();
   const file = getMemoryFilePath();
   const content = fs.readFileSync(file, 'utf-8');
-  const rawLines = content.split('\n').map((line) => line.trim()).filter(Boolean);
+  const rawLines = content
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
 
   const rawEntries: RepoMemoryEntry[] = [];
   let malformedCount = 0;
@@ -655,5 +685,3 @@ export function runMemoryMaintenance(): MemoryHygieneSummary {
     malformedSkipped: malformedCount,
   };
 }
-
-

@@ -41,7 +41,12 @@ function validateRuntimeEnvironment(): { ok: boolean; messages: string[] } {
     messages.push(`Registered tools: ${tools.length}`);
   }
 
-  return { ok: messages.filter((msg) => !msg.startsWith('Resolved ') && !msg.startsWith('Registered ')).length === 0, messages };
+  return {
+    ok:
+      messages.filter((msg) => !msg.startsWith('Resolved ') && !msg.startsWith('Registered '))
+        .length === 0,
+    messages,
+  };
 }
 
 async function main(): Promise<void> {
@@ -81,7 +86,12 @@ async function main(): Promise<void> {
     stop(): Promise<unknown>;
     createSession(opts: {
       model: string;
-      tools: Array<{ name: string; description: string; parameters: Record<string, unknown>; handler: (input: Record<string, unknown>) => Promise<string> }>;
+      tools: Array<{
+        name: string;
+        description: string;
+        parameters: Record<string, unknown>;
+        handler: (input: Record<string, unknown>) => Promise<string>;
+      }>;
       onPermissionRequest: (_req: unknown) => { kind: 'approved' };
     }): Promise<{ disconnect(): Promise<void> }>;
   };
@@ -90,7 +100,9 @@ async function main(): Promise<void> {
     const sdk = await import('@github/copilot-sdk');
     CopilotClient = sdk.CopilotClient;
   } catch {
-    console.error('[ai-os:mcp] @github/copilot-sdk is required for --copilot mode but was not found.');
+    console.error(
+      '[ai-os:mcp] @github/copilot-sdk is required for --copilot mode but was not found.',
+    );
     console.error('[ai-os:mcp] Install it or omit --copilot to use the standard MCP SDK mode.');
     process.exit(1);
   }
@@ -109,7 +121,9 @@ async function main(): Promise<void> {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[ai-os:mcp] Copilot SDK client failed to start: ${msg}`);
-    console.error('[ai-os:mcp] Ensure the Copilot CLI is installed and authenticated, or omit --copilot to use standard mode.');
+    console.error(
+      '[ai-os:mcp] Ensure the Copilot CLI is installed and authenticated, or omit --copilot to use standard mode.',
+    );
     process.exit(1);
   }
 
@@ -123,9 +137,9 @@ async function main(): Promise<void> {
       // Pass messages between the two halves of the in-memory pair
     },
   }));
-  void (sdkServer); // suppress unused warning — used for side effects in registerTool
-  void (serverTransport);
-  void (clientTransport);
+  void sdkServer; // suppress unused warning — used for side effects in registerTool
+  void serverTransport;
+  void clientTransport;
 
   const session = await client.createSession({
     model: 'gpt-4.1',
@@ -140,7 +154,7 @@ async function main(): Promise<void> {
         // Connect to in-process transport and invoke
         try {
           const transport = new StdioServerTransport();
-          void (transport); // SDK transport only works with actual stdio
+          void transport; // SDK transport only works with actual stdio
           result = `[copilot mode] ${tool.name}: use standard MCP mode for full functionality`;
         } catch {
           // pass
@@ -164,7 +178,7 @@ async function main(): Promise<void> {
   });
 }
 
-main().catch(err => {
+main().catch((err) => {
   const msg = err instanceof Error ? err.message : String(err);
   console.error(`[ai-os:mcp] Fatal error: ${msg}`);
   process.exit(1);

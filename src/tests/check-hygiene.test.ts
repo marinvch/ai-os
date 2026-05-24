@@ -38,14 +38,18 @@ describe('runCheckHygieneAction', () => {
 
   it('passes when no legacy artifacts or issues exist', async () => {
     // Create a valid manifest so the manifest check passes
-    write(tmp, '.github/ai-os/manifest.json', JSON.stringify({
-      version: '1',
-      generatedAt: new Date().toISOString(),
-      files: [],
-    }));
+    write(
+      tmp,
+      '.github/ai-os/manifest.json',
+      JSON.stringify({
+        version: '1',
+        generatedAt: new Date().toISOString(),
+        files: [],
+      }),
+    );
     const { runCheckHygieneAction } = await import('../actions/check-hygiene.js');
     runCheckHygieneAction(tmp, true);
-    const output = consoleSpy.mock.calls.map(c => c.join(' ')).join('\n');
+    const output = consoleSpy.mock.calls.map((c) => c.join(' ')).join('\n');
     expect(output).toContain('"passed":true');
     expect(exitSpy).not.toHaveBeenCalled();
   });
@@ -54,7 +58,7 @@ describe('runCheckHygieneAction', () => {
     write(tmp, '.ai-os/context/stack.md', '# Legacy stack');
     const { runCheckHygieneAction } = await import('../actions/check-hygiene.js');
     runCheckHygieneAction(tmp, true);
-    const output = consoleSpy.mock.calls.map(c => c.join(' ')).join('\n');
+    const output = consoleSpy.mock.calls.map((c) => c.join(' ')).join('\n');
     const parsed = JSON.parse(output);
     expect(parsed.issues.some((i: string) => i.includes('Legacy'))).toBe(true);
     expect(exitSpy).toHaveBeenCalledWith(1);
@@ -64,7 +68,7 @@ describe('runCheckHygieneAction', () => {
     write(tmp, '.github/ai-os/memory/.memory.lock', '');
     const { runCheckHygieneAction } = await import('../actions/check-hygiene.js');
     runCheckHygieneAction(tmp, true);
-    const output = consoleSpy.mock.calls.map(c => c.join(' ')).join('\n');
+    const output = consoleSpy.mock.calls.map((c) => c.join(' ')).join('\n');
     const parsed = JSON.parse(output);
     expect(parsed.issues.some((i: string) => i.includes('lock'))).toBe(true);
     expect(exitSpy).toHaveBeenCalledWith(1);
@@ -74,7 +78,7 @@ describe('runCheckHygieneAction', () => {
     write(tmp, '.github/ai-os/temp-output.tmp', 'orphaned temp');
     const { runCheckHygieneAction } = await import('../actions/check-hygiene.js');
     runCheckHygieneAction(tmp, true);
-    const output = consoleSpy.mock.calls.map(c => c.join(' ')).join('\n');
+    const output = consoleSpy.mock.calls.map((c) => c.join(' ')).join('\n');
     const parsed = JSON.parse(output);
     expect(parsed.issues.some((i: string) => i.includes('.tmp'))).toBe(true);
   });
@@ -82,7 +86,7 @@ describe('runCheckHygieneAction', () => {
   it('reports no manifest.json as an issue', async () => {
     const { runCheckHygieneAction } = await import('../actions/check-hygiene.js');
     runCheckHygieneAction(tmp, true);
-    const output = consoleSpy.mock.calls.map(c => c.join(' ')).join('\n');
+    const output = consoleSpy.mock.calls.map((c) => c.join(' ')).join('\n');
     const parsed = JSON.parse(output);
     expect(parsed.issues.some((i: string) => i.includes('manifest'))).toBe(true);
   });

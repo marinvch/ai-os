@@ -58,8 +58,22 @@ describe('session continuity memory tools', () => {
     const closed = closeCheckpoint(checkpointId, 'done');
     expect(closed).toContain(`Checkpoint closed: ${checkpointId}`);
 
-    const checkpointsPath = path.join(tempRoot, '.github', 'ai-os', 'memory', 'session', 'checkpoints.jsonl');
-    const rows = fs.readFileSync(checkpointsPath, 'utf-8').split('\n').filter(Boolean).map((line) => JSON.parse(line) as { id: string; status: string; notes?: string; closedAt?: string });
+    const checkpointsPath = path.join(
+      tempRoot,
+      '.github',
+      'ai-os',
+      'memory',
+      'session',
+      'checkpoints.jsonl',
+    );
+    const rows = fs
+      .readFileSync(checkpointsPath, 'utf-8')
+      .split('\n')
+      .filter(Boolean)
+      .map(
+        (line) =>
+          JSON.parse(line) as { id: string; status: string; notes?: string; closedAt?: string },
+      );
     const row = rows.find((item) => item.id === checkpointId);
 
     expect(row?.status).toBe('closed');
@@ -90,8 +104,19 @@ describe('session continuity memory tools', () => {
     );
     expect(second).toContain('Failure pattern updated:');
 
-    const failurePath = path.join(tempRoot, '.github', 'ai-os', 'memory', 'session', 'failure-ledger.jsonl');
-    const rows = fs.readFileSync(failurePath, 'utf-8').split('\n').filter(Boolean).map((line) => JSON.parse(line) as { occurrences: number; outcome: string });
+    const failurePath = path.join(
+      tempRoot,
+      '.github',
+      'ai-os',
+      'memory',
+      'session',
+      'failure-ledger.jsonl',
+    );
+    const rows = fs
+      .readFileSync(failurePath, 'utf-8')
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => JSON.parse(line) as { occurrences: number; outcome: string });
 
     expect(rows.length).toBe(1);
     expect(rows[0].occurrences).toBe(2);
@@ -99,12 +124,8 @@ describe('session continuity memory tools', () => {
   });
 
   it('compacts session context into a single recovery artifact', async () => {
-    const {
-      upsertActivePlan,
-      appendCheckpoint,
-      recordFailurePattern,
-      compactSessionContext,
-    } = await import('../mcp-server/utils.js');
+    const { upsertActivePlan, appendCheckpoint, recordFailurePattern, compactSessionContext } =
+      await import('../mcp-server/utils.js');
 
     upsertActivePlan(
       'Keep goals stable',
@@ -115,14 +136,30 @@ describe('session continuity memory tools', () => {
       'none',
     );
     appendCheckpoint('Checkpoint session state', 'open', 'captured', 5);
-    recordFailurePattern('search_codebase', 'no matches', 'query too narrow', 'broaden query', 'partial', 0.6);
+    recordFailurePattern(
+      'search_codebase',
+      'no matches',
+      'query too narrow',
+      'broaden query',
+      'partial',
+      0.6,
+    );
 
     const output = compactSessionContext();
-    expect(output).toContain('Compact context written to .github/ai-os/memory/session/compact-context.md');
+    expect(output).toContain(
+      'Compact context written to .github/ai-os/memory/session/compact-context.md',
+    );
     expect(output).toContain('Keep goals stable');
     expect(output).toContain('Recent Failure Patterns');
 
-    const compactPath = path.join(tempRoot, '.github', 'ai-os', 'memory', 'session', 'compact-context.md');
+    const compactPath = path.join(
+      tempRoot,
+      '.github',
+      'ai-os',
+      'memory',
+      'session',
+      'compact-context.md',
+    );
     expect(fs.existsSync(compactPath)).toBe(true);
   });
 
@@ -136,8 +173,19 @@ describe('session continuity memory tools', () => {
 
     expect(watchdogMessage).toContain('Watchdog checkpoint created');
 
-    const checkpointsPath = path.join(tempRoot, '.github', 'ai-os', 'memory', 'session', 'checkpoints.jsonl');
-    const rows = fs.readFileSync(checkpointsPath, 'utf-8').split('\n').filter(Boolean).map((line) => JSON.parse(line) as { title: string; notes?: string; toolCallCount?: number });
+    const checkpointsPath = path.join(
+      tempRoot,
+      '.github',
+      'ai-os',
+      'memory',
+      'session',
+      'checkpoints.jsonl',
+    );
+    const rows = fs
+      .readFileSync(checkpointsPath, 'utf-8')
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => JSON.parse(line) as { title: string; notes?: string; toolCallCount?: number });
     const watchdog = rows.find((row) => row.title.includes('Goal watchdog checkpoint'));
 
     expect(Boolean(watchdog)).toBe(true);
@@ -146,7 +194,8 @@ describe('session continuity memory tools', () => {
   });
 
   it('set_watchdog_threshold changes checkpoint interval', async () => {
-    const { setWatchdogThreshold, recordToolCallAndRunWatchdog } = await import('../mcp-server/utils.js');
+    const { setWatchdogThreshold, recordToolCallAndRunWatchdog } =
+      await import('../mcp-server/utils.js');
 
     const result = setWatchdogThreshold(3);
     expect(result).toContain('Watchdog threshold updated to 3');
@@ -166,20 +215,42 @@ describe('session continuity memory tools', () => {
       appendCheckpoint(`checkpoint-${i}`, 'open');
     }
 
-    const checkpointsPath = path.join(tempRoot, '.github', 'ai-os', 'memory', 'session', 'checkpoints.jsonl');
+    const checkpointsPath = path.join(
+      tempRoot,
+      '.github',
+      'ai-os',
+      'memory',
+      'session',
+      'checkpoints.jsonl',
+    );
     const lines = fs.readFileSync(checkpointsPath, 'utf-8').split('\n').filter(Boolean);
     expect(lines.length).toBeLessThanOrEqual(100);
   });
 
   it('reset_session_state clears all session files and leaves memory.jsonl intact', async () => {
-    const { upsertActivePlan, appendCheckpoint, resetSessionState } = await import('../mcp-server/utils.js');
+    const { upsertActivePlan, appendCheckpoint, resetSessionState } =
+      await import('../mcp-server/utils.js');
 
     // Populate session state
     upsertActivePlan('Test objective', 'Test criteria', 'active');
     appendCheckpoint('Some checkpoint', 'open');
 
-    const planPath = path.join(tempRoot, '.github', 'ai-os', 'memory', 'session', 'active-plan.json');
-    const checkpointsPath = path.join(tempRoot, '.github', 'ai-os', 'memory', 'session', 'checkpoints.jsonl');
+    const planPath = path.join(
+      tempRoot,
+      '.github',
+      'ai-os',
+      'memory',
+      'session',
+      'active-plan.json',
+    );
+    const checkpointsPath = path.join(
+      tempRoot,
+      '.github',
+      'ai-os',
+      'memory',
+      'session',
+      'checkpoints.jsonl',
+    );
     expect(fs.existsSync(planPath)).toBe(true);
     expect(fs.readFileSync(checkpointsPath, 'utf-8').trim().length).toBeGreaterThan(0);
 

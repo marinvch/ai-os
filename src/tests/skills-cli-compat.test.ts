@@ -35,7 +35,12 @@ function makeStack(overrides: Partial<DetectedStack> = {}): DetectedStack {
   return {
     projectName: 'test-project',
     rootDir: '/tmp/test',
-    primaryLanguage: { name: 'TypeScript', percentage: 80, fileCount: 10, extensions: ['.ts', '.tsx'] },
+    primaryLanguage: {
+      name: 'TypeScript',
+      percentage: 80,
+      fileCount: 10,
+      extensions: ['.ts', '.tsx'],
+    },
     languages: [{ name: 'TypeScript', percentage: 80, fileCount: 10, extensions: ['.ts', '.tsx'] }],
     frameworks: [],
     keyFiles: ['package.json'],
@@ -51,8 +56,13 @@ function makeStack(overrides: Partial<DetectedStack> = {}): DetectedStack {
 
 describe('buildSkillsInstallCommand — source-based mode', () => {
   it('emits source@skill form when source is provided', () => {
-    const cmd = buildSkillsInstallCommand({ name: 'context7', source: 'intellectronica/agent-skills' });
-    expect(cmd).toBe('npx -y skills add intellectronica/agent-skills@context7 -g -a github-copilot');
+    const cmd = buildSkillsInstallCommand({
+      name: 'context7',
+      source: 'intellectronica/agent-skills',
+    });
+    expect(cmd).toBe(
+      'npx -y skills add intellectronica/agent-skills@context7 -g -a github-copilot',
+    );
   });
 
   it('emits <source>@skill placeholder when source is absent', () => {
@@ -105,11 +115,15 @@ describe('isLegacySkillCommand', () => {
   });
 
   it('does not flag source-based commands as legacy', () => {
-    expect(isLegacySkillCommand('npx -y skills add vercel-labs/skills@find-skills -g -a github-copilot')).toBe(false);
+    expect(
+      isLegacySkillCommand('npx -y skills add vercel-labs/skills@find-skills -g -a github-copilot'),
+    ).toBe(false);
   });
 
   it('does not flag placeholder source-based commands as legacy', () => {
-    expect(isLegacySkillCommand('npx -y skills add <source>@my-skill -g -a github-copilot')).toBe(false);
+    expect(isLegacySkillCommand('npx -y skills add <source>@my-skill -g -a github-copilot')).toBe(
+      false,
+    );
   });
 });
 
@@ -136,7 +150,9 @@ describe('recommendations doc — source-based syntax only', () => {
 
   it('does not emit --skill flag for Next.js stack-specific skills', () => {
     const stack = makeStack({
-      frameworks: [{ name: 'Next.js', category: 'fullstack', version: '14.0.0', template: 'nextjs' }],
+      frameworks: [
+        { name: 'Next.js', category: 'fullstack', version: '14.0.0', template: 'nextjs' },
+      ],
       allDependencies: ['next'],
     });
     const text = buildRecommendationsText(stack);
@@ -162,7 +178,7 @@ describe('collectRecommendations — universal skills source propagation', () =>
   it('universal skills include source from registry skillSources', () => {
     const stack = makeStack();
     const recs = collectRecommendations(stack);
-    const context7 = recs.universalSkills.find(s => s.name === 'context7');
+    const context7 = recs.universalSkills.find((s) => s.name === 'context7');
     expect(context7).toBeDefined();
     expect(context7?.source).toBe('intellectronica/agent-skills');
   });
@@ -170,7 +186,7 @@ describe('collectRecommendations — universal skills source propagation', () =>
   it('find-skills universal skill has source vercel-labs/skills', () => {
     const stack = makeStack();
     const recs = collectRecommendations(stack);
-    const findSkills = recs.universalSkills.find(s => s.name === 'find-skills');
+    const findSkills = recs.universalSkills.find((s) => s.name === 'find-skills');
     expect(findSkills).toBeDefined();
     expect(findSkills?.source).toBe('vercel-labs/skills');
   });

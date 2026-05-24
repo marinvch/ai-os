@@ -92,7 +92,8 @@ describe('adaptForGemini', () => {
   });
 
   it('truncates very long prose lines', () => {
-    const longLine = 'This is a very long line that exceeds the 100 character limit and should be truncated by the Gemini adapter to improve performance with retrieval-augmented generation systems.';
+    const longLine =
+      'This is a very long line that exceeds the 100 character limit and should be truncated by the Gemini adapter to improve performance with retrieval-augmented generation systems.';
     const result = adaptForGemini(longLine);
     expect(result.length).toBeLessThan(longLine.length);
     expect(result).toContain('…');
@@ -153,12 +154,20 @@ describe('getModelOutputPath', () => {
   const githubDir = '/project/.github';
 
   it('returns canonical path for copilot', () => {
-    expect(getModelOutputPath('copilot', githubDir)).toBe('/project/.github/copilot-instructions.md');
+    expect(getModelOutputPath('copilot', githubDir)).toBe(
+      '/project/.github/copilot-instructions.md',
+    );
   });
 
   it('returns ai-os subdir paths for other models', () => {
-    expect(getModelOutputPath('claude', githubDir)).toBe('/project/.github/ai-os/claude-instructions.md');
-    expect(getModelOutputPath('gemini', githubDir)).toBe('/project/.github/ai-os/gemini-instructions.md');
-    expect(getModelOutputPath('local', githubDir)).toBe('/project/.github/ai-os/local-instructions.md');
+    expect(getModelOutputPath('claude', githubDir)).toBe(
+      '/project/.github/ai-os/claude-instructions.md',
+    );
+    expect(getModelOutputPath('gemini', githubDir)).toBe(
+      '/project/.github/ai-os/gemini-instructions.md',
+    );
+    expect(getModelOutputPath('local', githubDir)).toBe(
+      '/project/.github/ai-os/local-instructions.md',
+    );
   });
 });

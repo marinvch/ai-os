@@ -26,7 +26,9 @@ const BUILTIN_READ_ONLY = ['codebase', 'fetch', 'findTestFiles', 'githubRepo', '
 // ── Mode definitions ───────────────────────────────────────────────────────────
 
 function getPlanMode(stack: DetectedStack): ChatMode {
-  const fw = stack.primaryFramework ? sanitizeForInstructions(stack.primaryFramework.name) : sanitizeForInstructions(stack.primaryLanguage.name);
+  const fw = stack.primaryFramework
+    ? sanitizeForInstructions(stack.primaryFramework.name)
+    : sanitizeForInstructions(stack.primaryLanguage.name);
   return {
     filename: 'ai-os-plan.chatprompt.md',
     description: `Generate an implementation plan for ${fw} features or refactoring tasks (read-only, no edits)`,
@@ -111,7 +113,8 @@ For each finding include: **file:line**, **severity**, **description**, and
 function getExploreMode(): ChatMode {
   return {
     filename: 'ai-os-explore.chatprompt.md',
-    description: 'Read-only codebase exploration — answers "how does X work?" questions without editing files',
+    description:
+      'Read-only codebase exploration — answers "how does X work?" questions without editing files',
     tools: [
       ...BUILTIN_READ_ONLY,
       'get_session_context',
@@ -160,11 +163,7 @@ export function generateChatModes(stack: DetectedStack, outputDir: string): stri
   const managed: string[] = [];
   const vscodePath = path.join(outputDir, '.vscode');
 
-  const modes: ChatMode[] = [
-    getPlanMode(stack),
-    getReviewMode(stack),
-    getExploreMode(),
-  ];
+  const modes: ChatMode[] = [getPlanMode(stack), getReviewMode(stack), getExploreMode()];
 
   for (const mode of modes) {
     const filePath = path.join(vscodePath, mode.filename);

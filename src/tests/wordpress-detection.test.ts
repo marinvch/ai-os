@@ -40,14 +40,14 @@ describe('examples/wordpress-site — stack detection', () => {
 
   it('detects WordPress framework', () => {
     const stack = analyze(tmpDir);
-    const fw = stack.frameworks.map(f => f.name.toLowerCase());
-    expect(fw.some(n => n.includes('wordpress'))).toBe(true);
+    const fw = stack.frameworks.map((f) => f.name.toLowerCase());
+    expect(fw.some((n) => n.includes('wordpress'))).toBe(true);
   });
 
   it('uses composer package manager when wp-config.php present', () => {
     const stack = analyze(tmpDir);
     // WordPress without composer.lock → unknown pm, but detection should work
-    expect(stack.frameworks.map(f => f.name)).toContain('WordPress');
+    expect(stack.frameworks.map((f) => f.name)).toContain('WordPress');
   });
 
   it('generates instructions file', async () => {
@@ -68,7 +68,7 @@ describe('examples/wordpress-site — stack detection', () => {
     const stack = analyze(tmpDir);
     expect({
       primaryLanguage: stack.primaryLanguage.name,
-      frameworks: stack.frameworks.map(f => f.name).sort(),
+      frameworks: stack.frameworks.map((f) => f.name).sort(),
     }).toMatchSnapshot();
   });
 });
@@ -89,7 +89,7 @@ describe('WordPress detection — wp-config.php signal', () => {
 
   it('detects WordPress from wp-config.php alone', () => {
     const stack = analyze(tmpDir);
-    const fw = stack.frameworks.map(f => f.name);
+    const fw = stack.frameworks.map((f) => f.name);
     expect(fw).toContain('WordPress');
   });
 });
@@ -111,7 +111,7 @@ describe('WordPress detection — wp-content + wp-includes signal', () => {
 
   it('detects WordPress from wp-content + wp-includes directories', () => {
     const stack = analyze(tmpDir);
-    const fw = stack.frameworks.map(f => f.name);
+    const fw = stack.frameworks.map((f) => f.name);
     expect(fw).toContain('WordPress');
   });
 });

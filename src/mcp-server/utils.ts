@@ -93,7 +93,9 @@ export function checkForUpdates(): string {
       fs.readFileSync(path.join(__dirname, '..', '..', 'package.json'), 'utf-8'),
     ) as { version?: string };
     toolVersion = toolPkg.version ?? '0.0.0';
-  } catch { /* tool package.json not found */ }
+  } catch {
+    /* tool package.json not found */
+  }
 
   const latestVersion = getLatestResolvableVersion(toolVersion);
 

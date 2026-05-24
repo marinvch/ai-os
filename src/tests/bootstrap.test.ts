@@ -29,7 +29,12 @@ function makeStack(overrides: Partial<DetectedStack> = {}): DetectedStack {
   return {
     projectName: 'test-project',
     rootDir: '/tmp/test',
-    primaryLanguage: { name: 'TypeScript', percentage: 80, fileCount: 10, extensions: ['.ts', '.tsx'] },
+    primaryLanguage: {
+      name: 'TypeScript',
+      percentage: 80,
+      fileCount: 10,
+      extensions: ['.ts', '.tsx'],
+    },
     languages: [{ name: 'TypeScript', percentage: 80, fileCount: 10, extensions: ['.ts', '.tsx'] }],
     frameworks: [],
     keyFiles: ['package.json', 'tsconfig.json'],
@@ -112,24 +117,26 @@ describe('runBootstrap — dry-run mode', () => {
 describe('runBootstrap — skill items', () => {
   it('includes skill items for detected Next.js framework', () => {
     const stack = makeStack({
-      frameworks: [{ name: 'Next.js', category: 'fullstack', version: '14.0.0', template: 'nextjs' }],
+      frameworks: [
+        { name: 'Next.js', category: 'fullstack', version: '14.0.0', template: 'nextjs' },
+      ],
     });
     const report = runBootstrap(stack, { dryRun: true });
-    const skillNames = report.items.filter(i => i.category === 'skill').map(i => i.name);
+    const skillNames = report.items.filter((i) => i.category === 'skill').map((i) => i.name);
     expect(skillNames).toContain('nextjs');
   });
 
   it('includes skill items for detected React dependency', () => {
     const stack = makeStack({ allDependencies: ['react', 'react-dom'] });
     const report = runBootstrap(stack, { dryRun: true });
-    const skillNames = report.items.filter(i => i.category === 'skill').map(i => i.name);
+    const skillNames = report.items.filter((i) => i.category === 'skill').map((i) => i.name);
     expect(skillNames).toContain('react');
   });
 
   it('skill items include a reason field explaining the trigger', () => {
     const stack = makeStack({ allDependencies: ['prisma'] });
     const report = runBootstrap(stack, { dryRun: true });
-    const prismaSkill = report.items.find(i => i.category === 'skill' && i.name === 'prisma');
+    const prismaSkill = report.items.find((i) => i.category === 'skill' && i.name === 'prisma');
     expect(prismaSkill).toBeDefined();
     expect(prismaSkill?.reason).toContain('prisma');
   });
@@ -137,9 +144,9 @@ describe('runBootstrap — skill items', () => {
   it('skill items with known source include an installCmd', () => {
     const stack = makeStack({ allDependencies: ['react'] });
     const report = runBootstrap(stack, { dryRun: true });
-    const skillItems = report.items.filter(i => i.category === 'skill');
+    const skillItems = report.items.filter((i) => i.category === 'skill');
     // At least some should have an installCmd
-    const withCmd = skillItems.filter(i => i.installCmd);
+    const withCmd = skillItems.filter((i) => i.installCmd);
     expect(withCmd.length).toBeGreaterThan(0);
   });
 
@@ -147,7 +154,7 @@ describe('runBootstrap — skill items', () => {
     const stack = makeStack();
     const report = runBootstrap(stack, { dryRun: true });
     const universalSkills = report.items.filter(
-      i => i.category === 'skill' && i.reason.includes('universal'),
+      (i) => i.category === 'skill' && i.reason.includes('universal'),
     );
     // Universal skills (e.g., context7, find-skills) should always appear
     expect(universalSkills.length).toBeGreaterThan(0);
@@ -160,15 +167,15 @@ describe('runBootstrap — MCP items', () => {
   it('includes MCP items for prisma dependency', () => {
     const stack = makeStack({ allDependencies: ['prisma'] });
     const report = runBootstrap(stack, { dryRun: true });
-    const mcpItems = report.items.filter(i => i.category === 'mcp');
-    const hasPrisma = mcpItems.some(i => i.name.includes('prisma'));
+    const mcpItems = report.items.filter((i) => i.category === 'mcp');
+    const hasPrisma = mcpItems.some((i) => i.name.includes('prisma'));
     expect(hasPrisma).toBe(true);
   });
 
   it('MCP items have a reason containing the trigger', () => {
     const stack = makeStack({ allDependencies: ['@supabase/supabase-js'] });
     const report = runBootstrap(stack, { dryRun: true });
-    const mcpItems = report.items.filter(i => i.category === 'mcp');
+    const mcpItems = report.items.filter((i) => i.category === 'mcp');
     for (const item of mcpItems) {
       expect(typeof item.reason).toBe('string');
       expect(item.reason.length).toBeGreaterThan(0);
@@ -188,8 +195,12 @@ vi.mock('node:child_process', async (importOriginal) => {
 });
 
 describe('runBootstrap — apply mode with unknown-source skills', () => {
-  beforeEach(() => { vi.clearAllMocks(); });
-  afterEach(() => { vi.clearAllMocks(); });
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('marks skills with no known source as skipped (not failed) in apply mode', () => {
     // Use a stack with a skill that has no known source in the registry
@@ -197,7 +208,7 @@ describe('runBootstrap — apply mode with unknown-source skills', () => {
     const report = runBootstrap(stack, { dryRun: false });
 
     // express skill has no known source — it must exist and be skipped
-    const expressSkill = report.items.find(i => i.category === 'skill' && i.name === 'express');
+    const expressSkill = report.items.find((i) => i.category === 'skill' && i.name === 'express');
     expect(expressSkill, 'express skill item must be present in report').toBeDefined();
     expect(expressSkill!.status).toBe('skipped');
   });
@@ -208,7 +219,7 @@ describe('runBootstrap — apply mode with unknown-source skills', () => {
     const report = runBootstrap(stack, { dryRun: false });
 
     const skill = report.items.find(
-      i => i.category === 'skill' && i.name === 'vercel-react-best-practices',
+      (i) => i.category === 'skill' && i.name === 'vercel-react-best-practices',
     );
     expect(skill, 'vercel-react-best-practices skill must be present in report').toBeDefined();
     expect(skill!.status).toBe('applied');
@@ -228,7 +239,7 @@ describe('runBootstrap — apply mode with unknown-source skills', () => {
     const report = runBootstrap(stack, { dryRun: false });
 
     const skill = report.items.find(
-      i => i.category === 'skill' && i.name === 'vercel-react-best-practices',
+      (i) => i.category === 'skill' && i.name === 'vercel-react-best-practices',
     );
     expect(skill, 'vercel-react-best-practices skill must be present in report').toBeDefined();
     expect(skill!.status).toBe('failed');

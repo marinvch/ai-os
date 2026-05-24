@@ -41,8 +41,14 @@ describe('AiOsError', () => {
 
   it('all AiOsErrorCode values construct without error', () => {
     const codes: AiOsErrorCode[] = [
-      'MISSING_CONFIG', 'INVALID_CONFIG', 'WRITE_FAILED', 'SCAN_FAILED',
-      'TEMPLATE_NOT_FOUND', 'MCP_RUNTIME_MISSING', 'BUNDLE_CORRUPTED', 'UNKNOWN',
+      'MISSING_CONFIG',
+      'INVALID_CONFIG',
+      'WRITE_FAILED',
+      'SCAN_FAILED',
+      'TEMPLATE_NOT_FOUND',
+      'MCP_RUNTIME_MISSING',
+      'BUNDLE_CORRUPTED',
+      'UNKNOWN',
     ];
     for (const code of codes) {
       expect(() => new AiOsError(code, 'test')).not.toThrow();

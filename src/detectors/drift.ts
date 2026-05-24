@@ -7,8 +7,8 @@ function globFiles(pattern: { dir: string; ext: string }, cwd: string): string[]
   if (!existsSync(absDir)) return [];
   try {
     return readdirSync(absDir)
-      .filter(f => f.endsWith(pattern.ext))
-      .map(f => `${pattern.dir}/${f}`);
+      .filter((f) => f.endsWith(pattern.ext))
+      .map((f) => `${pattern.dir}/${f}`);
   } catch {
     return [];
   }
@@ -71,7 +71,9 @@ function detectSemanticDrift(cwd: string, warnings: DriftItem[]): void {
           });
         }
       }
-    } catch { /* non-fatal */ }
+    } catch {
+      /* non-fatal */
+    }
   }
 
   const agentsRegistryPath = join(cwd, '.github/ai-os/agents.json');
@@ -91,7 +93,9 @@ function detectSemanticDrift(cwd: string, warnings: DriftItem[]): void {
           fix: FIX_CMD,
         });
       }
-    } catch { /* non-fatal */ }
+    } catch {
+      /* non-fatal */
+    }
   }
 }
 
@@ -104,7 +108,13 @@ export function detectDrift(cwd: string): DriftReport {
   // 1. Required files
   for (const { path, description } of REQUIRED_FILES) {
     if (!existsSync(join(cwd, path))) {
-      errors.push({ path, kind: 'missing', severity: 'error', message: `${description} is missing`, fix: FIX_CMD });
+      errors.push({
+        path,
+        kind: 'missing',
+        severity: 'error',
+        message: `${description} is missing`,
+        fix: FIX_CMD,
+      });
     } else {
       healthy.push(path);
     }
@@ -112,7 +122,7 @@ export function detectDrift(cwd: string): DriftReport {
 
   // 2. MCP config — either .mcp.json or .vscode/mcp.json required
   const mcpPaths = ['.mcp.json', '.vscode/mcp.json'];
-  const presentMcpPaths = mcpPaths.filter(p => existsSync(join(cwd, p)));
+  const presentMcpPaths = mcpPaths.filter((p) => existsSync(join(cwd, p)));
   if (presentMcpPaths.length === 0) {
     errors.push({
       path: '.vscode/mcp.json',
@@ -125,10 +135,13 @@ export function detectDrift(cwd: string): DriftReport {
     for (const p of presentMcpPaths) {
       try {
         const cfg = JSON.parse(readFileSync(join(cwd, p), 'utf8')) as Record<string, unknown>;
-        const servers = (cfg['mcpServers'] ?? cfg['servers'] ?? {}) as Record<string, { args?: string[] }>;
+        const servers = (cfg['mcpServers'] ?? cfg['servers'] ?? {}) as Record<
+          string,
+          { args?: string[] }
+        >;
         let serverPathBroken = false;
         for (const [name, def] of Object.entries(servers)) {
-          const serverPath = (def.args ?? []).find(a => a.endsWith('.js'));
+          const serverPath = (def.args ?? []).find((a) => a.endsWith('.js'));
           if (serverPath) {
             const resolved = serverPath.replace('${workspaceFolder}', cwd);
             if (!existsSync(resolved)) {
@@ -145,7 +158,12 @@ export function detectDrift(cwd: string): DriftReport {
         }
         if (!serverPathBroken) healthy.push(p);
       } catch {
-        errors.push({ path: p, kind: 'schema-mismatch', severity: 'error', message: `${p} is not valid JSON` });
+        errors.push({
+          path: p,
+          kind: 'schema-mismatch',
+          severity: 'error',
+          message: `${p} is not valid JSON`,
+        });
       }
     }
   }
@@ -188,7 +206,12 @@ export function detectDrift(cwd: string): DriftReport {
         }
       }
     } catch {
-      warnings.push({ path: snapshotPath, kind: 'schema-mismatch', severity: 'warning', message: 'context-snapshot.json is not valid JSON' });
+      warnings.push({
+        path: snapshotPath,
+        kind: 'schema-mismatch',
+        severity: 'warning',
+        message: 'context-snapshot.json is not valid JSON',
+      });
     }
   }
 
@@ -198,7 +221,8 @@ export function detectDrift(cwd: string): DriftReport {
     const content = readFileSync(join(cwd, agentFile), 'utf8');
     const missingSections: string[] = [];
     if (!content.includes('## Goal') && !content.includes('# Goal')) missingSections.push('Goal');
-    if (!content.includes('## Constraints') && !content.includes('# Constraints')) missingSections.push('Constraints');
+    if (!content.includes('## Constraints') && !content.includes('# Constraints'))
+      missingSections.push('Constraints');
     if (missingSections.length > 0) {
       infos.push({
         path: agentFile,
@@ -216,8 +240,8 @@ export function detectDrift(cwd: string): DriftReport {
   const skillsDir = join(cwd, '.github/copilot/skills');
   const installedSkills = existsSync(skillsDir)
     ? readdirSync(skillsDir)
-        .filter(f => f.endsWith('.md'))
-        .map(f => f.replace(/\.md$/, ''))
+        .filter((f) => f.endsWith('.md'))
+        .map((f) => f.replace(/\.md$/, ''))
     : [];
 
   if (installedSkills.length > 0 && existsSync(instrPath)) {
@@ -239,7 +263,9 @@ export function detectDrift(cwd: string): DriftReport {
   const configPath = join(cwd, '.github/ai-os/config.json');
   if (existsSync(configPath)) {
     try {
-      const cfg = JSON.parse(readFileSync(configPath, 'utf8')) as { skillVersions?: Record<string, string> };
+      const cfg = JSON.parse(readFileSync(configPath, 'utf8')) as {
+        skillVersions?: Record<string, string>;
+      };
       if (cfg.skillVersions && Object.keys(cfg.skillVersions).length > 0) {
         for (const [skillName, expectedHash] of Object.entries(cfg.skillVersions)) {
           const skillFilePath = join(cwd, '.github/copilot/skills', `${skillName}.md`);
@@ -268,7 +294,9 @@ export function detectDrift(cwd: string): DriftReport {
           }
         }
       }
-    } catch { /* non-fatal */ }
+    } catch {
+      /* non-fatal */
+    }
   }
 
   // 8. Semantic drift: config vs instructions content consistency
@@ -314,8 +342,8 @@ export function formatDriftReport(report: DriftReport, verbose = false): string 
   }
 
   if (report.warnings.length > 0) {
-    const semanticWarnings = report.warnings.filter(w => w.kind === 'semantic-mismatch');
-    const otherWarnings = report.warnings.filter(w => w.kind !== 'semantic-mismatch');
+    const semanticWarnings = report.warnings.filter((w) => w.kind === 'semantic-mismatch');
+    const otherWarnings = report.warnings.filter((w) => w.kind !== 'semantic-mismatch');
 
     if (otherWarnings.length > 0) {
       lines.push(`### ⚠️ Warnings (${otherWarnings.length})`);

@@ -67,7 +67,9 @@ function gitInit(dir: string): void {
 
 const AI_OS_ROOT = path.resolve(import.meta.dirname, '../..');
 const GENERATE_CMD = `node --import tsx/esm "${path.join(AI_OS_ROOT, 'src/generate.ts')}"`;
-const TOOL_VERSION = JSON.parse(fs.readFileSync(path.join(AI_OS_ROOT, 'package.json'), 'utf-8')) as { version: string };
+const TOOL_VERSION = JSON.parse(
+  fs.readFileSync(path.join(AI_OS_ROOT, 'package.json'), 'utf-8'),
+) as { version: string };
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -84,8 +86,14 @@ const fixtures: FixtureSpec[] = [
         dependencies: { react: '^18.0.0', 'react-dom': '^18.0.0' },
         devDependencies: { typescript: '^5.0.0', vite: '^5.0.0' },
       });
-      writeFile(path.join(dir, 'src/App.tsx'), 'export default function App() { return <div>Hello</div>; }');
-      writeFile(path.join(dir, 'tsconfig.json'), JSON.stringify({ compilerOptions: { strict: true } }));
+      writeFile(
+        path.join(dir, 'src/App.tsx'),
+        'export default function App() { return <div>Hello</div>; }',
+      );
+      writeFile(
+        path.join(dir, 'tsconfig.json'),
+        JSON.stringify({ compilerOptions: { strict: true } }),
+      );
     },
   },
   {
@@ -121,7 +129,10 @@ const fixtures: FixtureSpec[] = [
         dependencies: { react: '^18.0.0' },
         devDependencies: { typescript: '^5.0.0' },
       });
-      writeFile(path.join(dir, 'apps/frontend/src/App.tsx'), 'export default function App() { return null; }');
+      writeFile(
+        path.join(dir, 'apps/frontend/src/App.tsx'),
+        'export default function App() { return null; }',
+      );
       writeFile(
         path.join(dir, 'apps/backend/pom.xml'),
         `<project><modelVersion>4.0.0</modelVersion>
@@ -168,8 +179,14 @@ const fixtures: FixtureSpec[] = [
         dependencies: { next: '^14.0.0', react: '^18.0.0', 'react-dom': '^18.0.0' },
         devDependencies: { typescript: '^5.0.0', '@types/react': '^18.0.0' },
       });
-      writeFile(path.join(dir, 'tsconfig.json'), JSON.stringify({ compilerOptions: { strict: true } }));
-      writeFile(path.join(dir, 'app/page.tsx'), 'export default function Page() { return <main>Hello</main>; }');
+      writeFile(
+        path.join(dir, 'tsconfig.json'),
+        JSON.stringify({ compilerOptions: { strict: true } }),
+      );
+      writeFile(
+        path.join(dir, 'app/page.tsx'),
+        'export default function Page() { return <main>Hello</main>; }',
+      );
       writeFile(
         path.join(dir, 'app/api/health/route.ts'),
         'export async function GET() { return Response.json({ status: "ok" }); }',
@@ -193,8 +210,14 @@ const fixtures: FixtureSpec[] = [
         dependencies: { react: '^18.0.0', 'react-dom': '^18.0.0' },
         devDependencies: { typescript: '^5.0.0', vite: '^5.0.0' },
       });
-      writeFile(path.join(dir, 'apps/web/src/App.tsx'), 'export default function App() { return <div>Hello</div>; }');
-      writeFile(path.join(dir, 'apps/web/tsconfig.json'), JSON.stringify({ compilerOptions: { strict: true } }));
+      writeFile(
+        path.join(dir, 'apps/web/src/App.tsx'),
+        'export default function App() { return <div>Hello</div>; }',
+      );
+      writeFile(
+        path.join(dir, 'apps/web/tsconfig.json'),
+        JSON.stringify({ compilerOptions: { strict: true } }),
+      );
       // Java Spring Boot service
       writeFile(
         path.join(dir, 'services/api/pom.xml'),
@@ -211,7 +234,10 @@ const fixtures: FixtureSpec[] = [
         'package com.example;\nimport org.springframework.boot.SpringApplication;\n@SpringBootApplication\npublic class ApiApp { public static void main(String[] args) { SpringApplication.run(ApiApp.class, args); } }',
       );
       // Go microservice
-      writeFile(path.join(dir, 'services/worker/go.mod'), 'module github.com/example/worker\n\ngo 1.22\n');
+      writeFile(
+        path.join(dir, 'services/worker/go.mod'),
+        'module github.com/example/worker\n\ngo 1.22\n',
+      );
       writeFile(
         path.join(dir, 'services/worker/main.go'),
         'package main\nimport (\n  "fmt"\n  "net/http"\n)\nfunc main() {\n  http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) { fmt.Fprintln(w, "ok") })\n  http.ListenAndServe(":8080", nil)\n}',
@@ -287,7 +313,8 @@ function checkApplyOutputs(dir: string, fixtureName: string, results: CheckResul
       fixture: fixtureName,
       check: 'COPILOT_CONTEXT.md ≤ 2000 chars (~500 tokens)',
       passed: sessionCardContent.length <= 2000,
-      detail: sessionCardContent.length > 2000 ? `Actual: ${sessionCardContent.length} chars` : undefined,
+      detail:
+        sessionCardContent.length > 2000 ? `Actual: ${sessionCardContent.length} chars` : undefined,
     });
   }
 
@@ -295,7 +322,9 @@ function checkApplyOutputs(dir: string, fixtureName: string, results: CheckResul
     fixture: fixtureName,
     check: 'apply output includes suggested first prompt guidance',
     passed: r.stdout.includes('Suggested first prompt:'),
-    detail: r.stdout.includes('Suggested first prompt:') ? undefined : 'Missing suggested first prompt block in apply output',
+    detail: r.stdout.includes('Suggested first prompt:')
+      ? undefined
+      : 'Missing suggested first prompt block in apply output',
   });
 
   results.push({
@@ -311,7 +340,9 @@ function checkApplyOutputs(dir: string, fixtureName: string, results: CheckResul
     fixture: fixtureName,
     check: 'apply output mentions recommendations path',
     passed: r.stdout.includes('.github/ai-os/recommendations.md'),
-    detail: r.stdout.includes('.github/ai-os/recommendations.md') ? undefined : 'Missing recommendations path hint in apply output',
+    detail: r.stdout.includes('.github/ai-os/recommendations.md')
+      ? undefined
+      : 'Missing recommendations path hint in apply output',
   });
 }
 
@@ -332,14 +363,17 @@ function checkRefreshSafety(dir: string, fixtureName: string, results: CheckResu
     fixture: fixtureName,
     check: 'refresh does not drift copilot-instructions.md',
     passed: instructionsBefore === instructionsAfter,
-    detail: instructionsBefore !== instructionsAfter ? 'Content changed on second apply run' : undefined,
+    detail:
+      instructionsBefore !== instructionsAfter ? 'Content changed on second apply run' : undefined,
   });
 
   results.push({
     fixture: fixtureName,
     check: 'refresh-existing output includes ready guidance',
     passed: r.stdout.includes('Ready to use with Copilot.'),
-    detail: r.stdout.includes('Ready to use with Copilot.') ? undefined : 'Missing ready guidance in refresh-existing output',
+    detail: r.stdout.includes('Ready to use with Copilot.')
+      ? undefined
+      : 'Missing ready guidance in refresh-existing output',
   });
 
   results.push({
@@ -355,7 +389,9 @@ function checkRefreshSafety(dir: string, fixtureName: string, results: CheckResu
     fixture: fixtureName,
     check: 'refresh-existing output does not repeat update banner',
     passed: !r.stdout.includes('AI OS Update Available'),
-    detail: !r.stdout.includes('AI OS Update Available') ? undefined : 'Update banner was printed during refresh-existing run',
+    detail: !r.stdout.includes('AI OS Update Available')
+      ? undefined
+      : 'Update banner was printed during refresh-existing run',
   });
 
   const configPath = path.join(dir, '.github/ai-os/config.json');
@@ -370,14 +406,18 @@ function checkRefreshSafety(dir: string, fixtureName: string, results: CheckResu
     fixture: fixtureName,
     check: 'safe mode with stale install prints refresh command',
     passed: safeRerun.stdout.includes(refreshCmd),
-    detail: safeRerun.stdout.includes(refreshCmd) ? undefined : `Missing refresh command: ${refreshCmd}`,
+    detail: safeRerun.stdout.includes(refreshCmd)
+      ? undefined
+      : `Missing refresh command: ${refreshCmd}`,
   });
 
   results.push({
     fixture: fixtureName,
     check: 'safe mode with stale install explains limited refresh',
     passed: safeRerun.stdout.includes('Safe mode updated local MCP/runtime wiring'),
-    detail: safeRerun.stdout.includes('Safe mode updated local MCP/runtime wiring') ? undefined : 'Missing safe mode explanation for stale installs',
+    detail: safeRerun.stdout.includes('Safe mode updated local MCP/runtime wiring')
+      ? undefined
+      : 'Missing safe mode explanation for stale installs',
   });
 
   // protect.json hybrid mode: user blocks inside a file must survive refresh.
@@ -413,7 +453,9 @@ function checkRefreshSafety(dir: string, fixtureName: string, results: CheckResu
     fixture: fixtureName,
     check: 'hybrid mode: refresh output includes hybrid merge message',
     passed: hybridRefresh.stdout.includes('🔀'),
-    detail: hybridRefresh.stdout.includes('🔀') ? undefined : 'Missing 🔀 hybrid merge indicator in refresh output',
+    detail: hybridRefresh.stdout.includes('🔀')
+      ? undefined
+      : 'Missing 🔀 hybrid merge indicator in refresh output',
   });
 
   // Clean up protect.json so subsequent checks are not affected
@@ -444,7 +486,9 @@ function checkRefreshSafety(dir: string, fixtureName: string, results: CheckResu
     fixture: fixtureName,
     check: 'protect.json refresh output includes shielded-count message',
     passed: protectRefresh.stdout.includes('shielded against overwrite'),
-    detail: protectRefresh.stdout.includes('shielded against overwrite') ? undefined : 'Missing shield announcement in refresh output',
+    detail: protectRefresh.stdout.includes('shielded against overwrite')
+      ? undefined
+      : 'Missing shield announcement in refresh output',
   });
 
   // Clean up protect.json so subsequent checks are not affected
@@ -481,7 +525,11 @@ function checkMcpHealth(dir: string, fixtureName: string, results: CheckResult[]
       continue;
     }
 
-    results.push({ fixture: fixtureName, check: `${configInfo.label} MCP config present`, passed: true });
+    results.push({
+      fixture: fixtureName,
+      check: `${configInfo.label} MCP config present`,
+      passed: true,
+    });
 
     let mcpConfig: Record<string, unknown>;
     try {
@@ -496,9 +544,15 @@ function checkMcpHealth(dir: string, fixtureName: string, results: CheckResult[]
       continue;
     }
 
-    results.push({ fixture: fixtureName, check: `${configInfo.label} MCP config is valid JSON`, passed: true });
+    results.push({
+      fixture: fixtureName,
+      check: `${configInfo.label} MCP config is valid JSON`,
+      passed: true,
+    });
 
-    const serverMap = mcpConfig[configInfo.rootKey] as Record<string, { type?: string; command?: string; args?: string[] }> | undefined;
+    const serverMap = mcpConfig[configInfo.rootKey] as
+      | Record<string, { type?: string; command?: string; args?: string[] }>
+      | undefined;
     results.push({
       fixture: fixtureName,
       check: `${configInfo.label} MCP config uses "${configInfo.rootKey}" key`,
@@ -511,7 +565,8 @@ function checkMcpHealth(dir: string, fixtureName: string, results: CheckResult[]
       fixture: fixtureName,
       check: `${configInfo.label} MCP config has ai-os server entry`,
       passed: serverEntry !== undefined,
-      detail: serverEntry === undefined ? `ai-os server not found in ${configInfo.rootKey}` : undefined,
+      detail:
+        serverEntry === undefined ? `ai-os server not found in ${configInfo.rootKey}` : undefined,
     });
 
     if (serverEntry) {
@@ -524,12 +579,16 @@ function checkMcpHealth(dir: string, fixtureName: string, results: CheckResult[]
       results.push({
         fixture: fixtureName,
         check: `${configInfo.label} ai-os server args point to runtime entry`,
-        passed: Array.isArray(serverEntry.args) && serverEntry.args.some(arg => arg.includes('.ai-os') && arg.includes('index.js')),
-        detail: Array.isArray(serverEntry.args) && serverEntry.args.some(arg => arg.includes('.ai-os') && arg.includes('index.js'))
-          ? undefined
-          : Array.isArray(serverEntry.args)
-            ? `args do not include .ai-os runtime entry: ${JSON.stringify(serverEntry.args)}`
-            : 'args are missing',
+        passed:
+          Array.isArray(serverEntry.args) &&
+          serverEntry.args.some((arg) => arg.includes('.ai-os') && arg.includes('index.js')),
+        detail:
+          Array.isArray(serverEntry.args) &&
+          serverEntry.args.some((arg) => arg.includes('.ai-os') && arg.includes('index.js'))
+            ? undefined
+            : Array.isArray(serverEntry.args)
+              ? `args do not include .ai-os runtime entry: ${JSON.stringify(serverEntry.args)}`
+              : 'args are missing',
       });
     }
   }
@@ -573,9 +632,10 @@ function checkMcpHealth(dir: string, fixtureName: string, results: CheckResult[]
     fixture: fixtureName,
     check: 'tools.json contains MCP tool definitions',
     passed: isNewFormat || isLegacyFormat,
-    detail: (!isNewFormat && !isLegacyFormat)
-      ? 'tools.json is neither a { activeTools, availableButInactive } object nor a flat array'
-      : undefined,
+    detail:
+      !isNewFormat && !isLegacyFormat
+        ? 'tools.json is neither a { activeTools, availableButInactive } object nor a flat array'
+        : undefined,
   });
 
   if (isNewFormat) {
@@ -592,7 +652,9 @@ function checkMcpHealth(dir: string, fixtureName: string, results: CheckResult[]
       fixture: fixtureName,
       check: 'tools.json has availableButInactive array',
       passed: Array.isArray(inactiveTools),
-      detail: !Array.isArray(inactiveTools) ? 'availableButInactive is missing or not an array' : undefined,
+      detail: !Array.isArray(inactiveTools)
+        ? 'availableButInactive is missing or not an array'
+        : undefined,
     });
   } else if (isLegacyFormat) {
     const arr = toolsConfig as unknown[];
@@ -625,7 +687,15 @@ function checkMemoryQuality(dir: string, fixtureName: string, results: CheckResu
 
   // Write a malformed line ahead of valid entry to test recovery
   const malformedFile = path.join(memDir, 'memory-malformed.jsonl');
-  const validEntry = JSON.stringify({ id: 'v1', subject: 'ok', fact: 'valid', category: 'test', tags: [], createdAt: new Date().toISOString(), fingerprint: 'fp-valid' });
+  const validEntry = JSON.stringify({
+    id: 'v1',
+    subject: 'ok',
+    fact: 'valid',
+    category: 'test',
+    tags: [],
+    createdAt: new Date().toISOString(),
+    fingerprint: 'fp-valid',
+  });
   fs.writeFileSync(malformedFile, `{broken json line\n${validEntry}\n`, 'utf-8');
 
   results.push({
@@ -648,7 +718,11 @@ function checkMemoryQuality(dir: string, fixtureName: string, results: CheckResu
   });
 }
 
-function checkGeneratedSkillContracts(dir: string, fixtureName: string, results: CheckResult[]): void {
+function checkGeneratedSkillContracts(
+  dir: string,
+  fixtureName: string,
+  results: CheckResult[],
+): void {
   const skillsDir = path.join(dir, '.github/copilot/skills');
   if (!fs.existsSync(skillsDir)) {
     results.push({
@@ -659,7 +733,8 @@ function checkGeneratedSkillContracts(dir: string, fixtureName: string, results:
     return;
   }
 
-  const skillFiles = fs.readdirSync(skillsDir)
+  const skillFiles = fs
+    .readdirSync(skillsDir)
     .filter((name) => name.startsWith('ai-os-') && name.endsWith('.md'));
 
   if (skillFiles.length === 0) {
@@ -687,7 +762,11 @@ function checkGeneratedSkillContracts(dir: string, fixtureName: string, results:
   }
 }
 
-function checkGeneratedAgentContracts(dir: string, fixtureName: string, results: CheckResult[]): void {
+function checkGeneratedAgentContracts(
+  dir: string,
+  fixtureName: string,
+  results: CheckResult[],
+): void {
   const agentsDir = path.join(dir, '.github/agents');
   if (!fs.existsSync(agentsDir)) {
     results.push({
@@ -698,8 +777,7 @@ function checkGeneratedAgentContracts(dir: string, fixtureName: string, results:
     return;
   }
 
-  const agentFiles = fs.readdirSync(agentsDir)
-    .filter((name) => name.endsWith('.agent.md'));
+  const agentFiles = fs.readdirSync(agentsDir).filter((name) => name.endsWith('.agent.md'));
 
   if (agentFiles.length === 0) {
     results.push({
@@ -731,8 +809,8 @@ function checkGeneratedAgentContracts(dir: string, fixtureName: string, results:
 // ---------------------------------------------------------------------------
 
 function printReport(results: CheckResult[]): boolean {
-  const passed = results.filter(r => r.passed);
-  const failed = results.filter(r => !r.passed);
+  const passed = results.filter((r) => r.passed);
+  const failed = results.filter((r) => !r.passed);
 
   console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log(' AI OS Regression Results');
@@ -745,7 +823,7 @@ function printReport(results: CheckResult[]): boolean {
   }
 
   for (const [fixture, checks] of byFixture) {
-    const allPass = checks.every(c => c.passed);
+    const allPass = checks.every((c) => c.passed);
     const icon = allPass ? '✅' : '❌';
     console.log(`${icon} ${fixture}`);
     for (const c of checks) {
@@ -756,7 +834,9 @@ function printReport(results: CheckResult[]): boolean {
     console.log('');
   }
 
-  console.log(`Summary: ${passed.length} passed, ${failed.length} failed out of ${results.length} checks\n`);
+  console.log(
+    `Summary: ${passed.length} passed, ${failed.length} failed out of ${results.length} checks\n`,
+  );
 
   if (failed.length > 0) {
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -822,7 +902,7 @@ async function main(): Promise<void> {
   process.exit(allPassed ? 0 : 1);
 }
 
-main().catch(err => {
+main().catch((err) => {
   console.error('[regression] Fatal:', err instanceof Error ? err.message : String(err));
   process.exit(1);
 });

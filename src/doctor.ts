@@ -55,12 +55,8 @@ function checkMcpRuntimeExists(cwd: string): DoctorCheck {
     name: 'MCP runtime binary present (.ai-os/mcp-server/index.js)',
     critical: true,
     passed,
-    detail: passed
-      ? runtimePath
-      : `Expected runtime at ${runtimePath}`,
-    fixCommand: passed
-      ? undefined
-      : `npx -y "github:marinvch/ai-os" --refresh-existing`,
+    detail: passed ? runtimePath : `Expected runtime at ${runtimePath}`,
+    fixCommand: passed ? undefined : `npx -y "github:marinvch/ai-os" --refresh-existing`,
   };
 }
 
@@ -95,9 +91,7 @@ function checkMcpRuntimeHealthcheck(cwd: string): DoctorCheck {
     detail: passed
       ? 'Healthcheck passed'
       : `Exit code ${result.status ?? 'null'}${output ? `: ${output}` : ''}`,
-    fixCommand: passed
-      ? undefined
-      : `npx -y "github:marinvch/ai-os" --refresh-existing`,
+    fixCommand: passed ? undefined : `npx -y "github:marinvch/ai-os" --refresh-existing`,
   };
 }
 
@@ -124,9 +118,7 @@ function checkMcpConfigPresent(cwd: string, definition: McpCheckDefinition): Doc
     critical: true,
     passed,
     detail: passed ? configPath : `Expected at ${configPath}`,
-    fixCommand: passed
-      ? undefined
-      : `npx -y "github:marinvch/ai-os" --refresh-existing`,
+    fixCommand: passed ? undefined : `npx -y "github:marinvch/ai-os" --refresh-existing`,
   };
 }
 
@@ -140,7 +132,10 @@ function parseMcpConfig(cwd: string, configPath: string): McpConfig | null {
   }
 }
 
-function getServerEntry(config: McpConfig | null, topLevelKey: McpTopLevelKey): { command?: string; args?: string[] } | undefined {
+function getServerEntry(
+  config: McpConfig | null,
+  topLevelKey: McpTopLevelKey,
+): { command?: string; args?: string[] } | undefined {
   if (!config) return undefined;
   const servers = config[topLevelKey];
   return servers?.['ai-os'];
@@ -166,9 +161,7 @@ function checkMcpAiOsEntry(cwd: string, definition: McpCheckDefinition): DoctorC
     detail: passed
       ? `${definition.topLevelKey}["ai-os"] entry found`
       : `No ${definition.topLevelKey}["ai-os"] entry in ${definition.configPath}`,
-    fixCommand: passed
-      ? undefined
-      : `npx -y "github:marinvch/ai-os" --refresh-existing`,
+    fixCommand: passed ? undefined : `npx -y "github:marinvch/ai-os" --refresh-existing`,
   };
 }
 
@@ -190,18 +183,24 @@ function checkMcpCommandResolves(cwd: string, definition: McpCheckDefinition): D
   const args = entry.args ?? [];
 
   // Expand VS Code placeholder and then resolve relative CLI paths from repo root.
-  const resolvedArgs = args.map(a =>
-    a.replace(/\$\{workspaceFolder\}/g, cwd),
-  );
+  const resolvedArgs = args.map((a) => a.replace(/\$\{workspaceFolder\}/g, cwd));
 
   // The first arg (if any) is the script file; check it exists when command is 'node'
   const scriptArg = resolvedArgs[0];
-  const resolvedScriptArg = scriptArg && !path.isAbsolute(scriptArg)
-    ? path.resolve(cwd, scriptArg)
-    : scriptArg;
+  const resolvedScriptArg =
+    scriptArg && !path.isAbsolute(scriptArg) ? path.resolve(cwd, scriptArg) : scriptArg;
   const normalizedCommand = path.basename(command).toLowerCase();
-  if ((command === 'node' || command === process.execPath || normalizedCommand === 'node' || normalizedCommand === 'node.exe') && scriptArg) {
-    const passed = resolvedScriptArg !== undefined && fs.existsSync(resolvedScriptArg) && fs.statSync(resolvedScriptArg).isFile();
+  if (
+    (command === 'node' ||
+      command === process.execPath ||
+      normalizedCommand === 'node' ||
+      normalizedCommand === 'node.exe') &&
+    scriptArg
+  ) {
+    const passed =
+      resolvedScriptArg !== undefined &&
+      fs.existsSync(resolvedScriptArg) &&
+      fs.statSync(resolvedScriptArg).isFile();
     return {
       name: definition.commandName,
       critical: true,
@@ -209,9 +208,7 @@ function checkMcpCommandResolves(cwd: string, definition: McpCheckDefinition): D
       detail: passed
         ? `Script exists: ${resolvedScriptArg}`
         : `Script not found: ${resolvedScriptArg}`,
-      fixCommand: passed
-        ? undefined
-        : `npx -y "github:marinvch/ai-os" --refresh-existing`,
+      fixCommand: passed ? undefined : `npx -y "github:marinvch/ai-os" --refresh-existing`,
     };
   }
 
@@ -353,7 +350,9 @@ function checkSkillVersions(cwd: string): DoctorCheck {
   const detail = [
     modified.length > 0 ? `Modified: ${modified.join(', ')}` : '',
     missing.length > 0 ? `Missing: ${missing.join(', ')}` : '',
-  ].filter(Boolean).join('; ');
+  ]
+    .filter(Boolean)
+    .join('; ');
 
   return {
     name: 'Skill version integrity',
@@ -401,8 +400,8 @@ export function runDoctor(cwd: string): DoctorResult {
     checkSkillVersions(cwd),
   ];
 
-  const criticalFailures = checks.filter(c => c.critical && !c.passed).length;
-  const warnings = checks.filter(c => !c.critical && !c.passed).length;
+  const criticalFailures = checks.filter((c) => c.critical && !c.passed).length;
+  const warnings = checks.filter((c) => !c.critical && !c.passed).length;
 
   return {
     cwd,
@@ -436,12 +435,14 @@ export function printDoctorReport(result: DoctorResult): number {
   console.log('');
 
   const total = checks.length;
-  const passed = checks.filter(c => c.passed).length;
+  const passed = checks.filter((c) => c.passed).length;
 
   if (criticalFailures === 0 && warnings === 0) {
     console.log(`  ✅ All ${total} checks passed — AI OS is healthy.`);
   } else if (criticalFailures > 0) {
-    console.log(`  ❌ ${criticalFailures} critical failure(s), ${warnings} warning(s) — ${passed}/${total} checks passed.`);
+    console.log(
+      `  ❌ ${criticalFailures} critical failure(s), ${warnings} warning(s) — ${passed}/${total} checks passed.`,
+    );
     console.log('     Address critical failures before using AI OS tools.');
   } else {
     console.log(`  ⚠️  ${warnings} warning(s) — ${passed}/${total} checks passed.`);

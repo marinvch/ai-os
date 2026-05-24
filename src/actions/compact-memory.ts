@@ -21,7 +21,9 @@ export function runCompactMemoryAction(cwd: string): void {
       console.log(`  ${line}`);
     }
   } catch (err) {
-    console.error(`  ❌ Memory compact failed: ${err instanceof Error ? err.message : String(err)}`);
+    console.error(
+      `  ❌ Memory compact failed: ${err instanceof Error ? err.message : String(err)}`,
+    );
     process.exit(1);
   }
   console.log('');

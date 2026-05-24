@@ -75,7 +75,9 @@ export function describeProfile(profile: InstallProfile): string {
   const flags = PROFILE_PRESETS[profile];
   const lines: string[] = [`  Profile: ${profile}`];
   lines.push(`    agents.md:              ${flags.agentsMd ? 'enabled' : 'disabled'}`);
-  lines.push(`    path instructions:      ${flags.pathSpecificInstructions ? 'enabled' : 'disabled'}`);
+  lines.push(
+    `    path instructions:      ${flags.pathSpecificInstructions ? 'enabled' : 'disabled'}`,
+  );
   lines.push(`    recommendations:        ${flags.recommendations ? 'enabled' : 'disabled'}`);
   lines.push(`    session context card:   ${flags.sessionContextCard ? 'enabled' : 'disabled'}`);
   lines.push(`    update-check workflow:  ${flags.updateCheckEnabled ? 'enabled' : 'disabled'}`);

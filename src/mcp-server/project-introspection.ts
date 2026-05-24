@@ -13,7 +13,10 @@ function spawnRipgrep(args: string[]): string {
     const r = spawnSync(cmd, args, { maxBuffer: 1024 * 1024, timeout: 8000 });
     if (r.status === 0 || (r.error == null && r.stdout)) return r.stdout?.toString() ?? '';
   }
-  const r = spawnSync('npx', ['--yes', 'ripgrep', ...args], { maxBuffer: 1024 * 1024, timeout: 15000 });
+  const r = spawnSync('npx', ['--yes', 'ripgrep', ...args], {
+    maxBuffer: 1024 * 1024,
+    timeout: 15000,
+  });
   return r.stdout?.toString() ?? '';
 }
 
@@ -96,16 +99,11 @@ export function getApiRoutes(filter?: string): string {
     },
     {
       glob: '*.java',
-      patterns: [
-        /@(?:Get|Post|Put|Patch|Delete|Request)Mapping\(([^)]*)\)/g,
-      ],
+      patterns: [/@(?:Get|Post|Put|Patch|Delete|Request)Mapping\(([^)]*)\)/g],
     },
     {
       glob: '*.go',
-      patterns: [
-        /\.(GET|POST|PUT|PATCH|DELETE)\("([^"]+)"/g,
-        /HandleFunc\("([^"]+)"/g,
-      ],
+      patterns: [/\.(GET|POST|PUT|PATCH|DELETE)\("([^"]+)"/g, /HandleFunc\("([^"]+)"/g],
     },
     {
       glob: '*.rs',
@@ -142,7 +140,19 @@ export function getApiRoutes(filter?: string): string {
             if (scan.glob === '*.java') {
               const mappingArgs = match[1] ?? '';
               const methodMatch = mappingArgs.match(/RequestMethod\.(GET|POST|PUT|PATCH|DELETE)/);
-              const method = methodMatch?.[1] ?? (match[0].includes('GetMapping') ? 'GET' : match[0].includes('PostMapping') ? 'POST' : match[0].includes('PutMapping') ? 'PUT' : match[0].includes('PatchMapping') ? 'PATCH' : match[0].includes('DeleteMapping') ? 'DELETE' : 'REQUEST');
+              const method =
+                methodMatch?.[1] ??
+                (match[0].includes('GetMapping')
+                  ? 'GET'
+                  : match[0].includes('PostMapping')
+                    ? 'POST'
+                    : match[0].includes('PutMapping')
+                      ? 'PUT'
+                      : match[0].includes('PatchMapping')
+                        ? 'PATCH'
+                        : match[0].includes('DeleteMapping')
+                          ? 'DELETE'
+                          : 'REQUEST');
               const pathMatch = mappingArgs.match(/['"]([^'"]+)['"]/);
               if (pathMatch) addRoute(`${method} ${pathMatch[1]}`);
               continue;
@@ -166,7 +176,9 @@ export function getApiRoutes(filter?: string): string {
   }
 
   const result = [...routes].sort();
-  const filtered = filter ? result.filter((route) => route.toLowerCase().includes(filter.toLowerCase())) : result;
+  const filtered = filter
+    ? result.filter((route) => route.toLowerCase().includes(filter.toLowerCase()))
+    : result;
   return filtered.length > 0 ? `**API Routes:**\n${filtered.join('\n')}` : 'No API routes found';
 }
 
@@ -218,14 +230,19 @@ export function getEnvVars(): string {
   if (envContent) {
     lines.push('From .env.example:');
     lines.push('```');
-    lines.push(envContent.split('\n').filter(l => l.trim() && !l.startsWith('#')).join('\n'));
+    lines.push(
+      envContent
+        .split('\n')
+        .filter((l) => l.trim() && !l.startsWith('#'))
+        .join('\n'),
+    );
     lines.push('```');
   }
 
   if (codeEnvVars.size > 0) {
     lines.push('');
     lines.push('Referenced in code:');
-    [...codeEnvVars].sort().forEach(v => lines.push(`- ${v}`));
+    [...codeEnvVars].sort().forEach((v) => lines.push(`- ${v}`));
   }
 
   return lines.join('\n');
@@ -252,7 +269,9 @@ export function getPackageInfo(packageName?: string): string {
 
     lines.push(`**Node Package:** ${pkg.name ?? 'unknown'}@${pkg.version ?? '0.0.0'}`);
     lines.push(`**Node Engine:** ${pkg.engines?.node ?? 'not specified'}`);
-    const depPairs = Object.entries(pkg.dependencies ?? {}).slice(0, 40).map(([k, v]) => `  ${k}: ${v}`);
+    const depPairs = Object.entries(pkg.dependencies ?? {})
+      .slice(0, 40)
+      .map(([k, v]) => `  ${k}: ${v}`);
     if (depPairs.length > 0) {
       lines.push('', '**Node Dependencies:**', ...depPairs);
     }
@@ -261,9 +280,16 @@ export function getPackageInfo(packageName?: string): string {
   // Python
   const requirementsPath = path.join(ROOT, 'requirements.txt');
   if (fs.existsSync(requirementsPath)) {
-    const reqLines = fs.readFileSync(requirementsPath, 'utf-8').split('\n').map((line) => line.trim()).filter(Boolean).filter((line) => !line.startsWith('#'));
+    const reqLines = fs
+      .readFileSync(requirementsPath, 'utf-8')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .filter((line) => !line.startsWith('#'));
     if (packageName) {
-      const found = reqLines.find((line) => line.toLowerCase().startsWith(packageName.toLowerCase()));
+      const found = reqLines.find((line) =>
+        line.toLowerCase().startsWith(packageName.toLowerCase()),
+      );
       if (found) return `**${packageName}:** ${found}`;
     }
     lines.push('', `**Python Requirements:** ${reqLines.length} entries`);
@@ -320,16 +346,18 @@ export function getFileSummary(filePath: string): string {
     for (const line of lines.slice(0, 200)) {
       // TypeScript/JavaScript exports
       if (/^export\s+(default\s+)?(function|class|const|interface|type|enum)\s+(\w+)/.test(line)) {
-        const match = line.match(/^export\s+(?:default\s+)?(?:function|class|const|interface|type|enum)\s+(\w+)/);
+        const match = line.match(
+          /^export\s+(?:default\s+)?(?:function|class|const|interface|type|enum)\s+(\w+)/,
+        );
         if (match) exports.push(match[1]);
       }
       // Python functions/classes
-      if ((ext === '.py') && /^(def|class)\s+(\w+)/.test(line)) {
+      if (ext === '.py' && /^(def|class)\s+(\w+)/.test(line)) {
         const match = line.match(/^(def|class)\s+(\w+)/);
         if (match) exports.push(`${match[1]} ${match[2]}`);
       }
       // Go functions
-      if ((ext === '.go') && /^func\s+(\w+)/.test(line)) {
+      if (ext === '.go' && /^func\s+(\w+)/.test(line)) {
         const match = line.match(/^func\s+(\w+)/);
         if (match) exports.push(`func ${match[1]}`);
       }
@@ -339,20 +367,16 @@ export function getFileSummary(filePath: string): string {
       }
     }
 
-    const summary: string[] = [
-      `**File:** \`${filePath}\``,
-      `**Size:** ${lines.length} lines`,
-      '',
-    ];
+    const summary: string[] = [`**File:** \`${filePath}\``, `**Size:** ${lines.length} lines`, ''];
 
     if (imports.length > 0) {
       summary.push('**Key Imports:**');
-      summary.push(...imports.map(i => `- ${i}`));
+      summary.push(...imports.map((i) => `- ${i}`));
       summary.push('');
     }
     if (exports.length > 0) {
       summary.push('**Exports:**');
-      summary.push(...exports.map(e => `- ${e}`));
+      summary.push(...exports.map((e) => `- ${e}`));
       summary.push('');
     }
 
@@ -376,7 +400,9 @@ export function getImpactOfChange(filePath: string): string {
     return 'Dependency graph not found. Re-run the AI OS installer: `npx -y github:marinvch/ai-os --refresh-existing` (or the bootstrap one-liner from the README).';
   }
 
-  let graph: { nodes: Record<string, { imports: string[]; importedBy: string[]; exports: string[] }> };
+  let graph: {
+    nodes: Record<string, { imports: string[]; importedBy: string[]; exports: string[] }>;
+  };
   try {
     graph = JSON.parse(fs.readFileSync(graphPath, 'utf-8'));
   } catch {
@@ -389,12 +415,12 @@ export function getImpactOfChange(filePath: string): string {
   const node = graph.nodes[normalized];
   if (!node) {
     // Try partial match
-    const candidates = Object.keys(graph.nodes).filter(k => k.includes(normalized));
+    const candidates = Object.keys(graph.nodes).filter((k) => k.includes(normalized));
     if (candidates.length === 0) {
       return `File "${normalized}" not found in dependency graph. It may not be a tracked source file.`;
     }
     if (candidates.length > 1) {
-      return `Ambiguous path "${normalized}" — did you mean one of:\n${candidates.map(c => `- ${c}`).join('\n')}`;
+      return `Ambiguous path "${normalized}" — did you mean one of:\n${candidates.map((c) => `- ${c}`).join('\n')}`;
     }
     return getImpactOfChange(candidates[0]!);
   }
@@ -411,7 +437,7 @@ export function getImpactOfChange(filePath: string): string {
   }
 
   const direct = node.importedBy;
-  const transitive = [...visited].filter(f => !direct.includes(f));
+  const transitive = [...visited].filter((f) => !direct.includes(f));
 
   const lines: string[] = [
     `## Impact Analysis: \`${normalized}\``,
@@ -419,13 +445,13 @@ export function getImpactOfChange(filePath: string): string {
     `**Exports:** ${node.exports.length > 0 ? node.exports.join(', ') : '_none detected_'}`,
     '',
     `**Imports (${node.imports.length} direct dependencies):**`,
-    ...node.imports.map(f => `- ${f}`),
+    ...node.imports.map((f) => `- ${f}`),
     '',
     `**Directly imported by (${direct.length} files):**`,
-    ...(direct.length > 0 ? direct.map(f => `- ${f}`) : ['- _nothing imports this file_']),
+    ...(direct.length > 0 ? direct.map((f) => `- ${f}`) : ['- _nothing imports this file_']),
     '',
     `**Transitively affected (${transitive.length} files):**`,
-    ...(transitive.length > 0 ? transitive.map(f => `- ${f}`) : ['- _no transitive dependents_']),
+    ...(transitive.length > 0 ? transitive.map((f) => `- ${f}`) : ['- _no transitive dependents_']),
   ];
 
   return lines.join('\n');
@@ -439,7 +465,9 @@ export function getDependencyChain(filePath: string): string {
     return 'Dependency graph not found. Re-run the AI OS installer: `npx -y github:marinvch/ai-os --refresh-existing` (or the bootstrap one-liner from the README).';
   }
 
-  let graph: { nodes: Record<string, { imports: string[]; importedBy: string[]; exports: string[] }> };
+  let graph: {
+    nodes: Record<string, { imports: string[]; importedBy: string[]; exports: string[] }>;
+  };
   try {
     graph = JSON.parse(fs.readFileSync(graphPath, 'utf-8'));
   } catch {
@@ -452,11 +480,7 @@ export function getDependencyChain(filePath: string): string {
     return `File "${normalized}" not found in dependency graph.`;
   }
 
-  const lines: string[] = [
-    `## Dependency Chain: \`${normalized}\``,
-    '',
-    '### This file imports:',
-  ];
+  const lines: string[] = [`## Dependency Chain: \`${normalized}\``, '', '### This file imports:'];
 
   if (node.imports.length === 0) {
     lines.push('- _no local imports_');

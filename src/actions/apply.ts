@@ -13,13 +13,36 @@ import { generateWorkflows } from '../generators/workflows.js';
 import { generateToolsets } from '../generators/toolsets.js';
 import { generateChatModes } from '../generators/chatmodes.js';
 import { getMcpToolsForStack } from '../mcp-tools.js';
-import { checkUpdateStatus, printUpdateBanner, getToolVersion, pruneLegacyArtifacts } from '../updater.js';
+import {
+  checkUpdateStatus,
+  printUpdateBanner,
+  getToolVersion,
+  pruneLegacyArtifacts,
+} from '../updater.js';
 import { buildOnboardingPlan } from '../planner.js';
-import { readManifest, writeManifest, getManifestPath, setVerboseMode, setDryRunMode, getDryRunCaptures, writeFileAtomic, setPrevHashes, getNewHashes } from '../generators/utils.js';
-import { generateRecommendations, getSkillsGapReport, collectRecommendations } from '../recommendations/index.js';
+import {
+  readManifest,
+  writeManifest,
+  getManifestPath,
+  setVerboseMode,
+  setDryRunMode,
+  getDryRunCaptures,
+  writeFileAtomic,
+  setPrevHashes,
+  getNewHashes,
+} from '../generators/utils.js';
+import {
+  generateRecommendations,
+  getSkillsGapReport,
+  collectRecommendations,
+} from '../recommendations/index.js';
 import { applyProfile, describeProfile } from '../profile.js';
 import { mergeUserBlocks } from '../user-blocks.js';
-import { captureContextSnapshot, writeContextSnapshot, computeFreshnessReport } from '../detectors/freshness.js';
+import {
+  captureContextSnapshot,
+  writeContextSnapshot,
+  computeFreshnessReport,
+} from '../detectors/freshness.js';
 import { runMemoryMaintenance } from '../mcp-server/utils.js';
 import { runBootstrap, formatBootstrapReport, installSkill } from '../bootstrap.js';
 import { runPlanAction } from './plan.js';
@@ -51,7 +74,7 @@ function toPathSet(value: unknown): Set<string> {
   return new Set(
     (value as unknown[])
       .filter((p): p is string => typeof p === 'string')
-      .map(p => p.replace(/\\/g, '/')),
+      .map((p) => p.replace(/\\/g, '/')),
   );
 }
 
@@ -82,7 +105,7 @@ function loadProtectConfig(cwd: string): ProtectConfig {
 const CUSTOM_ARTIFACT_DIRS = ['.github/agents/', '.agents/skills/'];
 
 function isCustomArtifact(relPath: string): boolean {
-  return CUSTOM_ARTIFACT_DIRS.some(dir => relPath.startsWith(dir));
+  return CUSTOM_ARTIFACT_DIRS.some((dir) => relPath.startsWith(dir));
 }
 
 function ensureGitignoreEntry(cwd: string, entry: string): void {
@@ -131,12 +154,19 @@ function installLocalMcpRuntime(cwd: string, verbose: boolean): void {
   fs.copyFileSync(bundledServerSource, runtimeEntry);
   fs.chmodSync(runtimeEntry, 0o755);
 
-  writeFileAtomic(runtimeManifest, JSON.stringify({
-    name: 'ai-os-mcp-server',
-    runtime: 'bundled',
-    sourceVersion: getToolVersion(),
-    installedAt: new Date().toISOString(),
-  }, null, 2));
+  writeFileAtomic(
+    runtimeManifest,
+    JSON.stringify(
+      {
+        name: 'ai-os-mcp-server',
+        runtime: 'bundled',
+        sourceVersion: getToolVersion(),
+        installedAt: new Date().toISOString(),
+      },
+      null,
+      2,
+    ),
+  );
 
   // Write the official VS Code MCP config (.vscode/mcp.json) with the resolved
   // Node executable path. This avoids shell alias/PATH issues when VS Code
@@ -155,7 +185,11 @@ function installLocalMcpRuntime(cwd: string, verbose: boolean): void {
   // Clean up legacy .github/copilot/mcp.local.json if present
   const legacyLocalMcp = path.join(cwd, '.github', 'copilot', 'mcp.local.json');
   if (fs.existsSync(legacyLocalMcp)) {
-    try { fs.rmSync(legacyLocalMcp); } catch { /* ignore */ }
+    try {
+      fs.rmSync(legacyLocalMcp);
+    } catch {
+      /* ignore */
+    }
   }
 
   const healthcheck = spawnSync(nodePath, [runtimeEntry, '--healthcheck'], {
@@ -181,30 +215,41 @@ function installLocalMcpRuntime(cwd: string, verbose: boolean): void {
 }
 
 // ── Dry-run unified diff printer ─────────────────────────────────────────────
-function computeLineDiff(before: string, after: string): Array<{ type: '+' | '-' | ' '; line: string }> {
+function computeLineDiff(
+  before: string,
+  after: string,
+): Array<{ type: '+' | '-' | ' '; line: string }> {
   const bLines = before.split('\n');
   const aLines = after.split('\n');
   const result: Array<{ type: '+' | '-' | ' '; line: string }> = [];
 
   // Simple patience-style diff: LCS-based
   function lcs(a: string[], b: string[]): Array<[number, number]> {
-    const m = a.length, n = b.length;
+    const m = a.length,
+      n = b.length;
     const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
     for (let i = 1; i <= m; i++)
       for (let j = 1; j <= n; j++)
-        dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
+        dp[i][j] =
+          a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
     const pairs: Array<[number, number]> = [];
-    let i = m, j = n;
+    let i = m,
+      j = n;
     while (i > 0 && j > 0) {
-      if (a[i - 1] === b[j - 1]) { pairs.unshift([i - 1, j - 1]); i--; j--; }
-      else if (dp[i - 1][j] >= dp[i][j - 1]) i--;
+      if (a[i - 1] === b[j - 1]) {
+        pairs.unshift([i - 1, j - 1]);
+        i--;
+        j--;
+      } else if (dp[i - 1][j] >= dp[i][j - 1]) i--;
       else j--;
     }
     return pairs;
   }
 
   const common = lcs(bLines, aLines);
-  let bi = 0, ai = 0, ci = 0;
+  let bi = 0,
+    ai = 0,
+    ci = 0;
   while (ci <= common.length) {
     const bEnd = ci < common.length ? common[ci][0] : bLines.length;
     const aEnd = ci < common.length ? common[ci][1] : aLines.length;
@@ -220,10 +265,17 @@ function computeLineDiff(before: string, after: string): Array<{ type: '+' | '-'
   return result;
 }
 
-function printDryRunDiff(cwd: string, captures: import('../generators/utils.js').DryRunCapture[], fullDiff: boolean): void {
+function printDryRunDiff(
+  cwd: string,
+  captures: import('../generators/utils.js').DryRunCapture[],
+  fullDiff: boolean,
+): void {
   const CONTEXT = 3;
   const MAX_LINES = fullDiff ? Infinity : 40;
-  let totalAdded = 0, totalRemoved = 0, changedCount = 0, newCount = 0;
+  let totalAdded = 0,
+    totalRemoved = 0,
+    changedCount = 0,
+    newCount = 0;
 
   process.stdout.write('\n  🔍 Dry-run diff (no files written)\n\n');
 
@@ -242,8 +294,8 @@ function printDryRunDiff(cwd: string, captures: import('../generators/utils.js')
     } else {
       changedCount++;
       const hunks = computeLineDiff(cap.existingContent, cap.newContent);
-      const added = hunks.filter(h => h.type === '+').length;
-      const removed = hunks.filter(h => h.type === '-').length;
+      const added = hunks.filter((h) => h.type === '+').length;
+      const removed = hunks.filter((h) => h.type === '-').length;
       totalAdded += added;
       totalRemoved += removed;
       process.stdout.write(`  \x1b[33m[CHANGED]\x1b[0m ${rel}  (+${added}/-${removed})\n`);
@@ -274,7 +326,9 @@ function printDryRunDiff(cwd: string, captures: import('../generators/utils.js')
     }
   }
 
-  process.stdout.write(`\n  Summary: ${newCount} new, ${changedCount} changed | +${totalAdded} lines, -${totalRemoved} lines\n`);
+  process.stdout.write(
+    `\n  Summary: ${newCount} new, ${changedCount} changed | +${totalAdded} lines, -${totalRemoved} lines\n`,
+  );
   if (!fullDiff && (newCount > 0 || changedCount > 0)) {
     process.stdout.write('  Run with --full-diff to see full diffs.\n');
   }
@@ -293,9 +347,11 @@ function printSummary(
   durationMs?: number,
 ): void {
   const mcpToolCount = getMcpToolsForStack(stack).length;
-  const fw = stack.frameworks.map(f => f.name).join(', ') || stack.primaryLanguage.name;
+  const fw = stack.frameworks.map((f) => f.name).join(', ') || stack.primaryLanguage.name;
   console.log(`  📦 Project:    ${stack.projectName}`);
-  console.log(`  🔤 Language:   ${stack.primaryLanguage.name} (${stack.primaryLanguage.percentage}%)`);
+  console.log(
+    `  🔤 Language:   ${stack.primaryLanguage.name} (${stack.primaryLanguage.percentage}%)`,
+  );
   console.log(`  🏗️  Framework:  ${fw}`);
   console.log(`  📦 Pkg Mgr:   ${stack.patterns.packageManager}`);
   console.log(`  🔷 TypeScript: ${stack.patterns.hasTypeScript ? 'Yes' : 'No'}`);
@@ -307,22 +363,26 @@ function printSummary(
   const summary = buildGenerationSummary({
     written,
     skipped,
-    pruned: pruned.map(p => p),
+    pruned: pruned.map((p) => p),
     preserved,
     durationMs: durationMs ?? 0,
   });
   console.log(formatGenerationSummary(summary));
   if (preserved.length > 0) {
-    for (const p of preserved) console.log(`       • ${path.relative(outputDir, p).replace(/\\/g, '/')}`);
+    for (const p of preserved)
+      console.log(`       • ${path.relative(outputDir, p).replace(/\\/g, '/')}`);
   }
   if (pruned.length > 0) {
-    for (const p of pruned) console.log(`       • ${path.relative(outputDir, p).replace(/\\/g, '/')}`);
+    for (const p of pruned)
+      console.log(`       • ${path.relative(outputDir, p).replace(/\\/g, '/')}`);
   }
   if (agents.length > 0) {
     console.log(`  🤖 Agents generated: ${agents.length}`);
   }
   console.log(`  🔧 MCP tools registered: ${mcpToolCount}`);
-  console.log(`  🗳️  Manifest: ${path.relative(outputDir, getManifestPath(outputDir)).replace(/\\/g, '/')}`);
+  console.log(
+    `  🗳️  Manifest: ${path.relative(outputDir, getManifestPath(outputDir)).replace(/\\/g, '/')}`,
+  );
   // Print previous freshness score (before this run's snapshot is written) to show drift
   try {
     const prevReport = computeFreshnessReport(outputDir);
@@ -330,7 +390,9 @@ function printSummary(
       const scorePercent = Math.round(prevReport.score * 100);
       const statusEmoji: Record<string, string> = { fresh: '✅', drifted: '⚠️', stale: '❌' };
       const emoji = statusEmoji[prevReport.status] ?? '❓';
-      console.log(`  ${emoji} Context freshness (pre-run): ${scorePercent}/100 (${prevReport.status})`);
+      console.log(
+        `  ${emoji} Context freshness (pre-run): ${scorePercent}/100 (${prevReport.status})`,
+      );
       if (prevReport.staleArtifacts.length > 0) {
         console.log(`     Stale artifacts: ${prevReport.staleArtifacts.join(', ')}`);
       }
@@ -338,7 +400,9 @@ function printSummary(
         console.log(`     Changed sources: ${prevReport.changedSourceFiles.join(', ')}`);
       }
     }
-  } catch { /* non-fatal */ }
+  } catch {
+    /* non-fatal */
+  }
   console.log('');
 }
 
@@ -353,18 +417,26 @@ function printContextualNextSteps(
 
   const printInstructionStrategy = (): void => {
     console.log('  📌 First action after install/refresh:');
-    console.log('     Review and optimize .github/copilot-instructions.md before asking Copilot to implement changes.');
+    console.log(
+      '     Review and optimize .github/copilot-instructions.md before asking Copilot to implement changes.',
+    );
 
     if (onboardingPlan.detectedRepoType === 'new') {
       console.log('  🆕 Strategy for new project:');
-      console.log('     Build a baseline context first (stack, conventions, architecture), then keep instructions concise and task-agnostic.');
+      console.log(
+        '     Build a baseline context first (stack, conventions, architecture), then keep instructions concise and task-agnostic.',
+      );
       console.log('     Use AI OS MCP tools to fill context as the codebase grows.');
       return;
     }
 
     console.log('  🏗️  Strategy for existing/large project:');
-    console.log('     Compare current instructions against real project state and patch missing context before feature work.');
-    console.log('     Prioritize architecture, build/test flow, and known pitfalls to reduce tool failures and rework.');
+    console.log(
+      '     Compare current instructions against real project state and patch missing context before feature work.',
+    );
+    console.log(
+      '     Prioritize architecture, build/test flow, and known pitfalls to reduce tool failures and rework.',
+    );
   };
 
   const printRecommendationsHint = (): void => {
@@ -376,10 +448,14 @@ function printContextualNextSteps(
   if (mode === 'safe' && updateStatus.updateAvailable && !updateStatus.isFirstInstall) {
     console.log('  🧭 Recommended next step:');
     console.log(`  ${refreshCmd}`);
-    console.log('  Safe mode updated local MCP/runtime wiring, but left existing AI OS context artifacts in place.');
+    console.log(
+      '  Safe mode updated local MCP/runtime wiring, but left existing AI OS context artifacts in place.',
+    );
     printInstructionStrategy();
     console.log('  After refresh, ask Copilot:');
-    console.log('     "Use all AI OS MCP tools, inspect this codebase, and improve the AI context files."');
+    console.log(
+      '     "Use all AI OS MCP tools, inspect this codebase, and improve the AI context files."',
+    );
     printRecommendationsHint();
     console.log('');
     return;
@@ -390,23 +466,32 @@ function printContextualNextSteps(
     printInstructionStrategy();
     console.log('  If the tools do not appear immediately, run: MCP: Restart Servers');
     console.log('  Suggested first prompt:');
-    console.log('     "Open and optimize .github/copilot-instructions.md for this repo state, then use AI OS MCP tools to review architecture, conventions, and missing context gaps."');
+    console.log(
+      '     "Open and optimize .github/copilot-instructions.md for this repo state, then use AI OS MCP tools to review architecture, conventions, and missing context gaps."',
+    );
     printRecommendationsHint();
     console.log('');
     return;
   }
 
-  const firstPrompt = onboardingPlan.detectedRepoType === 'existing-non-ai-os'
-    ? 'Use AI OS MCP tools to map this codebase, compare the existing instructions with generated context, and improve the AI context files.'
-    : 'Use all AI OS MCP tools, inspect this codebase, and improve the AI context files.';
+  const firstPrompt =
+    onboardingPlan.detectedRepoType === 'existing-non-ai-os'
+      ? 'Use AI OS MCP tools to map this codebase, compare the existing instructions with generated context, and improve the AI context files.'
+      : 'Use all AI OS MCP tools, inspect this codebase, and improve the AI context files.';
 
   console.log('  🧭 Next steps:');
   console.log('  1. Open this repo in VS Code with GitHub Copilot Agent mode enabled.');
-  console.log('  2. Review and optimize .github/copilot-instructions.md for the current project state.');
+  console.log(
+    '  2. Review and optimize .github/copilot-instructions.md for the current project state.',
+  );
   if (onboardingPlan.detectedRepoType === 'new') {
-    console.log('     New project strategy: bootstrap minimal context first, then expand instructions as the codebase evolves.');
+    console.log(
+      '     New project strategy: bootstrap minimal context first, then expand instructions as the codebase evolves.',
+    );
   } else {
-    console.log('     Existing/large project strategy: fill missing context first (architecture, build/test flow, pitfalls), then proceed with implementation.');
+    console.log(
+      '     Existing/large project strategy: fill missing context first (architecture, build/test flow, pitfalls), then proceed with implementation.',
+    );
   }
   console.log('  3. If the tools do not appear immediately, run: MCP: Restart Servers');
   console.log('  4. Suggested first prompt:');
@@ -418,7 +503,10 @@ function printContextualNextSteps(
 /**
  * Print the one-time agent-flow setup prompt.
  */
-function printAgentFlowSetupPrompt(cwd: string, currentMode: 'create' | 'hook' | 'skip' | null): void {
+function printAgentFlowSetupPrompt(
+  cwd: string,
+  currentMode: 'create' | 'hook' | 'skip' | null,
+): void {
   const scan = scanExistingAgents(cwd);
   const hasUserAgents = scan.userDefined.length > 0;
 
@@ -437,7 +525,9 @@ function printAgentFlowSetupPrompt(cwd: string, currentMode: 'create' | 'hook' |
   console.log('  │   3. Implementation Agent         (executes validated plan)  │');
   console.log('  │                                                             │');
   if (hasUserAgents) {
-    console.log(`  │  Existing agents detected: ${scan.userDefined.join(', ').slice(0, 38).padEnd(38)} │`);
+    console.log(
+      `  │  Existing agents detected: ${scan.userDefined.join(', ').slice(0, 38).padEnd(38)} │`,
+    );
     console.log('  │                                                             │');
     console.log('  │  Choose an option in .github/ai-os/config.json:            │');
     console.log('  │    "agentFlowMode": "create"  — add the 3 agents (default) │');
@@ -464,7 +554,9 @@ function printAgentHookGuide(userDefinedAgents: string[]): void {
   console.log('');
   for (const agent of userDefinedAgents) {
     console.log(`     ${agent}`);
-    console.log('       → Add a "Handoff" section pointing to feature-enhancement-advisor.agent.md');
+    console.log(
+      '       → Add a "Handoff" section pointing to feature-enhancement-advisor.agent.md',
+    );
     console.log('         or idea-validator.agent.md as the next step in your workflow.');
   }
   console.log('');
@@ -483,7 +575,9 @@ function printAgentFlowStatus(cwd: string, mode: 'create' | 'hook' | 'skip' | nu
     'idea-validator.agent.md',
     'implementation-agent.agent.md',
   ];
-  const present = flowFiles.filter((f) => scan.aiOsGenerated.includes(f) || scan.userDefined.includes(f));
+  const present = flowFiles.filter(
+    (f) => scan.aiOsGenerated.includes(f) || scan.userDefined.includes(f),
+  );
   const activeMode = mode ?? 'create';
 
   console.log('  🤖 Agent flow status:');
@@ -493,9 +587,13 @@ function printAgentFlowStatus(cwd: string, mode: 'create' | 'hook' | 'skip' | nu
     console.log(`     detected: ${present.join(', ')}`);
   }
   if (activeMode === 'hook') {
-    console.log('     hook mode enabled — AI OS will keep your existing agents and print handoff guidance.');
+    console.log(
+      '     hook mode enabled — AI OS will keep your existing agents and print handoff guidance.',
+    );
   } else if (activeMode === 'skip') {
-    console.log('     skip mode enabled — set agentFlowMode to "create" in .github/ai-os/config.json to enable flow agents.');
+    console.log(
+      '     skip mode enabled — set agentFlowMode to "create" in .github/ai-os/config.json to enable flow agents.',
+    );
   }
   console.log('');
 }
@@ -517,13 +615,17 @@ function printMemoryMaintenanceSummary(cwd: string): void {
     console.log('  🧠 Memory maintenance:');
     console.log(`     Active entries:       ${summary.activeAfter}`);
     if (summary.staleMarked > 0) {
-      console.log(`     Stale entries found:  ${summary.staleMarked} (run --compact-memory to remove)`);
+      console.log(
+        `     Stale entries found:  ${summary.staleMarked} (run --compact-memory to remove)`,
+      );
     }
     if (summary.nearDuplicatesMarked > 0) {
       console.log(`     Near-duplicates:      ${summary.nearDuplicatesMarked}`);
     }
     if (summary.malformedSkipped > 0) {
-      console.log(`     Malformed lines:      ${summary.malformedSkipped} (will be removed on next write)`);
+      console.log(
+        `     Malformed lines:      ${summary.malformedSkipped} (will be removed on next write)`,
+      );
     }
     console.log('');
   } catch {
@@ -549,7 +651,9 @@ function validateSkillRoutingCompleteness(cwd: string): void {
         const hasName = /^name:\s*.+$/m.test(raw);
         const hasDescription = /^description:\s*.+$/m.test(raw);
         if (!hasName || !hasDescription) {
-          const missing = [!hasName && 'name', !hasDescription && 'description'].filter(Boolean).join(', ');
+          const missing = [!hasName && 'name', !hasDescription && 'description']
+            .filter(Boolean)
+            .join(', ');
           issues.push(`     ⚠️  ${file} — missing frontmatter: ${missing}`);
         }
       } catch {
@@ -563,7 +667,9 @@ function validateSkillRoutingCompleteness(cwd: string): void {
   if (issues.length > 0) {
     console.log('  🔍 Skill routing validation:');
     for (const issue of issues) console.log(issue);
-    console.log('     Skills with missing frontmatter are excluded from routing in prompt-quality.instructions.md');
+    console.log(
+      '     Skills with missing frontmatter are excluded from routing in prompt-quality.instructions.md',
+    );
     console.log('');
   }
 }
@@ -594,7 +700,7 @@ function printSuperpowersPluginSetup(): void {
  */
 function autoInstallSuperpowers(stack: ReturnType<typeof analyze>, skillsLockPath: string): void {
   const recs = collectRecommendations(stack);
-  const allSuperpowers = recs.universalSkills.filter(s => s.source === 'obra/superpowers');
+  const allSuperpowers = recs.universalSkills.filter((s) => s.source === 'obra/superpowers');
 
   if (allSuperpowers.length === 0) return;
 
@@ -605,12 +711,12 @@ function autoInstallSuperpowers(stack: ReturnType<typeof analyze>, skillsLockPat
       skills?: string[] | Record<string, unknown>;
     };
     const names = Array.isArray(lock.skills) ? lock.skills : Object.keys(lock.skills ?? {});
-    installedSet = new Set(names.map(n => n.toLowerCase()));
+    installedSet = new Set(names.map((n) => n.toLowerCase()));
   } catch {
     // Lock file missing — treat all as uninstalled
   }
 
-  const toInstall = allSuperpowers.filter(s => !installedSet.has(s.name.toLowerCase()));
+  const toInstall = allSuperpowers.filter((s) => !installedSet.has(s.name.toLowerCase()));
   const alreadyInstalled = allSuperpowers.length - toInstall.length;
 
   if (toInstall.length === 0) {
@@ -643,15 +749,15 @@ function autoInstallSuperpowers(stack: ReturnType<typeof analyze>, skillsLockPat
   }
 
   console.log('');
-  const installed = results.filter(r => r.success).length;
-  const failed = results.filter(r => !r.success).length;
+  const installed = results.filter((r) => r.success).length;
+  const failed = results.filter((r) => !r.success).length;
 
   if (installed > 0) {
     console.log(`  ✅ ${installed} Superpowers skill(s) installed.`);
   }
   if (failed > 0) {
     console.log(`  ⚠️  ${failed} skill(s) could not be auto-installed. Run manually:`);
-    for (const r of results.filter(r => !r.success)) {
+    for (const r of results.filter((r) => !r.success)) {
       console.log(`     npx -y skills add obra/superpowers@${r.name} -g -a github-copilot`);
     }
   }
@@ -660,7 +766,18 @@ function autoInstallSuperpowers(stack: ReturnType<typeof analyze>, skillsLockPat
 }
 
 export async function runApply(args: ParsedArgs): Promise<void> {
-  const { cwd, dryRun, mode: rawMode, action, prune: pruneFlag, verbose, cleanUpdate, regenerateContext, pruneCustomArtifacts, profile: cliProfile } = args;
+  const {
+    cwd,
+    dryRun,
+    mode: rawMode,
+    action,
+    prune: pruneFlag,
+    verbose,
+    cleanUpdate,
+    regenerateContext,
+    pruneCustomArtifacts,
+    profile: cliProfile,
+  } = args;
   let mode: GenerateMode = rawMode;
 
   // In --json mode, suppress all human-readable output so only the final JSON
@@ -685,15 +802,21 @@ export async function runApply(args: ParsedArgs): Promise<void> {
   // Version check — notify if installed artifacts are older than this tool
   const updateStatus = checkUpdateStatus(cwd);
   const installedVersionLabel = updateStatus.installedVersion ?? 'none';
-  console.log(`  🩺 Diagnostics: tool=v${updateStatus.toolVersion}, installed=v${installedVersionLabel}, firstInstall=${updateStatus.isFirstInstall ? 'yes' : 'no'}, updateAvailable=${updateStatus.updateAvailable ? 'yes' : 'no'}`);
+  console.log(
+    `  🩺 Diagnostics: tool=v${updateStatus.toolVersion}, installed=v${installedVersionLabel}, firstInstall=${updateStatus.isFirstInstall ? 'yes' : 'no'}, updateAvailable=${updateStatus.updateAvailable ? 'yes' : 'no'}`,
+  );
 
   if (mode === 'update') {
     if (updateStatus.isFirstInstall) {
       console.log('  ℹ️  No existing AI OS installation found. Running fresh install...');
     } else if (updateStatus.updateAvailable) {
-      console.log(`  🔄 Updating from v${updateStatus.installedVersion ?? '?'} → v${updateStatus.toolVersion}`);
+      console.log(
+        `  🔄 Updating from v${updateStatus.installedVersion ?? '?'} → v${updateStatus.toolVersion}`,
+      );
     } else {
-      console.log(`  ✅ Already up-to-date (v${updateStatus.toolVersion}). Re-generating to refresh context...`);
+      console.log(
+        `  ✅ Already up-to-date (v${updateStatus.toolVersion}). Re-generating to refresh context...`,
+      );
     }
     mode = 'refresh-existing';
   } else if (mode === 'safe' && !updateStatus.isFirstInstall) {
@@ -719,7 +842,7 @@ export async function runApply(args: ParsedArgs): Promise<void> {
   // Load optional protection config for files that must never be overwritten/pruned.
   const protectConfig = loadProtectConfig(cwd);
   const protectedPaths = protectConfig.protected;
-  const hybridPaths    = protectConfig.hybrid;
+  const hybridPaths = protectConfig.hybrid;
 
   // Snapshot content of protect.json-listed files BEFORE generation so we can
   // restore them afterwards if a generator accidentally overwrites them.
@@ -731,7 +854,9 @@ export async function runApply(args: ParsedArgs): Promise<void> {
     }
   }
   if (isRefresh && protectedSnapshots.size > 0) {
-    console.log(`  🔒 protect.json: ${protectedSnapshots.size} file(s) shielded against overwrite.`);
+    console.log(
+      `  🔒 protect.json: ${protectedSnapshots.size} file(s) shielded against overwrite.`,
+    );
     console.log('');
   }
 
@@ -746,7 +871,9 @@ export async function runApply(args: ParsedArgs): Promise<void> {
       }
     }
     if (hybridSnapshots.size > 0) {
-      console.log(`  🔀 protect.json: ${hybridSnapshots.size} file(s) in hybrid mode (user blocks will be preserved).`);
+      console.log(
+        `  🔀 protect.json: ${hybridSnapshots.size} file(s) in hybrid mode (user blocks will be preserved).`,
+      );
       console.log('');
     }
   }
@@ -816,11 +943,22 @@ export async function runApply(args: ParsedArgs): Promise<void> {
   }
 
   const skillsStrategy = config?.skillsStrategy ?? 'creator-only';
-  const instructionFiles = generateInstructions(stack, cwd, { refreshExisting: mode === 'refresh-existing', preserveContextFiles, config: config ?? undefined });
-  const mcpFiles = generateMcpJson(stack, cwd, { refreshExisting: mode === 'refresh-existing', config: config ?? undefined });
+  const instructionFiles = generateInstructions(stack, cwd, {
+    refreshExisting: mode === 'refresh-existing',
+    preserveContextFiles,
+    config: config ?? undefined,
+  });
+  const mcpFiles = generateMcpJson(stack, cwd, {
+    refreshExisting: mode === 'refresh-existing',
+    config: config ?? undefined,
+  });
 
   // Phase 2: Agents, Skills, Prompts
-  const agentFiles = await generateAgents(stack, cwd, { refreshExisting: mode === 'refresh-existing', preserveExistingAgents: preserveContextFiles, config: config ?? undefined });
+  const agentFiles = await generateAgents(stack, cwd, {
+    refreshExisting: mode === 'refresh-existing',
+    preserveExistingAgents: preserveContextFiles,
+    config: config ?? undefined,
+  });
   const skillFiles = await generateSkills(stack, cwd, {
     refreshExisting: mode === 'refresh-existing',
     strategy: skillsStrategy,
@@ -841,7 +979,11 @@ export async function runApply(args: ParsedArgs): Promise<void> {
     const recPath = generateRecommendations(stack, cwd);
     recommendationFiles.push(recPath);
     // Skills gap report (stdout only, not written to disk)
-    const skillsLockPath = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'skills-lock.json');
+    const skillsLockPath = path.join(
+      path.dirname(new URL(import.meta.url).pathname),
+      '..',
+      'skills-lock.json',
+    );
     const gapReport = getSkillsGapReport(stack, skillsLockPath);
     if (gapReport) console.log(`\n${gapReport}\n`);
   }
@@ -886,14 +1028,17 @@ export async function runApply(args: ParsedArgs): Promise<void> {
         }
         // Skip files in hybrid mode — they are managed but user blocks survive
         if (hybridPaths.has(rel)) {
-          if (verbose) console.log(`  🔀 hybrid   ${rel}  (in protect.json hybrid — user blocks preserved)`);
+          if (verbose)
+            console.log(`  🔀 hybrid   ${rel}  (in protect.json hybrid — user blocks preserved)`);
           preservedAbs.push(path.join(cwd, rel));
           continue;
         }
         // Skip custom artifacts unless --prune-custom-artifacts is passed
         if (!pruneCustomArtifacts && isCustomArtifact(rel)) {
           if (verbose) {
-            console.log(`  🔒 preserve ${rel}  (custom artifact — pass --prune-custom-artifacts to remove)`);
+            console.log(
+              `  🔒 preserve ${rel}  (custom artifact — pass --prune-custom-artifacts to remove)`,
+            );
           }
           preservedAbs.push(path.join(cwd, rel));
           continue;
@@ -928,7 +1073,7 @@ export async function runApply(args: ParsedArgs): Promise<void> {
         fs.writeFileSync(abs, originalContent, 'utf-8');
         const rel = path.relative(cwd, abs).replace(/\\/g, '/');
         if (verbose) console.log(`  🔒 restored ${rel}  (protect.json: overwrite reverted)`);
-        if (!preservedAbs.some(p => p === abs)) preservedAbs.push(abs);
+        if (!preservedAbs.some((p) => p === abs)) preservedAbs.push(abs);
       }
     }
   }
@@ -940,7 +1085,11 @@ export async function runApply(args: ParsedArgs): Promise<void> {
   for (const [abs, snapshot] of hybridSnapshots) {
     if (!fs.existsSync(abs)) continue;
     const generated = fs.readFileSync(abs, 'utf-8');
-    const { content: merged, preserved: mergedIds, conflicts } = mergeUserBlocks(generated, snapshot);
+    const {
+      content: merged,
+      preserved: mergedIds,
+      conflicts,
+    } = mergeUserBlocks(generated, snapshot);
     if (mergedIds.length > 0 || conflicts.length > 0) {
       const rel = path.relative(cwd, abs).replace(/\\/g, '/');
       // Only write when the merge actually changed the content
@@ -949,14 +1098,18 @@ export async function runApply(args: ParsedArgs): Promise<void> {
       }
       if (mergedIds.length > 0) {
         if (verbose) {
-          console.log(`  🔀 merged   ${rel}  (${mergedIds.length} user block(s) preserved: ${mergedIds.join(', ')})`);
+          console.log(
+            `  🔀 merged   ${rel}  (${mergedIds.length} user block(s) preserved: ${mergedIds.join(', ')})`,
+          );
         } else {
           console.log(`  🔀 Hybrid merge: ${mergedIds.length} user block(s) preserved in ${rel}`);
         }
       }
       for (const conflict of conflicts) {
         allConflicts.push({ file: rel, ...conflict });
-        console.warn(`  ⚠ Hybrid conflict in ${rel}: block "${conflict.blockId}" — ${conflict.detail}`);
+        console.warn(
+          `  ⚠ Hybrid conflict in ${rel}: block "${conflict.blockId}" — ${conflict.detail}`,
+        );
       }
     }
   }
@@ -964,8 +1117,12 @@ export async function runApply(args: ParsedArgs): Promise<void> {
   if (allConflicts.length > 0) {
     console.log('');
     console.log(`  ⚠ ${allConflicts.length} user block conflict(s) require manual reconciliation.`);
-    console.log('     Each block has been appended to its file wrapped in <!-- AI-OS:CONFLICT --> markers.');
-    console.log('     Review and move them to the correct location, then remove the conflict markers.');
+    console.log(
+      '     Each block has been appended to its file wrapped in <!-- AI-OS:CONFLICT --> markers.',
+    );
+    console.log(
+      '     Review and move them to the correct location, then remove the conflict markers.',
+    );
     console.log('');
   }
 
@@ -992,8 +1149,8 @@ export async function runApply(args: ParsedArgs): Promise<void> {
   // against previous manifest (new entry = written) plus the fact that writeIfChanged
   // inside generators only wrote when content differed. We use a simple heuristic:
   // files not in the previous manifest are "new" (written); the rest may be skipped or updated.
-  const newFiles = currentRelFiles.filter(r => r !== manifestRel && !previousFiles.has(r));
-  const existingFiles = currentRelFiles.filter(r => r !== manifestRel && previousFiles.has(r));
+  const newFiles = currentRelFiles.filter((r) => r !== manifestRel && !previousFiles.has(r));
+  const existingFiles = currentRelFiles.filter((r) => r !== manifestRel && previousFiles.has(r));
 
   if (!dryRun) installLocalMcpRuntime(cwd, verbose);
 
@@ -1016,48 +1173,62 @@ export async function runApply(args: ParsedArgs): Promise<void> {
 
     if (action === 'bootstrap') {
       const bootstrapReport = runBootstrap(stack, { dryRun: false });
-      console.log(JSON.stringify({
-        action: 'bootstrap',
+      console.log(
+        JSON.stringify({
+          action: 'bootstrap',
+          cwd,
+          mode,
+          project: stack.projectName,
+          language: stack.primaryLanguage.name,
+          frameworks: stack.frameworks.map((f) => f.name),
+          packageManager: stack.patterns.packageManager,
+          typescript: stack.patterns.hasTypeScript,
+          profile: effectiveProfile ?? null,
+          mcpToolCount,
+          written: newFiles,
+          skipped: existingFiles,
+          pruned: prunedAbs.map((p) => path.relative(cwd, p).replace(/\\/g, '/')),
+          agents: agentFiles,
+          preserved: preservedAbs.map((p) => path.relative(cwd, p).replace(/\\/g, '/')),
+          bootstrap: bootstrapReport,
+        }),
+      );
+      return;
+    }
+
+    console.log(
+      JSON.stringify({
+        action,
         cwd,
         mode,
         project: stack.projectName,
         language: stack.primaryLanguage.name,
-        frameworks: stack.frameworks.map(f => f.name),
+        frameworks: stack.frameworks.map((f) => f.name),
         packageManager: stack.patterns.packageManager,
         typescript: stack.patterns.hasTypeScript,
         profile: effectiveProfile ?? null,
         mcpToolCount,
         written: newFiles,
         skipped: existingFiles,
-        pruned: prunedAbs.map(p => path.relative(cwd, p).replace(/\\/g, '/')),
+        pruned: prunedAbs.map((p) => path.relative(cwd, p).replace(/\\/g, '/')),
         agents: agentFiles,
-        preserved: preservedAbs.map(p => path.relative(cwd, p).replace(/\\/g, '/')),
-        bootstrap: bootstrapReport,
-      }));
-      return;
-    }
-
-    console.log(JSON.stringify({
-      action,
-      cwd,
-      mode,
-      project: stack.projectName,
-      language: stack.primaryLanguage.name,
-      frameworks: stack.frameworks.map(f => f.name),
-      packageManager: stack.patterns.packageManager,
-      typescript: stack.patterns.hasTypeScript,
-      profile: effectiveProfile ?? null,
-      mcpToolCount,
-      written: newFiles,
-      skipped: existingFiles,
-      pruned: prunedAbs.map(p => path.relative(cwd, p).replace(/\\/g, '/')),
-      agents: agentFiles,
-      preserved: preservedAbs.map(p => path.relative(cwd, p).replace(/\\/g, '/')),
-    }));
+        preserved: preservedAbs.map((p) => path.relative(cwd, p).replace(/\\/g, '/')),
+      }),
+    );
     return;
   }
 
-  printSummary(stack, cwd, newFiles, existingFiles, prunedAbs, agentFiles, preservedAbs, effectiveProfile ?? undefined, Date.now() - generationStartMs);
+  printSummary(
+    stack,
+    cwd,
+    newFiles,
+    existingFiles,
+    prunedAbs,
+    agentFiles,
+    preservedAbs,
+    effectiveProfile ?? undefined,
+    Date.now() - generationStartMs,
+  );
   printContextualNextSteps(mode, onboardingPlan, updateStatus, config?.recommendations !== false);
 
   // ── Bootstrap action: auto-install skills after full generation ──────────
@@ -1075,7 +1246,11 @@ export async function runApply(args: ParsedArgs): Promise<void> {
   // (On subsequent refreshes users can run `--bootstrap` for a full skill sync.)
   const isFirstInstall = updateStatus.isFirstInstall;
   if (!dryRun && isFirstInstall) {
-    const spLockPath = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'skills-lock.json');
+    const spLockPath = path.join(
+      path.dirname(new URL(import.meta.url).pathname),
+      '..',
+      'skills-lock.json',
+    );
     autoInstallSuperpowers(stack, spLockPath);
   }
 

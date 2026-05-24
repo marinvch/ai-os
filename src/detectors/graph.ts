@@ -3,14 +3,42 @@ import path from 'node:path';
 import type { DependencyGraph, FileNode } from '../types.js';
 
 const IGNORE_DIRS = new Set([
-  'node_modules', '.git', '.next', '.nuxt', 'dist', 'build', 'out',
-  '__pycache__', '.venv', 'venv', 'target', 'vendor', 'coverage',
-  '.gradle', 'bin', 'obj', '.vs', 'packages', '.cache', '.ai-os',
+  'node_modules',
+  '.git',
+  '.next',
+  '.nuxt',
+  'dist',
+  'build',
+  'out',
+  '__pycache__',
+  '.venv',
+  'venv',
+  'target',
+  'vendor',
+  'coverage',
+  '.gradle',
+  'bin',
+  'obj',
+  '.vs',
+  'packages',
+  '.cache',
+  '.ai-os',
 ]);
 
 const SOURCE_EXTENSIONS = new Set([
-  'ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs',
-  'py', 'go', 'rs', 'java', 'cs', 'rb', 'php',
+  'ts',
+  'tsx',
+  'js',
+  'jsx',
+  'mjs',
+  'cjs',
+  'py',
+  'go',
+  'rs',
+  'java',
+  'cs',
+  'rb',
+  'php',
 ]);
 
 function collectSourceFiles(dir: string, rootDir: string): string[] {
@@ -30,7 +58,9 @@ function collectSourceFiles(dir: string, rootDir: string): string[] {
         }
       }
     }
-  } catch { /* ignore permission errors */ }
+  } catch {
+    /* ignore permission errors */
+  }
   return files;
 }
 
@@ -39,7 +69,8 @@ function parseImports(content: string, filePath: string): string[] {
   const ext = filePath.split('.').pop()?.toLowerCase() ?? '';
 
   if (['ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs'].includes(ext)) {
-    const importRe = /(?:import\s+(?:[\w\s{},*]+\s+from\s+|)|export\s+[\w\s{},*]+\s+from\s+|require\s*\()['"]([^'"]+)['"]/g;
+    const importRe =
+      /(?:import\s+(?:[\w\s{},*]+\s+from\s+|)|export\s+[\w\s{},*]+\s+from\s+|require\s*\()['"]([^'"]+)['"]/g;
     let m: RegExpExecArray | null;
     while ((m = importRe.exec(content)) !== null) {
       const spec = m[1];
@@ -79,7 +110,8 @@ function parseExports(content: string, ext: string): string[] {
   const exports: string[] = [];
 
   if (['ts', 'tsx', 'js', 'jsx', 'mjs', 'cjs'].includes(ext)) {
-    const namedRe = /export\s+(?:default\s+)?(?:async\s+)?(?:function|class|const|let|var|type|interface|enum)\s+(\w+)/g;
+    const namedRe =
+      /export\s+(?:default\s+)?(?:async\s+)?(?:function|class|const|let|var|type|interface|enum)\s+(\w+)/g;
     let m: RegExpExecArray | null;
     while ((m = namedRe.exec(content)) !== null) {
       exports.push(m[1]);
@@ -88,7 +120,14 @@ function parseExports(content: string, ext: string): string[] {
     while ((m = groupedRe.exec(content)) !== null) {
       const names = m[1]
         .split(',')
-        .map(s => s.trim().split(/\s+as\s+/).pop()?.trim() ?? '')
+        .map(
+          (s) =>
+            s
+              .trim()
+              .split(/\s+as\s+/)
+              .pop()
+              ?.trim() ?? '',
+        )
         .filter(Boolean);
       exports.push(...names);
     }
@@ -161,7 +200,9 @@ export function buildDependencyGraph(rootDir: string): DependencyGraph {
           nodes[resolved]!.importedBy.push(file);
         }
       }
-    } catch { /* ignore unreadable files */ }
+    } catch {
+      /* ignore unreadable files */
+    }
   }
 
   return {

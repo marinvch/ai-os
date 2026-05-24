@@ -5,7 +5,18 @@ import { parseEditorTarget, type EditorTarget } from '../generators/multi-editor
 import { parseModelTarget, type ModelTarget } from '../generators/multi-model.js';
 
 export type GenerateMode = 'safe' | 'refresh-existing' | 'update';
-export type GenerateAction = 'apply' | 'plan' | 'preview' | 'check-hygiene' | 'doctor' | 'bootstrap' | 'check-freshness' | 'compact-memory' | 'uninstall' | 'check-drift' | 'init';
+export type GenerateAction =
+  | 'apply'
+  | 'plan'
+  | 'preview'
+  | 'check-hygiene'
+  | 'doctor'
+  | 'bootstrap'
+  | 'check-freshness'
+  | 'compact-memory'
+  | 'uninstall'
+  | 'check-drift'
+  | 'init';
 
 export interface ParsedArgs {
   cwd: string;
@@ -95,36 +106,63 @@ export function parseArgs(): ParsedArgs {
       pruneCustomArtifacts = true;
     } else if (args[i] === '--profile' && args[i + 1]) {
       const parsed = parseProfile(args[i + 1]);
-      if (!parsed) throw new Error(`--profile must be one of: minimal, standard, full (got "${args[i + 1]}")`);
+      if (!parsed)
+        throw new Error(`--profile must be one of: minimal, standard, full (got "${args[i + 1]}")`);
       profile = parsed;
       i++;
     } else if (args[i]?.startsWith('--profile=')) {
       const raw = args[i].slice('--profile='.length);
       const parsed = parseProfile(raw);
-      if (!parsed) throw new Error(`--profile must be one of: minimal, standard, full (got "${raw}")`);
+      if (!parsed)
+        throw new Error(`--profile must be one of: minimal, standard, full (got "${raw}")`);
       profile = parsed;
     } else if (args[i] === '--editor' && args[i + 1]) {
       const parsed = parseEditorTarget(args[i + 1]);
-      if (!parsed) throw new Error(`--editor must be one of: vscode, cursor, jetbrains, neovim, all (got "${args[i + 1]}")`);
+      if (!parsed)
+        throw new Error(
+          `--editor must be one of: vscode, cursor, jetbrains, neovim, all (got "${args[i + 1]}")`,
+        );
       if (!editorTargets.includes(parsed)) editorTargets.push(parsed);
       i++;
     } else if (args[i]?.startsWith('--editor=')) {
       const raw = args[i].slice('--editor='.length);
       const parsed = parseEditorTarget(raw);
-      if (!parsed) throw new Error(`--editor must be one of: vscode, cursor, jetbrains, neovim, all (got "${raw}")`);
+      if (!parsed)
+        throw new Error(
+          `--editor must be one of: vscode, cursor, jetbrains, neovim, all (got "${raw}")`,
+        );
       if (!editorTargets.includes(parsed)) editorTargets.push(parsed);
     } else if (args[i] === '--model' && args[i + 1]) {
       const parsed = parseModelTarget(args[i + 1]);
-      if (!parsed) throw new Error(`--model must be one of: copilot, claude, gemini, local (got "${args[i + 1]}")`);
+      if (!parsed)
+        throw new Error(
+          `--model must be one of: copilot, claude, gemini, local (got "${args[i + 1]}")`,
+        );
       model = parsed;
       i++;
     } else if (args[i]?.startsWith('--model=')) {
       const raw = args[i].slice('--model='.length);
       const parsed = parseModelTarget(raw);
-      if (!parsed) throw new Error(`--model must be one of: copilot, claude, gemini, local (got "${raw}")`);
+      if (!parsed)
+        throw new Error(`--model must be one of: copilot, claude, gemini, local (got "${raw}")`);
       model = parsed;
     }
   }
 
-  return { cwd, dryRun, mode, action, prune, verbose, cleanUpdate, regenerateContext, pruneCustomArtifacts, profile, json, fullDiff, editorTargets, model };
+  return {
+    cwd,
+    dryRun,
+    mode,
+    action,
+    prune,
+    verbose,
+    cleanUpdate,
+    regenerateContext,
+    pruneCustomArtifacts,
+    profile,
+    json,
+    fullDiff,
+    editorTargets,
+    model,
+  };
 }

@@ -22,18 +22,20 @@ function readFrameworkTemplate(templateKey: string): string {
 function buildStackSummary(stack: DetectedStack): string {
   const lines: string[] = [];
   for (const lang of stack.languages.slice(0, 5)) {
-    lines.push(`- **${sanitizeForInstructions(lang.name)}** (${lang.percentage}% of codebase, ${lang.fileCount} files)`);
+    lines.push(
+      `- **${sanitizeForInstructions(lang.name)}** (${lang.percentage}% of codebase, ${lang.fileCount} files)`,
+    );
   }
   return lines.join('\n');
 }
 
 function buildKeyFilesList(stack: DetectedStack): string {
-  return stack.keyFiles.map(f => `- \`${f}\``).join('\n');
+  return stack.keyFiles.map((f) => `- \`${f}\``).join('\n');
 }
 
 function buildBuildCommandsSection(stack: DetectedStack): string {
   const cmds = stack.buildCommands;
-  if (!cmds || Object.keys(cmds).filter(k => cmds[k]).length === 0) return '';
+  if (!cmds || Object.keys(cmds).filter((k) => cmds[k]).length === 0) return '';
 
   const lines: string[] = [];
   const orderedCommands: Array<[string, string]> = [];
@@ -41,7 +43,8 @@ function buildBuildCommandsSection(stack: DetectedStack): string {
   // Ordered by importance
   const slots = ['build', 'test', 'dev', 'lint', 'start'] as const;
   for (const slot of slots) {
-    if (cmds[slot]) orderedCommands.push([slot.charAt(0).toUpperCase() + slot.slice(1), cmds[slot]!]);
+    if (cmds[slot])
+      orderedCommands.push([slot.charAt(0).toUpperCase() + slot.slice(1), cmds[slot]!]);
   }
   // Any extra keys beyond the standard slots
   for (const [k, v] of Object.entries(cmds)) {
@@ -59,7 +62,8 @@ function buildBuildCommandsSection(stack: DetectedStack): string {
 function buildPersonaDirective(stack: DetectedStack): string {
   const fw = stack.primaryFramework ? sanitizeForInstructions(stack.primaryFramework.name) : null;
   const lang = sanitizeForInstructions(stack.primaryLanguage.name);
-  if (fw) return `Act as a Senior ${fw} developer with deep expertise in ${lang} and the full ${fw} ecosystem.`;
+  if (fw)
+    return `Act as a Senior ${fw} developer with deep expertise in ${lang} and the full ${fw} ecosystem.`;
   return `Act as a Senior ${lang} developer.`;
 }
 
@@ -78,7 +82,9 @@ function buildSkillRoutingSection(outputDir: string): string {
       const name = nameMatch?.[1]?.trim() ?? file.replace('.md', '');
       const desc = descMatch?.[1]?.trim() ?? '';
       rows.push(`| \`${name}\` | ${desc} |`);
-    } catch { /* skip unreadable files */ }
+    } catch {
+      /* skip unreadable files */
+    }
   }
   if (rows.length === 0) return '';
 
@@ -95,9 +101,15 @@ function buildSkillRoutingSection(outputDir: string): string {
   ].join('\n');
 }
 
-function fillTemplate(template: string, stack: DetectedStack, frameworkOverlay: string, outputDir: string): string {
+function fillTemplate(
+  template: string,
+  stack: DetectedStack,
+  frameworkOverlay: string,
+  outputDir: string,
+): string {
   const s = sanitizeForInstructions;
-  const frameworks = stack.frameworks.map(f => s(f.name)).join(', ') || s(stack.primaryLanguage.name);
+  const frameworks =
+    stack.frameworks.map((f) => s(f.name)).join(', ') || s(stack.primaryLanguage.name);
   const linter = s(stack.patterns.linter ?? 'none detected');
   const formatter = s(stack.patterns.formatter ?? 'none detected');
   const testFramework = s(stack.patterns.testFramework ?? 'none detected');
@@ -171,10 +183,10 @@ function generatePathSpecificInstructions(stack: DetectedStack, githubDir: strin
 
   // frontend.instructions.md
   const frontendPaths = ['src/app', 'src/pages', 'components', 'pages', 'app', 'src/components'];
-  const hasFrontend = frontendPaths.some(p => fs.existsSync(path.join(root, p)));
+  const hasFrontend = frontendPaths.some((p) => fs.existsSync(path.join(root, p)));
   if (hasFrontend) {
-    const applyPaths = frontendPaths.filter(p => fs.existsSync(path.join(root, p)));
-    const applyTo = applyPaths.map(p => `${p}/**`).join(', ');
+    const applyPaths = frontendPaths.filter((p) => fs.existsSync(path.join(root, p)));
+    const applyTo = applyPaths.map((p) => `${p}/**`).join(', ');
     const content = [
       '---',
       `applyTo: "${applyTo}"`,
@@ -185,9 +197,15 @@ function generatePathSpecificInstructions(stack: DetectedStack, githubDir: strin
       `- Use ${fw || primaryLang} conventions for all UI components`,
       '- Prefer shared components in the detected components directory over new one-offs',
       stack.patterns.hasTypeScript ? '- All component props must be typed (no `any`)' : '',
-      stack.patterns.namingConvention === 'PascalCase' ? '- Component files: PascalCase (e.g. `MyButton.tsx`)' : `- Component files: ${stack.patterns.namingConvention}`,
-      stack.patterns.testFramework ? `- Co-locate component tests (*.test.tsx / *.spec.tsx) using ${stack.patterns.testFramework}` : '',
-    ].filter(Boolean).join('\n');
+      stack.patterns.namingConvention === 'PascalCase'
+        ? '- Component files: PascalCase (e.g. `MyButton.tsx`)'
+        : `- Component files: ${stack.patterns.namingConvention}`,
+      stack.patterns.testFramework
+        ? `- Co-locate component tests (*.test.tsx / *.spec.tsx) using ${stack.patterns.testFramework}`
+        : '',
+    ]
+      .filter(Boolean)
+      .join('\n');
     const p = path.join(instructionsDir, 'frontend.instructions.md');
     writeIfChanged(p, content);
     files.push(p);
@@ -195,10 +213,10 @@ function generatePathSpecificInstructions(stack: DetectedStack, githubDir: strin
 
   // backend.instructions.md
   const backendPaths = ['src/api', 'server', 'routes', 'src/routes', 'api', 'src/server'];
-  const hasBackend = backendPaths.some(p => fs.existsSync(path.join(root, p)));
+  const hasBackend = backendPaths.some((p) => fs.existsSync(path.join(root, p)));
   if (hasBackend) {
-    const applyPaths = backendPaths.filter(p => fs.existsSync(path.join(root, p)));
-    const applyTo = applyPaths.map(p => `${p}/**`).join(', ');
+    const applyPaths = backendPaths.filter((p) => fs.existsSync(path.join(root, p)));
+    const applyTo = applyPaths.map((p) => `${p}/**`).join(', ');
     const content = [
       '---',
       `applyTo: "${applyTo}"`,
@@ -209,9 +227,13 @@ function generatePathSpecificInstructions(stack: DetectedStack, githubDir: strin
       '- Validate all external inputs at API boundaries',
       '- Never return raw error messages to clients — use structured error responses',
       '- Scope all database queries by the authenticated user/owner',
-      stack.patterns.hasTypeScript ? '- Type all request/response payloads (no implicit `any`)' : '',
+      stack.patterns.hasTypeScript
+        ? '- Type all request/response payloads (no implicit `any`)'
+        : '',
       '- Use async/await over callback chains',
-    ].filter(Boolean).join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
     const p = path.join(instructionsDir, 'backend.instructions.md');
     writeIfChanged(p, content);
     files.push(p);
@@ -219,15 +241,20 @@ function generatePathSpecificInstructions(stack: DetectedStack, githubDir: strin
 
   // tests.instructions.md
   const testExts = ['test.ts', 'test.tsx', 'spec.ts', 'spec.tsx', 'test.js', 'spec.js'];
-  const hasTestFiles = testExts.some(ext => {
+  const hasTestFiles = testExts.some((ext) => {
     try {
-      const out = fs.readdirSync(root).some(f => f.endsWith(`.${ext}`));
+      const out = fs.readdirSync(root).some((f) => f.endsWith(`.${ext}`));
       return out;
-    } catch { return false; }
+    } catch {
+      return false;
+    }
   });
-  const hasTestDir = stack.patterns.testDirectory ? fs.existsSync(path.join(root, stack.patterns.testDirectory)) : false;
+  const hasTestDir = stack.patterns.testDirectory
+    ? fs.existsSync(path.join(root, stack.patterns.testDirectory))
+    : false;
   if (hasTestDir || stack.patterns.testFramework) {
-    const applyTo = '**/*.test.ts, **/*.test.tsx, **/*.spec.ts, **/*.spec.tsx, **/*.test.js, **/*.spec.js';
+    const applyTo =
+      '**/*.test.ts, **/*.test.tsx, **/*.spec.ts, **/*.spec.tsx, **/*.test.js, **/*.spec.js';
     const content = [
       '---',
       `applyTo: "${applyTo}"`,
@@ -235,13 +262,19 @@ function generatePathSpecificInstructions(stack: DetectedStack, githubDir: strin
       '',
       `# Test Rules — ${stack.projectName}`,
       '',
-      stack.patterns.testFramework ? `- Use ${stack.patterns.testFramework} as the test framework` : '- Use the existing test framework consistently',
-      stack.patterns.testDirectory ? `- Tests live in \`${stack.patterns.testDirectory}/\` or co-located (\`*.test.ts\`)` : '',
+      stack.patterns.testFramework
+        ? `- Use ${stack.patterns.testFramework} as the test framework`
+        : '- Use the existing test framework consistently',
+      stack.patterns.testDirectory
+        ? `- Tests live in \`${stack.patterns.testDirectory}/\` or co-located (\`*.test.ts\`)`
+        : '',
       '- One assertion concept per test (avoid multiple unrelated assertions)',
       '- Test descriptions must be descriptive: `it("returns 401 when token is missing")`',
       '- Mock external services and databases in unit tests',
       '- Do not import from `dist/` or `build/` in tests',
-    ].filter(Boolean).join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
     const p = path.join(instructionsDir, 'tests.instructions.md');
     writeIfChanged(p, content);
     files.push(p);
@@ -249,10 +282,17 @@ function generatePathSpecificInstructions(stack: DetectedStack, githubDir: strin
 
   // schema.instructions.md (Prisma or SQL migrations)
   const schemaPaths = ['prisma', 'migrations', 'db/migrations', 'src/db'];
-  const hasSchema = schemaPaths.some(p => fs.existsSync(path.join(root, p)));
-  if (hasSchema || stack.allDependencies.includes('prisma') || stack.allDependencies.includes('@prisma/client')) {
-    const applyPaths = schemaPaths.filter(p => fs.existsSync(path.join(root, p)));
-    const applyTo = applyPaths.length > 0 ? applyPaths.map(p => `${p}/**`).join(', ') : 'prisma/**, migrations/**';
+  const hasSchema = schemaPaths.some((p) => fs.existsSync(path.join(root, p)));
+  if (
+    hasSchema ||
+    stack.allDependencies.includes('prisma') ||
+    stack.allDependencies.includes('@prisma/client')
+  ) {
+    const applyPaths = schemaPaths.filter((p) => fs.existsSync(path.join(root, p)));
+    const applyTo =
+      applyPaths.length > 0
+        ? applyPaths.map((p) => `${p}/**`).join(', ')
+        : 'prisma/**, migrations/**';
     const content = [
       '---',
       `applyTo: "${applyTo}"`,
@@ -279,9 +319,11 @@ function buildMonorepoSection(stack: DetectedStack): string {
   if (!profiles || profiles.length <= 1 || !stack.patterns.monorepo) return '';
 
   const rows = profiles
-    .filter(p => p.path !== '.')
-    .map(p => {
-      const fws = p.frameworks.map(f => sanitizeForInstructions(f.name)).join(', ') || (p.languages[0]?.name ?? 'Unknown');
+    .filter((p) => p.path !== '.')
+    .map((p) => {
+      const fws =
+        p.frameworks.map((f) => sanitizeForInstructions(f.name)).join(', ') ||
+        (p.languages[0]?.name ?? 'Unknown');
       return `| \`${p.path}\` | ${fws} |`;
     });
 
@@ -306,19 +348,29 @@ function buildPersistentRulesSection(persistentRules: string[], stack: DetectedS
 
   // Add auto-detected structural rules
   if (fs.existsSync(path.join(root, 'src', 'components', 'ui'))) {
-    detectedRules.push('ALWAYS use shared components from `src/components/ui` before creating new UI components');
+    detectedRules.push(
+      'ALWAYS use shared components from `src/components/ui` before creating new UI components',
+    );
   } else if (fs.existsSync(path.join(root, 'components', 'ui'))) {
-    detectedRules.push('ALWAYS use shared components from `components/ui` before creating new UI components');
+    detectedRules.push(
+      'ALWAYS use shared components from `components/ui` before creating new UI components',
+    );
   } else if (fs.existsSync(path.join(root, 'src', 'components'))) {
-    detectedRules.push('ALWAYS check `src/components` for existing components before creating new ones');
+    detectedRules.push(
+      'ALWAYS check `src/components` for existing components before creating new ones',
+    );
   } else if (fs.existsSync(path.join(root, 'components'))) {
-    detectedRules.push('ALWAYS check `components/` for existing components before creating new ones');
+    detectedRules.push(
+      'ALWAYS check `components/` for existing components before creating new ones',
+    );
   }
 
   const utilsPaths = ['src/lib', 'src/utils', 'lib', 'utils'];
   for (const up of utilsPaths) {
     if (fs.existsSync(path.join(root, up))) {
-      detectedRules.push(`NEVER create utility functions outside \`${up}/\` — add them there instead`);
+      detectedRules.push(
+        `NEVER create utility functions outside \`${up}/\` — add them there instead`,
+      );
       break;
     }
   }
@@ -327,7 +379,9 @@ function buildPersistentRulesSection(persistentRules: string[], stack: DetectedS
   const apiPaths = ['src/api', 'src/routes', 'api', 'routes', 'server/routes'];
   for (const ap of apiPaths) {
     if (fs.existsSync(path.join(root, ap))) {
-      detectedRules.push(`ALWAYS add new API routes inside \`${ap}/\` following the existing file structure`);
+      detectedRules.push(
+        `ALWAYS add new API routes inside \`${ap}/\` following the existing file structure`,
+      );
       break;
     }
   }
@@ -336,14 +390,18 @@ function buildPersistentRulesSection(persistentRules: string[], stack: DetectedS
   const typePaths = ['src/types', 'src/interfaces', 'types', 'interfaces'];
   for (const tp of typePaths) {
     if (fs.existsSync(path.join(root, tp))) {
-      detectedRules.push(`ALWAYS define shared types and interfaces in \`${tp}/\` — do not redeclare them inline`);
+      detectedRules.push(
+        `ALWAYS define shared types and interfaces in \`${tp}/\` — do not redeclare them inline`,
+      );
       break;
     }
   }
 
   // Test directory
   if (stack.patterns.testDirectory) {
-    detectedRules.push(`ALWAYS place new test files in \`${stack.patterns.testDirectory}/\` or co-located with their source file`);
+    detectedRules.push(
+      `ALWAYS place new test files in \`${stack.patterns.testDirectory}/\` or co-located with their source file`,
+    );
   }
 
   // TypeScript strict rule
@@ -360,12 +418,16 @@ function buildPersistentRulesSection(persistentRules: string[], stack: DetectedS
     '',
     '> These rules survive context window resets. They are enforced on every request.',
     '',
-    ...allRules.map(r => `- ${r}`),
+    ...allRules.map((r) => `- ${r}`),
   ].join('\n');
 }
 
 /** Returns absolute paths of all managed files. */
-export function generateInstructions(stack: DetectedStack, outputDir: string, options?: GenerateInstructionsOptions): string[] {
+export function generateInstructions(
+  stack: DetectedStack,
+  outputDir: string,
+  options?: GenerateInstructionsOptions,
+): string[] {
   const base = readTemplate('base-instructions.md');
   if (!base) throw new Error('Base instructions template not found');
 
@@ -377,9 +439,18 @@ export function generateInstructions(stack: DetectedStack, outputDir: string, op
     templateKeys.add(fw.template);
   }
   // Deduplicated overlays
-  const overlays = [...templateKeys].map(k => readFrameworkTemplate(k)).filter(Boolean).join('\n\n---\n\n');
+  const overlays = [...templateKeys]
+    .map((k) => readFrameworkTemplate(k))
+    .filter(Boolean)
+    .join('\n\n---\n\n');
 
-  let content = fillTemplate(base, stack, overlays || `## ${stack.primaryLanguage.name} Project\n\nNo specific framework template found. Follow the general rules above.`, outputDir);
+  let content = fillTemplate(
+    base,
+    stack,
+    overlays ||
+      `## ${stack.primaryLanguage.name} Project\n\nNo specific framework template found. Follow the general rules above.`,
+    outputDir,
+  );
 
   // Inject monorepo section if applicable
   const monorepoSection = buildMonorepoSection(stack);
@@ -514,7 +585,11 @@ export function generateInstructions(stack: DetectedStack, outputDir: string, op
   return outputFiles;
 }
 
-function generatePromptQualityPack(stack: DetectedStack, outputDir: string, githubDir: string): string | null {
+function generatePromptQualityPack(
+  stack: DetectedStack,
+  outputDir: string,
+  githubDir: string,
+): string | null {
   const agentsDir = path.join(outputDir, '.github', 'agents');
   const skillsDir = path.join(outputDir, '.github', 'copilot', 'skills');
 
@@ -556,15 +631,17 @@ function generatePromptQualityPack(stack: DetectedStack, outputDir: string, gith
     }
   }
 
-  const agentTable = agentRows.length > 0
-    ? ['| Agent | Description | When to use |', '|---|---|---|', ...agentRows].join('\n')
-    : '_No agents installed yet._';
+  const agentTable =
+    agentRows.length > 0
+      ? ['| Agent | Description | When to use |', '|---|---|---|', ...agentRows].join('\n')
+      : '_No agents installed yet._';
 
-  const skillTable = skillRows.length > 0
-    ? ['| Skill | Trigger phrase / description |', '|---|---|', ...skillRows].join('\n')
-    : '_No skills installed yet._';
+  const skillTable =
+    skillRows.length > 0
+      ? ['| Skill | Trigger phrase / description |', '|---|---|', ...skillRows].join('\n')
+      : '_No skills installed yet._';
 
-  const frameworks = stack.frameworks.map(f => f.name).join(', ');
+  const frameworks = stack.frameworks.map((f) => f.name).join(', ');
   const stackMetaLine = frameworks
     ? `> Stack: **${frameworks}** · Language: **${stack.primaryLanguage.name}** · Package manager: **${stack.patterns.packageManager}**`
     : `> Language: **${stack.primaryLanguage.name}** · Package manager: **${stack.patterns.packageManager}**`;

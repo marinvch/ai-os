@@ -18,7 +18,9 @@ function hasSection(content: string, sectionName: string): boolean {
 }
 
 export function validateAgentContract(content: string): AgentContractValidationResult {
-  const missingSections = REQUIRED_AGENT_SECTIONS.filter((section) => !hasSection(content, section));
+  const missingSections = REQUIRED_AGENT_SECTIONS.filter(
+    (section) => !hasSection(content, section),
+  );
   return {
     valid: missingSections.length === 0,
     missingSections,

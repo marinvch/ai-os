@@ -1,0 +1,193 @@
+<h2>AI OS v0.21 — Deep Audit Overview</h2>
+<p class="subtitle">Fresh analysis of gaps, redundancy, and improvement opportunities</p>
+
+<div class="section">
+  <div class="label">Status: All 19 original roadmap items complete ✅ — now auditing the NEXT layer</div>
+</div>
+
+<div class="section">
+  <h3>🗂 Folder Structure Issues Found</h3>
+  <table style="width:100%;border-collapse:collapse;font-size:0.85em;">
+    <thead>
+      <tr style="background:var(--surface-2,#2a2a3a);text-align:left;">
+        <th style="padding:8px 12px;">Path</th>
+        <th style="padding:8px 12px;">Issue</th>
+        <th style="padding:8px 12px;">Severity</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="border-bottom:1px solid var(--border,#333)">
+        <td style="padding:8px 12px;font-family:monospace;">analyze/</td>
+        <td style="padding:8px 12px;">One-time analysis artifacts committed to repo; not regenerated, not gitignored, adds noise for contributors</td>
+        <td style="padding:8px 12px;color:#ff9f43;">⚠ Medium</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border,#333)">
+        <td style="padding:8px 12px;font-family:monospace;">skill-creator/</td>
+        <td style="padding:8px 12px;">Root-level skill directory is confusing — is it a product component or a meta-dev tool? Not clearly documented</td>
+        <td style="padding:8px 12px;color:#ff9f43;">⚠ Medium</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border,#333)">
+        <td style="padding:8px 12px;font-family:monospace;">bundle/generate.js<br>bundle/server.js</td>
+        <td style="padding:8px 12px;">Built artifacts committed to git. Necessary for npx install — but makes PRs noisy and risks drift from source</td>
+        <td style="padding:8px 12px;color:#ffd32a;">⚠ Low</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border,#333)">
+        <td style="padding:8px 12px;font-family:monospace;">docs/README-full.md</td>
+        <td style="padding:8px 12px;">Exists alongside README.md — potentially duplicate/stale content. No clear ownership</td>
+        <td style="padding:8px 12px;color:#ffd32a;">⚠ Low</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border,#333)">
+        <td style="padding:8px 12px;font-family:monospace;">docs/superpowers/</td>
+        <td style="padding:8px 12px;">Design artifacts (brainstorming skill output) mixed into product docs — discovery friction for new contributors</td>
+        <td style="padding:8px 12px;color:#ffd32a;">⚠ Low</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 12px;font-family:monospace;">install.sh + bootstrap.sh</td>
+        <td style="padding:8px 12px;">Two install scripts with unclear distinction. install.sh is user-facing; bootstrap.sh purpose is undocumented</td>
+        <td style="padding:8px 12px;color:#ff9f43;">⚠ Medium</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="section">
+  <h3>🚀 Missing Features (Fresh Audit — Post v0.21)</h3>
+  <table style="width:100%;border-collapse:collapse;font-size:0.85em;">
+    <thead>
+      <tr style="background:var(--surface-2,#2a2a3a);text-align:left;">
+        <th style="padding:8px 12px;">Feature</th>
+        <th style="padding:8px 12px;">Gap</th>
+        <th style="padding:8px 12px;">Source</th>
+        <th style="padding:8px 12px;">Priority</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="border-bottom:1px solid var(--border,#333)">
+        <td style="padding:8px 12px;font-weight:600;">MCP Resources</td>
+        <td style="padding:8px 12px;">Context docs not exposed as MCP resources — users can't attach stack.md/architecture.md directly in VS Code chat picker</td>
+        <td style="padding:8px 12px;color:#a29bfe;">VS Code v1.101</td>
+        <td style="padding:8px 12px;color:#00b894;">🟢 High</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border,#333)">
+        <td style="padding:8px 12px;font-weight:600;">--json Output Mode</td>
+        <td style="padding:8px 12px;">No machine-readable output for CI. #118 still open. Teams can't consume AI OS output programmatically</td>
+        <td style="padding:8px 12px;color:#a29bfe;">#118</td>
+        <td style="padding:8px 12px;color:#00b894;">🟢 High</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border,#333)">
+        <td style="padding:8px 12px;font-weight:600;">Auto-gen MCP Docs</td>
+        <td style="padding:8px 12px;">docs/mcp-tools.md is manually maintained. Can drift from tool-definitions.ts. #111 still open</td>
+        <td style="padding:8px 12px;color:#a29bfe;">#111</td>
+        <td style="padding:8px 12px;color:#fdcb6e;">🟡 Medium</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border,#333)">
+        <td style="padding:8px 12px;font-weight:600;">--dry-run Real Diff</td>
+        <td style="padding:8px 12px;">dry-run shows which files would change but not WHAT would change. #116 still open. Users fly blind</td>
+        <td style="padding:8px 12px;color:#a29bfe;">#116</td>
+        <td style="padding:8px 12px;color:#fdcb6e;">🟡 Medium</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border,#333)">
+        <td style="padding:8px 12px;font-weight:600;">Copilot Extensions API</td>
+        <td style="padding:8px 12px;">@github/copilot-sdk dep exists but only a --copilot stub. Full Extensions integration not implemented</td>
+        <td style="padding:8px 12px;color:#a29bfe;">copilot-sdk</td>
+        <td style="padding:8px 12px;color:#fdcb6e;">🟡 Medium</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border,#333)">
+        <td style="padding:8px 12px;font-weight:600;">Git Hooks Integration</td>
+        <td style="padding:8px 12px;">No pre-commit drift check or post-merge context refresh. Context silently goes stale between developer workflows</td>
+        <td style="padding:8px 12px;color:#a29bfe;">new</td>
+        <td style="padding:8px 12px;color:#fdcb6e;">🟡 Medium</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border,#333)">
+        <td style="padding:8px 12px;font-weight:600;">Context Versioning</td>
+        <td style="padding:8px 12px;">No rollback to previous context state. One bad refresh can corrupt context with no recovery path</td>
+        <td style="padding:8px 12px;color:#a29bfe;">new</td>
+        <td style="padding:8px 12px;color:#fdcb6e;">🟡 Medium</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border,#333)">
+        <td style="padding:8px 12px;font-weight:600;">Org/Team Context Sharing</td>
+        <td style="padding:8px 12px;">Context is per-repo only. Teams can't define shared patterns (e.g., "all our repos use the same auth pattern")</td>
+        <td style="padding:8px 12px;color:#a29bfe;">new</td>
+        <td style="padding:8px 12px;color:#e17055;">🔴 Strategic</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border,#333)">
+        <td style="padding:8px 12px;font-weight:600;">README Split (#122)</td>
+        <td style="padding:8px 12px;">README.md is still large despite docs/ existing. #122 still open — quickstart + reference split not done</td>
+        <td style="padding:8px 12px;color:#a29bfe;">#122</td>
+        <td style="padding:8px 12px;color:#ffd32a;">🟤 Low</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 12px;font-weight:600;">A2A Protocol</td>
+        <td style="padding:8px 12px;">Agent workflow chaining was added but inter-agent coordination protocol (A2A) isn't fully spec'd or integrated</td>
+        <td style="padding:8px 12px;color:#a29bfe;">A2A spec</td>
+        <td style="padding:8px 12px;color:#e17055;">🔴 Strategic</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="section">
+  <h3>📦 Installation Redundancy</h3>
+  <table style="width:100%;border-collapse:collapse;font-size:0.85em;">
+    <thead>
+      <tr style="background:var(--surface-2,#2a2a3a);text-align:left;">
+        <th style="padding:8px 12px;">Redundancy</th>
+        <th style="padding:8px 12px;">Detail</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="border-bottom:1px solid var(--border,#333)">
+        <td style="padding:8px 12px;font-weight:600;">install.sh vs bootstrap.sh</td>
+        <td style="padding:8px 12px;">Both scripts exist. install.sh is clearly user-facing but bootstrap.sh's distinct purpose is undocumented and confusing</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border,#333)">
+        <td style="padding:8px 12px;font-weight:600;">install:skills scripts</td>
+        <td style="padding:8px 12px;">package.json has install:skill-creator, install:find-skills, install:skills — but these install global user skills, not project skills. Unclear scope to users</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border,#333)">
+        <td style="padding:8px 12px;font-weight:600;">src/templates/ vs .github/ai-os/context/templates/</td>
+        <td style="padding:8px 12px;">Source templates in src/ get deployed to .github/ai-os/context/templates/ — the two-layer system can confuse contributors who edit the wrong copy</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 12px;font-weight:600;">npx install vs install.sh</td>
+        <td style="padding:8px 12px;">Two install methods (npx github:marinvch/ai-os vs bash install.sh) with no clear guidance on when to use which. install.sh does extra things (skills install, doctor) that npx doesn't</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="section" style="background:var(--surface-2,#1e1e2e);padding:16px;border-radius:8px;border-left:3px solid #a29bfe;">
+  <h3 style="margin-top:0;">👉 What areas should we deep-dive into first?</h3>
+  <p>Select one or more focus areas for the brainstorm. We'll design solutions for the selected areas.</p>
+</div>
+
+<div class="options" data-multiselect>
+  <div class="option" data-choice="folder" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Folder Structure Cleanup</h3>
+      <p>Reorganize analyze/, skill-creator/, docs/, bundle/ — reduce contributor confusion and repo noise</p>
+    </div>
+  </div>
+  <div class="option" data-choice="install" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Installation Redundancy</h3>
+      <p>Clarify install.sh vs bootstrap.sh, unify npx vs script install paths, document skill install scope</p>
+    </div>
+  </div>
+  <div class="option" data-choice="features" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Missing Features (Post-v0.21)</h3>
+      <p>MCP Resources, --json mode, dry-run diff, git hooks, context versioning, auto-gen MCP docs</p>
+    </div>
+  </div>
+  <div class="option" data-choice="strategic" onclick="toggleSelect(this)">
+    <div class="letter">D</div>
+    <div class="content">
+      <h3>Strategic Gaps</h3>
+      <p>Org-level context sharing, A2A protocol, Copilot Extensions, VS Code v1.102+ alignment</p>
+    </div>
+  </div>
+</div>

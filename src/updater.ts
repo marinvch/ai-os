@@ -81,7 +81,7 @@ function getLatestPublishedTagVersion(): string | null {
 
     const versions = result.stdout
       .split(/\r?\n/)
-      .map(line => line.trim())
+      .map((line) => line.trim())
       .filter(Boolean)
       .map((line) => {
         const match = line.match(/refs\/tags\/v(\d+\.\d+\.\d+)$/);
@@ -146,7 +146,9 @@ export function printUpdateBanner(status: UpdateStatus): void {
   console.log('');
   console.log('  ┌─────────────────────────────────────────────────────┐');
   console.log(`  │  🔔 AI OS Update Available                          │`);
-  console.log(`  │     Installed: v${status.installedVersion?.padEnd(10) ?? 'unknown   '}  →  Latest: v${status.latestVersion.padEnd(10)}│`);
+  console.log(
+    `  │     Installed: v${status.installedVersion?.padEnd(10) ?? 'unknown   '}  →  Latest: v${status.latestVersion.padEnd(10)}│`,
+  );
   console.log(`  │                                                     │`);
   console.log(`  │  Re-run AI OS with --refresh-existing (or --update) │`);
   console.log(`  │  to refresh context, tools, agents, and MCP files.  │`);
@@ -206,7 +208,9 @@ export function pruneLegacyArtifacts(targetDir: string, options?: LegacyPruneOpt
     }
 
     if (removed > 0) {
-      console.log(`  🧹 Clean-update removed ${removed} legacy .ai-os artifact(s) (config/tools/context/memory)`);
+      console.log(
+        `  🧹 Clean-update removed ${removed} legacy .ai-os artifact(s) (config/tools/context/memory)`,
+      );
     }
     return;
   }
@@ -214,7 +218,11 @@ export function pruneLegacyArtifacts(targetDir: string, options?: LegacyPruneOpt
   // Always clean up legacy MCP configs on refresh (they moved to .mcp.json / .vscode/mcp.json)
   for (const file of [legacyMcpJson, legacyMcpLocal]) {
     if (fs.existsSync(file)) {
-      try { fs.rmSync(file); } catch { /* best-effort */ }
+      try {
+        fs.rmSync(file);
+      } catch {
+        /* best-effort */
+      }
     }
   }
 

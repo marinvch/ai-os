@@ -84,19 +84,23 @@ function readRuntimeState(): RuntimeState {
 
   try {
     const raw = JSON.parse(fs.readFileSync(filePath, 'utf-8')) as Partial<RuntimeState>;
-    const threshold = typeof raw.threshold === 'number' && raw.threshold >= 1
-      ? Math.floor(raw.threshold)
-      : DEFAULT_WATCHDOG_THRESHOLD;
+    const threshold =
+      typeof raw.threshold === 'number' && raw.threshold >= 1
+        ? Math.floor(raw.threshold)
+        : DEFAULT_WATCHDOG_THRESHOLD;
 
     return {
-      toolCallCount: typeof raw.toolCallCount === 'number' ? Math.max(0, Math.floor(raw.toolCallCount)) : 0,
-      lastWatchdogCheckpointCount: typeof raw.lastWatchdogCheckpointCount === 'number'
-        ? Math.max(0, Math.floor(raw.lastWatchdogCheckpointCount))
-        : 0,
+      toolCallCount:
+        typeof raw.toolCallCount === 'number' ? Math.max(0, Math.floor(raw.toolCallCount)) : 0,
+      lastWatchdogCheckpointCount:
+        typeof raw.lastWatchdogCheckpointCount === 'number'
+          ? Math.max(0, Math.floor(raw.lastWatchdogCheckpointCount))
+          : 0,
       threshold,
-      updatedAt: typeof raw.updatedAt === 'string' && raw.updatedAt.trim()
-        ? raw.updatedAt
-        : new Date().toISOString(),
+      updatedAt:
+        typeof raw.updatedAt === 'string' && raw.updatedAt.trim()
+          ? raw.updatedAt
+          : new Date().toISOString(),
     };
   } catch {
     return fallback;
@@ -174,7 +178,7 @@ export function upsertActivePlan(
       ensureSessionMemoryStore();
       const filePath = getActivePlanPath();
       const existing: Partial<ActivePlan> = fs.existsSync(filePath)
-        ? JSON.parse(fs.readFileSync(filePath, 'utf-8')) as Partial<ActivePlan>
+        ? (JSON.parse(fs.readFileSync(filePath, 'utf-8')) as Partial<ActivePlan>)
         : {};
 
       const plan: ActivePlan = {
@@ -196,7 +200,12 @@ export function upsertActivePlan(
   }
 }
 
-export function appendCheckpoint(title: string, status?: string, notes?: string, toolCallCount?: number): string {
+export function appendCheckpoint(
+  title: string,
+  status?: string,
+  notes?: string,
+  toolCallCount?: number,
+): string {
   const trimmedTitle = title.trim();
   if (!trimmedTitle) {
     return 'Checkpoint title is required.';
@@ -256,7 +265,10 @@ export function closeCheckpoint(checkpointId: string, notes?: string): string {
         closedAt: now,
       };
 
-      writeTextAtomic(filePath, entries.map((entry) => JSON.stringify(entry)).join('\n') + (entries.length ? '\n' : ''));
+      writeTextAtomic(
+        filePath,
+        entries.map((entry) => JSON.stringify(entry)).join('\n') + (entries.length ? '\n' : ''),
+      );
       return `Checkpoint closed: ${id}`;
     });
   } catch (err) {
@@ -281,8 +293,10 @@ export function recordFailurePattern(
     return 'tool, errorSignature, rootCause, and attemptedFix are required to record failure pattern.';
   }
 
-  const normalizedOutcome = outcome === 'resolved' || outcome === 'partial' ? outcome : 'unresolved';
-  const normalizedConfidence = typeof confidence === 'number' ? Math.max(0, Math.min(1, confidence)) : 0.5;
+  const normalizedOutcome =
+    outcome === 'resolved' || outcome === 'partial' ? outcome : 'unresolved';
+  const normalizedConfidence =
+    typeof confidence === 'number' ? Math.max(0, Math.min(1, confidence)) : 0.5;
   const now = new Date().toISOString();
 
   try {
@@ -298,19 +312,25 @@ export function recordFailurePattern(
         normalizeFailureText(trimmedFix),
       ].join('::');
 
-      const existing = rows.find((entry) => [
-        normalizeFailureText(entry.tool),
-        normalizeFailureText(entry.errorSignature),
-        normalizeFailureText(entry.rootCause),
-        normalizeFailureText(entry.attemptedFix),
-      ].join('::') === key);
+      const existing = rows.find(
+        (entry) =>
+          [
+            normalizeFailureText(entry.tool),
+            normalizeFailureText(entry.errorSignature),
+            normalizeFailureText(entry.rootCause),
+            normalizeFailureText(entry.attemptedFix),
+          ].join('::') === key,
+      );
 
       if (existing) {
         existing.occurrences += 1;
         existing.lastSeenAt = now;
         existing.outcome = normalizedOutcome;
         existing.confidence = normalizedConfidence;
-        writeTextAtomic(filePath, rows.map((entry) => JSON.stringify(entry)).join('\n') + (rows.length ? '\n' : ''));
+        writeTextAtomic(
+          filePath,
+          rows.map((entry) => JSON.stringify(entry)).join('\n') + (rows.length ? '\n' : ''),
+        );
         return `Failure pattern updated: ${existing.id} (occurrences=${existing.occurrences})`;
       }
 
@@ -348,7 +368,7 @@ export function compactSessionContext(): string {
       const outputPath = getCompactContextPath();
 
       const plan = fs.existsSync(activePlanPath)
-        ? JSON.parse(fs.readFileSync(activePlanPath, 'utf-8')) as ActivePlan
+        ? (JSON.parse(fs.readFileSync(activePlanPath, 'utf-8')) as ActivePlan)
         : null;
 
       const checkpoints = readJsonlFile<CheckpointEntry>(checkpointsPath)
@@ -391,7 +411,8 @@ export function compactSessionContext(): string {
         for (const item of openCheckpoints) {
           lines.push(`- ${item.id}: ${item.title}`);
           if (item.notes) lines.push(`  - notes: ${item.notes}`);
-          if (typeof item.toolCallCount === 'number') lines.push(`  - tool calls: ${item.toolCallCount}`);
+          if (typeof item.toolCallCount === 'number')
+            lines.push(`  - tool calls: ${item.toolCallCount}`);
         }
       }
 
@@ -400,7 +421,9 @@ export function compactSessionContext(): string {
         lines.push('- none');
       } else {
         for (const item of failures.slice(0, 8)) {
-          lines.push(`- ${item.tool}: ${item.errorSignature} (occurrences=${item.occurrences}, outcome=${item.outcome})`);
+          lines.push(
+            `- ${item.tool}: ${item.errorSignature} (occurrences=${item.occurrences}, outcome=${item.outcome})`,
+          );
           lines.push(`  - root cause: ${item.rootCause}`);
           lines.push(`  - attempted fix: ${item.attemptedFix}`);
         }

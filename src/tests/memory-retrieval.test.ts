@@ -92,7 +92,11 @@ describe('getRepoMemory ordering', () => {
     fs.utimesSync(lockFile, staleTime, staleTime);
 
     const { rememberRepoFact } = await import('../mcp-server/utils.js');
-    const result = rememberRepoFact('Lock recovery fact', 'stale lock should be recovered', 'testing');
+    const result = rememberRepoFact(
+      'Lock recovery fact',
+      'stale lock should be recovered',
+      'testing',
+    );
 
     expect(result).toContain('Stored memory entry');
     expect(fs.existsSync(lockFile)).toBe(false);
@@ -105,7 +109,9 @@ describe('getRepoMemory ordering', () => {
     const second = rememberRepoFact('Duplicate fact', 'same content', 'testing', 'a,b,c');
 
     expect(first).toContain('Stored memory entry');
-    expect(second.includes('Updated memory tags') || second.includes('Skipped duplicate memory fact')).toBe(true);
+    expect(
+      second.includes('Updated memory tags') || second.includes('Skipped duplicate memory fact'),
+    ).toBe(true);
 
     const memFile = path.join(tempRoot, '.github', 'ai-os', 'memory', 'memory.jsonl');
     const lines = fs.readFileSync(memFile, 'utf-8').split('\n').filter(Boolean);

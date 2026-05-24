@@ -19,11 +19,24 @@ interface CollectedRecommendations {
   /** Whether this entry came from a universal (always-on) recommendation */
   universalSkills: Array<{ trigger: string; name: string; source?: string }>;
   /** Plugin install steps for agent harnesses (Claude Code, GitHub Copilot CLI, Cursor, etc.) */
-  pluginInstalls: Array<{ trigger: string; name: string; description: string; skillSource?: string; steps: Array<{ harness: string; command: string }> }>;
+  pluginInstalls: Array<{
+    trigger: string;
+    name: string;
+    description: string;
+    skillSource?: string;
+    steps: Array<{ harness: string; command: string }>;
+  }>;
 }
 
 export function collectRecommendations(stack: DetectedStack): CollectedRecommendations {
-  const collected: CollectedRecommendations = { mcp: [], vscode: [], skills: [], copilotExtensions: [], universalSkills: [], pluginInstalls: [] };
+  const collected: CollectedRecommendations = {
+    mcp: [],
+    vscode: [],
+    skills: [],
+    copilotExtensions: [],
+    universalSkills: [],
+    pluginInstalls: [],
+  };
   const seenMcp = new Set<string>();
   const seenVscode = new Set<string>();
   const seenSkills = new Set<string>();
@@ -32,7 +45,11 @@ export function collectRecommendations(stack: DetectedStack): CollectedRecommend
   function applyRec(rec: StackRecommendation, isUniversal = false): void {
     if (rec.mcp && !seenMcp.has(rec.mcp.package)) {
       seenMcp.add(rec.mcp.package);
-      collected.mcp.push({ trigger: rec.trigger, package: rec.mcp.package, description: rec.mcp.description });
+      collected.mcp.push({
+        trigger: rec.trigger,
+        package: rec.mcp.package,
+        description: rec.mcp.description,
+      });
     }
     for (const ext of rec.vscode ?? []) {
       if (!seenVscode.has(ext)) {
@@ -56,8 +73,17 @@ export function collectRecommendations(stack: DetectedStack): CollectedRecommend
       seenExt.add(rec.copilotExtension.name);
       collected.copilotExtensions.push({ trigger: rec.trigger, ...rec.copilotExtension });
     }
-    if (rec.pluginInstall && !collected.pluginInstalls.some(p => p.name === rec.pluginInstall!.name)) {
-      collected.pluginInstalls.push({ trigger: rec.trigger, name: rec.pluginInstall.name, description: rec.pluginInstall.description, skillSource: rec.pluginInstall.skillSource, steps: rec.pluginInstall.steps });
+    if (
+      rec.pluginInstall &&
+      !collected.pluginInstalls.some((p) => p.name === rec.pluginInstall!.name)
+    ) {
+      collected.pluginInstalls.push({
+        trigger: rec.trigger,
+        name: rec.pluginInstall.name,
+        description: rec.pluginInstall.description,
+        skillSource: rec.pluginInstall.skillSource,
+        steps: rec.pluginInstall.steps,
+      });
     }
   }
 
@@ -87,7 +113,10 @@ export function collectRecommendations(stack: DetectedStack): CollectedRecommend
   return collected;
 }
 
-function generateRecommendationsDoc(stack: DetectedStack, collected: CollectedRecommendations): string {
+function generateRecommendationsDoc(
+  stack: DetectedStack,
+  collected: CollectedRecommendations,
+): string {
   const lines: string[] = [
     `# AI OS Recommendations — ${stack.projectName}`,
     '',
@@ -100,14 +129,28 @@ function generateRecommendationsDoc(stack: DetectedStack, collected: CollectedRe
   lines.push('');
   lines.push('| Phase | Prompt | Purpose |');
   lines.push('| ----- | ------ | ------- |');
-  lines.push('| Define | `/define` | Structure feature intent, scope, constraints, and success criteria |');
-  lines.push('| Plan | `/plan` | Break the feature into ordered, dependency-aware implementation tasks |');
-  lines.push('| Build | `/build` | Execute one task at a time with minimal, convention-compliant changes |');
-  lines.push('| Verify | `/verify` | Check implementation against success criteria and run tests |');
-  lines.push('| Review | `/review` | Severity-tagged code review (Critical → Required → Optional → FYI) |');
-  lines.push('| Ship | `/ship` | Pre-ship checklist — tests, secrets scan, changelog, version bump |');
+  lines.push(
+    '| Define | `/define` | Structure feature intent, scope, constraints, and success criteria |',
+  );
+  lines.push(
+    '| Plan | `/plan` | Break the feature into ordered, dependency-aware implementation tasks |',
+  );
+  lines.push(
+    '| Build | `/build` | Execute one task at a time with minimal, convention-compliant changes |',
+  );
+  lines.push(
+    '| Verify | `/verify` | Check implementation against success criteria and run tests |',
+  );
+  lines.push(
+    '| Review | `/review` | Severity-tagged code review (Critical → Required → Optional → FYI) |',
+  );
+  lines.push(
+    '| Ship | `/ship` | Pre-ship checklist — tests, secrets scan, changelog, version bump |',
+  );
   lines.push('');
-  lines.push('> These prompts are available as VS Code Copilot slash commands via `.github/copilot/prompts.json`.');
+  lines.push(
+    '> These prompts are available as VS Code Copilot slash commands via `.github/copilot/prompts.json`.',
+  );
   lines.push('');
 
   if (collected.mcp.length > 0) {
@@ -142,7 +185,9 @@ function generateRecommendationsDoc(stack: DetectedStack, collected: CollectedRe
   if (collected.vscode.length > 0) {
     lines.push('## Recommended VS Code Extensions', '');
     for (const item of collected.vscode) {
-      lines.push(`- [\`${item.id}\`](https://marketplace.visualstudio.com/items?itemName=${item.id}) — for \`${item.trigger}\``);
+      lines.push(
+        `- [\`${item.id}\`](https://marketplace.visualstudio.com/items?itemName=${item.id}) — for \`${item.trigger}\``,
+      );
     }
     lines.push('');
     lines.push('**Install all at once:**');
@@ -168,10 +213,12 @@ function generateRecommendationsDoc(stack: DetectedStack, collected: CollectedRe
       lines.push(`npx -y skills add ${spec} -g -a github-copilot`);
     }
     lines.push('```');
-    const unknownSources = collected.skills.filter(s => !s.source);
+    const unknownSources = collected.skills.filter((s) => !s.source);
     if (unknownSources.length > 0) {
       lines.push('');
-      lines.push(`> ⚠️  Skills without a known source (${unknownSources.map(s => `\`${s.name}\``).join(', ')}): find the GitHub repo hosting the skill and replace \`<source>\` before running.`);
+      lines.push(
+        `> ⚠️  Skills without a known source (${unknownSources.map((s) => `\`${s.name}\``).join(', ')}): find the GitHub repo hosting the skill and replace \`<source>\` before running.`,
+      );
     }
     lines.push('');
   }
@@ -200,7 +247,7 @@ function generateRecommendationsDoc(stack: DetectedStack, collected: CollectedRe
       lines.push('');
       // Also show individual skills that belong to this plugin (matched by skillSource)
       const pluginSkills = plugin.skillSource
-        ? collected.universalSkills.filter(s => s.source === plugin.skillSource)
+        ? collected.universalSkills.filter((s) => s.source === plugin.skillSource)
         : [];
       if (pluginSkills.length > 0) {
         lines.push('**Or install individual skills via skills CLI:**', '');
@@ -216,17 +263,23 @@ function generateRecommendationsDoc(stack: DetectedStack, collected: CollectedRe
 
   // Universal/optional skills in a separate section (exclude skills already shown in plugin sections)
   const pluginSkillNames = new Set(
-    collected.pluginInstalls.flatMap(plugin =>
+    collected.pluginInstalls.flatMap((plugin) =>
       plugin.skillSource
-        ? collected.universalSkills.filter(s => s.source === plugin.skillSource).map(s => s.name)
-        : []
-    )
+        ? collected.universalSkills
+            .filter((s) => s.source === plugin.skillSource)
+            .map((s) => s.name)
+        : [],
+    ),
   );
-  const remainingUniversalSkills = collected.universalSkills.filter(s => !pluginSkillNames.has(s.name));
+  const remainingUniversalSkills = collected.universalSkills.filter(
+    (s) => !pluginSkillNames.has(s.name),
+  );
 
   if (remainingUniversalSkills.length > 0) {
     lines.push('## Universal Skills (Optional)', '');
-    lines.push('> These skills are useful for any project and are not specific to the detected stack.');
+    lines.push(
+      '> These skills are useful for any project and are not specific to the detected stack.',
+    );
     lines.push('');
     for (const item of remainingUniversalSkills) {
       lines.push(`- **${item.name}** — general purpose`);
@@ -238,10 +291,12 @@ function generateRecommendationsDoc(stack: DetectedStack, collected: CollectedRe
       lines.push(buildSkillsInstallCommand(item));
     }
     lines.push('```');
-    const unknownSources = remainingUniversalSkills.filter(s => !s.source);
+    const unknownSources = remainingUniversalSkills.filter((s) => !s.source);
     if (unknownSources.length > 0) {
       lines.push('');
-      lines.push(`> ⚠️  Skills without a known source (${unknownSources.map(s => `\`${s.name}\``).join(', ')}): find the GitHub repo hosting the skill and replace \`<source>\` before running.`);
+      lines.push(
+        `> ⚠️  Skills without a known source (${unknownSources.map((s) => `\`${s.name}\``).join(', ')}): find the GitHub repo hosting the skill and replace \`<source>\` before running.`,
+      );
     }
     lines.push('');
   }
@@ -257,8 +312,8 @@ export function getSkillsGapReport(stack: DetectedStack, skillsLockPath: string)
   const collected = collectRecommendations(stack);
   // Include both stack-specific and universal skills in gap report
   const recommendedSkills = new Set([
-    ...collected.skills.map(s => s.name),
-    ...collected.universalSkills.map(s => s.name),
+    ...collected.skills.map((s) => s.name),
+    ...collected.universalSkills.map((s) => s.name),
   ]);
 
   let installed: string[] = [];
@@ -276,15 +331,20 @@ export function getSkillsGapReport(stack: DetectedStack, skillsLockPath: string)
     // skills-lock.json not present — treat all as missing
   }
 
-  const installedSet = new Set(installed.map(s => s.toLowerCase()));
-  const missingStackItems = collected.skills.filter(s => !installedSet.has(s.name.toLowerCase()));
-  const missingUniversalItems = collected.universalSkills.filter(s => !installedSet.has(s.name.toLowerCase()));
+  const installedSet = new Set(installed.map((s) => s.toLowerCase()));
+  const missingStackItems = collected.skills.filter((s) => !installedSet.has(s.name.toLowerCase()));
+  const missingUniversalItems = collected.universalSkills.filter(
+    (s) => !installedSet.has(s.name.toLowerCase()),
+  );
   const missingItems = [...missingStackItems, ...missingUniversalItems];
 
   if (missingItems.length === 0) return '';
 
-  const cmds = missingItems.map(s => buildSkillsInstallCommand(s)).join('\n');
-  return `  📦 Skills gap detected — Missing: [${missingItems.map(s => s.name).join(', ')}]\n  Run:\n${cmds.split('\n').map(l => `    ${l}`).join('\n')}`;
+  const cmds = missingItems.map((s) => buildSkillsInstallCommand(s)).join('\n');
+  return `  📦 Skills gap detected — Missing: [${missingItems.map((s) => s.name).join(', ')}]\n  Run:\n${cmds
+    .split('\n')
+    .map((l) => `    ${l}`)
+    .join('\n')}`;
 }
 
 /** Generate recommendations.md and return its absolute path. */

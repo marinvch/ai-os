@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { buildGenerationSummary, formatGenerationSummary, type GenerationSummary } from '../actions/summary.js';
+import {
+  buildGenerationSummary,
+  formatGenerationSummary,
+  type GenerationSummary,
+} from '../actions/summary.js';
 
 describe('buildGenerationSummary', () => {
   it('computes total files correctly', () => {

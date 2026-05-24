@@ -30,7 +30,12 @@ function makeStack(overrides: Partial<DetectedStack> = {}): DetectedStack {
   return {
     projectName: 'test-project',
     rootDir: '/tmp/test',
-    primaryLanguage: { name: 'TypeScript', percentage: 80, fileCount: 10, extensions: ['.ts', '.tsx'] },
+    primaryLanguage: {
+      name: 'TypeScript',
+      percentage: 80,
+      fileCount: 10,
+      extensions: ['.ts', '.tsx'],
+    },
     languages: [{ name: 'TypeScript', percentage: 80, fileCount: 10, extensions: ['.ts', '.tsx'] }],
     frameworks: [],
     keyFiles: ['package.json', 'tsconfig.json'],
@@ -64,7 +69,10 @@ describe('instructions size cap', () => {
     const content = fs.readFileSync(instructionsPath, 'utf-8');
     const bytes = Buffer.byteLength(content, 'utf-8');
     // GitHub Copilot context limit: 8 KB
-    expect(bytes, `copilot-instructions.md is ${bytes} bytes — exceeds 8 KB GitHub context limit`).toBeLessThanOrEqual(8192);
+    expect(
+      bytes,
+      `copilot-instructions.md is ${bytes} bytes — exceeds 8 KB GitHub context limit`,
+    ).toBeLessThanOrEqual(8192);
 
     // Cleanup
     fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -81,7 +89,10 @@ describe('instructions size cap', () => {
 
     generateInstructions(stack, tmpDir, { refreshExisting: false });
 
-    const content = fs.readFileSync(path.join(tmpDir, '.github', 'copilot-instructions.md'), 'utf-8');
+    const content = fs.readFileSync(
+      path.join(tmpDir, '.github', 'copilot-instructions.md'),
+      'utf-8',
+    );
     // If truncation occurred, it must use the clean boundary marker
     if (content.includes('<!-- [AI OS]')) {
       expect(content).toContain('content trimmed');
@@ -133,7 +144,7 @@ describe('collectRecommendations', () => {
     });
     const recs = collectRecommendations(stack);
     // Should not contain duplicate 'prisma' MCP tool entries
-    const mcpDupes = recs.mcp.filter(m => m.package === 'prisma');
+    const mcpDupes = recs.mcp.filter((m) => m.package === 'prisma');
     expect(mcpDupes.length).toBeLessThanOrEqual(1);
   });
 
@@ -154,11 +165,13 @@ describe('collectRecommendations', () => {
         version: '14.0.0',
         template: 'nextjs',
       },
-      frameworks: [{ name: 'Next.js', category: 'fullstack', version: '14.0.0', template: 'nextjs' }],
+      frameworks: [
+        { name: 'Next.js', category: 'fullstack', version: '14.0.0', template: 'nextjs' },
+      ],
     });
     const recs = collectRecommendations(stack);
     // Next.js should include nextjs skill recommendation
-    const hasNextSkill = recs.skills.some(s => s.name.toLowerCase().includes('next'));
+    const hasNextSkill = recs.skills.some((s) => s.name.toLowerCase().includes('next'));
     expect(hasNextSkill).toBe(true);
   });
 
@@ -173,7 +186,7 @@ describe('collectRecommendations', () => {
   it('does not include universal skills in the stack-specific skills array', () => {
     const stack = makeStack();
     const recs = collectRecommendations(stack);
-    const universalNames = new Set(recs.universalSkills.map(s => s.name));
+    const universalNames = new Set(recs.universalSkills.map((s) => s.name));
     // None of the universal-only skill names should appear in the main skills array
     for (const skill of recs.skills) {
       expect(universalNames.has(skill.name)).toBe(false);
@@ -183,10 +196,10 @@ describe('collectRecommendations', () => {
   it('prisma skill is NOT in universalSkills for a prisma project', () => {
     const stack = makeStack({ allDependencies: ['prisma'] });
     const recs = collectRecommendations(stack);
-    const hasPrismaInUniversal = recs.universalSkills.some(s => s.name === 'prisma');
+    const hasPrismaInUniversal = recs.universalSkills.some((s) => s.name === 'prisma');
     expect(hasPrismaInUniversal).toBe(false);
     // It should be in the stack-specific skills array
-    const hasPrismaInStack = recs.skills.some(s => s.name === 'prisma');
+    const hasPrismaInStack = recs.skills.some((s) => s.name === 'prisma');
     expect(hasPrismaInStack).toBe(true);
   });
 });
@@ -297,8 +310,15 @@ describe('persona directive in copilot-instructions.md', () => {
     const path = await import('node:path');
 
     const stack = makeStack({
-      primaryFramework: { name: 'Next.js', category: 'fullstack', version: '14.0.0', template: 'nextjs' },
-      frameworks: [{ name: 'Next.js', category: 'fullstack', version: '14.0.0', template: 'nextjs' }],
+      primaryFramework: {
+        name: 'Next.js',
+        category: 'fullstack',
+        version: '14.0.0',
+        template: 'nextjs',
+      },
+      frameworks: [
+        { name: 'Next.js', category: 'fullstack', version: '14.0.0', template: 'nextjs' },
+      ],
     });
 
     const tmpDir = path.join(os.tmpdir(), 'ai-os-persona-test-' + Date.now());
@@ -408,7 +428,6 @@ describe('AI OS value mode guidance', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 });
-
 
 // ---------------------------------------------------------------------------
 // Safe refresh mode — preserveContextFiles
@@ -603,7 +622,9 @@ describe('preserveContextFiles option', () => {
     vi.setSystemTime(new Date('2026-04-21T00:00:10.000Z'));
     generateContextDocs(stack, tmpDir, { preserveContextFiles: false });
 
-    const secondConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8')) as { installedAt: string };
+    const secondConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8')) as {
+      installedAt: string;
+    };
     expect(secondConfig.installedAt > firstConfig.installedAt).toBe(true);
 
     vi.useRealTimers();
@@ -650,7 +671,7 @@ describe('prompt generation', () => {
     // Should return multiple paths, not a single prompts.json
     expect(files.length).toBeGreaterThan(1);
     // All returned paths must be .prompt.md files
-    expect(files.every(f => f.endsWith('.prompt.md'))).toBe(true);
+    expect(files.every((f) => f.endsWith('.prompt.md'))).toBe(true);
     // The old format must NOT exist
     expect(fs.existsSync(path.join(tmpDir, '.github', 'copilot', 'prompts.json'))).toBe(false);
 
@@ -694,7 +715,7 @@ describe('buildOnboardingPlan with regenerateContext=false', () => {
     fs.writeFileSync(path.join(contextDir, 'architecture.md'), '# Arch\n', 'utf-8');
 
     const plan = buildOnboardingPlan(tmpDir, 'refresh-existing', { regenerateContext: false });
-    const archAction = plan.actions.find(a => a.path === '.github/ai-os/context/architecture.md');
+    const archAction = plan.actions.find((a) => a.path === '.github/ai-os/context/architecture.md');
     expect(archAction?.action).toBe('preserve');
 
     fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -711,7 +732,7 @@ describe('buildOnboardingPlan with regenerateContext=false', () => {
     fs.writeFileSync(path.join(contextDir, 'architecture.md'), '# Arch\n', 'utf-8');
 
     const plan = buildOnboardingPlan(tmpDir, 'refresh-existing', { regenerateContext: true });
-    const archAction = plan.actions.find(a => a.path === '.github/ai-os/context/architecture.md');
+    const archAction = plan.actions.find((a) => a.path === '.github/ai-os/context/architecture.md');
     expect(archAction?.action).toBe('update');
 
     fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -735,7 +756,8 @@ describe('agent preservation with preserveExistingAgents', () => {
 
     // Create a pre-existing agent file with custom content
     const agentFile = path.join(agentsDir, 'test-project-initializer.agent.md');
-    const customContent = 'name: Custom Agent\ndescription: My custom agent\n\nThis is my curated agent content.\n';
+    const customContent =
+      'name: Custom Agent\ndescription: My custom agent\n\nThis is my curated agent content.\n';
     fs.writeFileSync(agentFile, customContent, 'utf-8');
 
     await generateAgents(stack, tmpDir, { refreshExisting: true, preserveExistingAgents: true });
@@ -772,7 +794,9 @@ describe('skills strategy', () => {
     const path = await import('node:path');
 
     const stack = makeStack({
-      frameworks: [{ name: 'Next.js', category: 'fullstack', version: '14.0.0', template: 'nextjs' }],
+      frameworks: [
+        { name: 'Next.js', category: 'fullstack', version: '14.0.0', template: 'nextjs' },
+      ],
       allDependencies: ['next', 'react'],
     });
 
@@ -788,7 +812,7 @@ describe('skills strategy', () => {
 
     const skillsDir = path.join(tmpDir, '.github', 'copilot', 'skills');
     const onDisk = fs.existsSync(skillsDir)
-      ? fs.readdirSync(skillsDir).filter(f => f.startsWith('ai-os-') && f.endsWith('.md'))
+      ? fs.readdirSync(skillsDir).filter((f) => f.startsWith('ai-os-') && f.endsWith('.md'))
       : [];
     expect(onDisk.length).toBe(0);
 
@@ -801,7 +825,9 @@ describe('skills strategy', () => {
     const path = await import('node:path');
 
     const stack = makeStack({
-      frameworks: [{ name: 'Next.js', category: 'fullstack', version: '14.0.0', template: 'nextjs' }],
+      frameworks: [
+        { name: 'Next.js', category: 'fullstack', version: '14.0.0', template: 'nextjs' },
+      ],
       allDependencies: ['next', 'react'],
     });
 
@@ -826,7 +852,9 @@ describe('skills strategy', () => {
     const path = await import('node:path');
 
     const stack = makeStack({
-      frameworks: [{ name: 'Next.js', category: 'fullstack', version: '14.0.0', template: 'nextjs' }],
+      frameworks: [
+        { name: 'Next.js', category: 'fullstack', version: '14.0.0', template: 'nextjs' },
+      ],
       allDependencies: ['next', 'react'],
     });
 

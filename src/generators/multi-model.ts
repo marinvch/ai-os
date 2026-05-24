@@ -23,10 +23,14 @@ export function parseModelTarget(raw: string): ModelTarget | null {
 export function adaptForClaude(content: string): string {
   // Wrap major sections in XML tags Claude understands
   const sections = content.split(/\n(?=## )/);
-  const wrapped = sections.map(section => {
+  const wrapped = sections.map((section) => {
     const match = section.match(/^## (.+)\n/);
     if (!match) return section;
-    const heading = match[1].trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    const heading = match[1]
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '');
     const body = section.slice(match[0].length);
     return `<${heading}>\n${match[0]}${body}</${heading}>`;
   });
@@ -50,7 +54,13 @@ export function adaptForGemini(content: string): string {
     // Skip HTML comments
     if (line.trim().startsWith('<!--') && line.trim().endsWith('-->')) continue;
     // Skip long prose paragraphs (>100 chars without list/heading markers)
-    if (line.length > 100 && !line.startsWith('#') && !line.startsWith('-') && !line.startsWith('|') && !line.startsWith('`')) {
+    if (
+      line.length > 100 &&
+      !line.startsWith('#') &&
+      !line.startsWith('-') &&
+      !line.startsWith('|') &&
+      !line.startsWith('`')
+    ) {
       // Include first 100 chars as summary
       result.push(line.slice(0, 100) + '…');
       continue;
@@ -91,7 +101,10 @@ export function adaptForLocal(content: string): string {
   for (const line of lines) {
     const headingMatch = line.match(/^#+\s+(.+)/);
     if (headingMatch) {
-      const heading = headingMatch[1].toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+      const heading = headingMatch[1]
+        .toLowerCase()
+        .replace(/[^a-z0-9 ]/g, '')
+        .trim();
       inEssentialSection = keepSections.has(heading);
       inSkipSection = skipSections.has(heading);
     }
@@ -105,7 +118,13 @@ export function adaptForLocal(content: string): string {
     if (inSkipSection) continue;
     if (inEssentialSection) {
       // Skip verbose prose (sentences > 80 chars without code/list markers)
-      if (line.length > 80 && !line.startsWith('-') && !line.startsWith('|') && !line.startsWith('`') && !line.startsWith('#')) {
+      if (
+        line.length > 80 &&
+        !line.startsWith('-') &&
+        !line.startsWith('|') &&
+        !line.startsWith('`') &&
+        !line.startsWith('#')
+      ) {
         continue;
       }
       essential.push(line);
@@ -123,11 +142,15 @@ export function adaptForLocal(content: string): string {
  */
 export function adaptInstructionsForModel(content: string, model: ModelTarget): string {
   switch (model) {
-    case 'claude': return adaptForClaude(content);
-    case 'gemini': return adaptForGemini(content);
-    case 'local': return adaptForLocal(content);
+    case 'claude':
+      return adaptForClaude(content);
+    case 'gemini':
+      return adaptForGemini(content);
+    case 'local':
+      return adaptForLocal(content);
     case 'copilot':
-    default: return content;
+    default:
+      return content;
   }
 }
 
@@ -137,10 +160,14 @@ export function adaptInstructionsForModel(content: string, model: ModelTarget): 
  */
 export function getModelOutputPath(model: ModelTarget, githubDir: string): string {
   switch (model) {
-    case 'claude': return `${githubDir}/ai-os/claude-instructions.md`;
-    case 'gemini': return `${githubDir}/ai-os/gemini-instructions.md`;
-    case 'local': return `${githubDir}/ai-os/local-instructions.md`;
+    case 'claude':
+      return `${githubDir}/ai-os/claude-instructions.md`;
+    case 'gemini':
+      return `${githubDir}/ai-os/gemini-instructions.md`;
+    case 'local':
+      return `${githubDir}/ai-os/local-instructions.md`;
     case 'copilot':
-    default: return `${githubDir}/copilot-instructions.md`;
+    default:
+      return `${githubDir}/copilot-instructions.md`;
   }
 }

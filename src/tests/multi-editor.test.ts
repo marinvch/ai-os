@@ -95,7 +95,7 @@ describe('generateJetBrainsContext', () => {
     const stack = mockStack({ patterns: { ...mockStack().patterns, linter: undefined } });
     const result = generateJetBrainsContext(stack);
     // Lint line should not appear since linter is undefined
-    const lintLines = result.split('\n').filter(l => l.startsWith('- Lint:'));
+    const lintLines = result.split('\n').filter((l) => l.startsWith('- Lint:'));
     expect(lintLines.length).toBe(0);
   });
 });
@@ -121,8 +121,12 @@ describe('generateNeovimContext', () => {
 
 describe('detectEditorTargets', () => {
   let tmpDir: string;
-  beforeEach(() => { tmpDir = mkdtempSync(join(tmpdir(), 'editor-test-')); });
-  afterEach(() => { rmSync(tmpDir, { recursive: true, force: true }); });
+  beforeEach(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'editor-test-'));
+  });
+  afterEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
 
   it('always includes vscode', () => {
     const targets = detectEditorTargets(tmpDir);

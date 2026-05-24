@@ -24,7 +24,11 @@ function writeFile(dir: string, rel: string, content: string): string {
 function writeManifest(dir: string, files: string[]): void {
   const manifestPath = path.join(dir, '.github', 'ai-os', 'manifest.json');
   fs.mkdirSync(path.dirname(manifestPath), { recursive: true });
-  fs.writeFileSync(manifestPath, JSON.stringify({ version: '0.0.0', generatedAt: '', files }), 'utf-8');
+  fs.writeFileSync(
+    manifestPath,
+    JSON.stringify({ version: '0.0.0', generatedAt: '', files }),
+    'utf-8',
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -86,9 +90,13 @@ describe('runUninstall', () => {
 
   it('skips files protected by protect.json', () => {
     writeFile(tmpDir, '.github/copilot-instructions.md', '# My Instructions');
-    writeFile(tmpDir, '.github/ai-os/protect.json', JSON.stringify({
-      never: ['.github/copilot-instructions.md'],
-    }));
+    writeFile(
+      tmpDir,
+      '.github/ai-os/protect.json',
+      JSON.stringify({
+        never: ['.github/copilot-instructions.md'],
+      }),
+    );
     writeManifest(tmpDir, ['.github/copilot-instructions.md']);
 
     const report = runUninstall(tmpDir);

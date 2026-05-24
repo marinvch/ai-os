@@ -103,7 +103,7 @@ steps:
       steps: [{ agent: '', output: 'result' }],
     };
     const errors = validateWorkflow(wf);
-    expect(errors.some(e => e.field === 'agent')).toBe(true);
+    expect(errors.some((e) => e.field === 'agent')).toBe(true);
   });
 });
 
@@ -149,15 +149,21 @@ describe('formatRunPlan', () => {
     const wf = parseWorkflowYaml(FEATURE_PIPELINE_YAML);
     const plan = buildWorkflowRunPlan(wf, false);
     const output = formatRunPlan(plan);
-    expect(output.indexOf('Feature Enhancement Advisor')).toBeLessThan(output.indexOf('Idea Validator'));
+    expect(output.indexOf('Feature Enhancement Advisor')).toBeLessThan(
+      output.indexOf('Idea Validator'),
+    );
     expect(output.indexOf('Idea Validator')).toBeLessThan(output.indexOf('Implementation Agent'));
   });
 });
 
 describe('listWorkflows and loadWorkflow', () => {
   let tmpDir: string;
-  beforeEach(() => { tmpDir = mkdtempSync(join(tmpdir(), 'workflow-test-')); });
-  afterEach(() => { rmSync(tmpDir, { recursive: true, force: true }); });
+  beforeEach(() => {
+    tmpDir = mkdtempSync(join(tmpdir(), 'workflow-test-'));
+  });
+  afterEach(() => {
+    rmSync(tmpDir, { recursive: true, force: true });
+  });
 
   it('returns empty array when no workflows dir', () => {
     expect(listWorkflows(tmpDir)).toEqual([]);

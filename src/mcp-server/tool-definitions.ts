@@ -19,9 +19,11 @@ export function isMcpToolDefinition(obj: unknown): obj is McpToolDefinition {
   if (typeof obj !== 'object' || obj === null) return false;
   const o = obj as Record<string, unknown>;
   return (
-    typeof o['name'] === 'string' && o['name'].length > 0 &&
+    typeof o['name'] === 'string' &&
+    o['name'].length > 0 &&
     typeof o['description'] === 'string' &&
-    typeof o['inputSchema'] === 'object' && o['inputSchema'] !== null &&
+    typeof o['inputSchema'] === 'object' &&
+    o['inputSchema'] !== null &&
     (o['inputSchema'] as Record<string, unknown>)['type'] === 'object'
   );
 }
@@ -63,7 +65,9 @@ export function getActiveToolsForProject(projectRoot: string): McpToolDefinition
     if (Array.isArray(obj['activeTools'])) {
       const valid = (obj['activeTools'] as unknown[]).filter((t): t is McpToolDefinition => {
         if (isMcpToolDefinition(t)) return true;
-        console.warn(`⚠️  tools.json: skipping invalid tool entry — missing required fields (name/description/inputSchema.type).`);
+        console.warn(
+          `⚠️  tools.json: skipping invalid tool entry — missing required fields (name/description/inputSchema.type).`,
+        );
         return false;
       });
       return valid.map((tool) => ({
@@ -78,7 +82,9 @@ export function getActiveToolsForProject(projectRoot: string): McpToolDefinition
   if (Array.isArray(parsed)) {
     const valid = (parsed as unknown[]).filter((t): t is McpToolDefinition => {
       if (isMcpToolDefinition(t)) return true;
-      console.warn(`⚠️  tools.json: skipping invalid tool entry — missing required fields (name/description/inputSchema.type).`);
+      console.warn(
+        `⚠️  tools.json: skipping invalid tool entry — missing required fields (name/description/inputSchema.type).`,
+      );
       return false;
     });
     return valid.map((tool) => ({

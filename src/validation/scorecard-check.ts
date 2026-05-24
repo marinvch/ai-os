@@ -14,7 +14,10 @@ interface ScorecardFile {
   weeks: WeekMetrics[];
 }
 
-const SCORECARD_PATH = path.resolve(import.meta.dirname, '../../.github/ai-os/metrics/scorecard.json');
+const SCORECARD_PATH = path.resolve(
+  import.meta.dirname,
+  '../../.github/ai-os/metrics/scorecard.json',
+);
 
 // Minimum thresholds for robustness KPIs (when present in the scorecard entry)
 const ROBUSTNESS_THRESHOLDS: Record<keyof Omit<WeekMetrics, 'weekStart'>, number> = {
@@ -74,7 +77,9 @@ function checkRobustnessKpis(latest: WeekMetrics): void {
   }
 
   if (failures.length > 0) {
-    throw new Error(`Robustness KPI threshold failures:\n${failures.map(f => `  - ${f}`).join('\n')}`);
+    throw new Error(
+      `Robustness KPI threshold failures:\n${failures.map((f) => `  - ${f}`).join('\n')}`,
+    );
   }
 }
 
@@ -94,9 +99,7 @@ function getLatestWeekStart(weeks: WeekMetrics[]): string {
     throw new Error('Scorecard has no weekly entries.');
   }
 
-  const sorted = [...weeks]
-    .map((w) => w.weekStart)
-    .sort((a, b) => b.localeCompare(a));
+  const sorted = [...weeks].map((w) => w.weekStart).sort((a, b) => b.localeCompare(a));
 
   return sorted[0];
 }
@@ -109,15 +112,15 @@ function run(): void {
 
   if (ageDays > maxAgeDays) {
     throw new Error(
-      `Latest scorecard week (${latestWeekStart}) is ${ageDays} days old. Update metrics with npm run scorecard:update.`
+      `Latest scorecard week (${latestWeekStart}) is ${ageDays} days old. Update metrics with npm run scorecard:update.`,
     );
   }
 
   console.log(
-    `Scorecard freshness check passed: latest week ${latestWeekStart} is ${ageDays} days old (max ${maxAgeDays}).`
+    `Scorecard freshness check passed: latest week ${latestWeekStart} is ${ageDays} days old (max ${maxAgeDays}).`,
   );
 
-  const latest = scorecard.weeks.find(w => w.weekStart === latestWeekStart);
+  const latest = scorecard.weeks.find((w) => w.weekStart === latestWeekStart);
   if (latest) {
     checkRobustnessKpis(latest);
   }

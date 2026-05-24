@@ -69,7 +69,10 @@ function getServerEntry(
  * Merge-write an ai-os server entry into `.mcp.json`.
  * Preserves any other CLI MCP servers under the `mcpServers` top-level key.
  */
-export function writeCopilotCliMcpConfig(outputDir: string, options?: WriteMcpServerConfigOptions): string {
+export function writeCopilotCliMcpConfig(
+  outputDir: string,
+  options?: WriteMcpServerConfigOptions,
+): string {
   const mcpJsonPath = path.join(outputDir, '.mcp.json');
   const existing = readJsonObject(mcpJsonPath);
   const mcpServers = getServerMap(existing.mcpServers);
@@ -89,7 +92,10 @@ export function writeCopilotCliMcpConfig(outputDir: string, options?: WriteMcpSe
  * Preserves any other servers the user may have configured.
  * Uses the VS Code MCP config format: `"servers"` top-level key.
  */
-export function writeVsCodeMcpConfig(outputDir: string, options?: WriteMcpServerConfigOptions): string {
+export function writeVsCodeMcpConfig(
+  outputDir: string,
+  options?: WriteMcpServerConfigOptions,
+): string {
   const mcpJsonPath = path.join(outputDir, '.vscode', 'mcp.json');
   const existing = readJsonObject(mcpJsonPath);
   const servers = getServerMap(existing.servers);
@@ -108,15 +114,19 @@ export function writeVsCodeMcpConfig(outputDir: string, options?: WriteMcpServer
  * AI OS emits both `.mcp.json` for Copilot CLI and `.vscode/mcp.json`
  * for VS Code / Copilot Chat so upgrades keep both surfaces working.
  */
-export function writeMcpServerConfigs(outputDir: string, options?: WriteMcpServerConfigOptions): string[] {
-  return [
-    writeCopilotCliMcpConfig(outputDir, options),
-    writeVsCodeMcpConfig(outputDir, options),
-  ];
+export function writeMcpServerConfigs(
+  outputDir: string,
+  options?: WriteMcpServerConfigOptions,
+): string[] {
+  return [writeCopilotCliMcpConfig(outputDir, options), writeVsCodeMcpConfig(outputDir, options)];
 }
 
 /** Returns absolute paths of all managed files (manifest-tracked). */
-export function generateMcpJson(stack: DetectedStack, outputDir: string, options?: GenerateMcpOptions): string[] {
+export function generateMcpJson(
+  stack: DetectedStack,
+  outputDir: string,
+  options?: GenerateMcpOptions,
+): string[] {
   // Default: strict stack filtering is ON unless explicitly disabled in config
   const strictFiltering = options?.config?.strictStackFiltering !== false;
 
@@ -145,7 +155,10 @@ export function generateMcpJson(stack: DetectedStack, outputDir: string, options
 }
 
 /** @deprecated Use writeMcpServerConfigs */
-export function writeMcpServerConfig(outputDir: string, options?: WriteMcpServerConfigOptions): string {
+export function writeMcpServerConfig(
+  outputDir: string,
+  options?: WriteMcpServerConfigOptions,
+): string {
   writeMcpServerConfigs(outputDir, options);
   return path.join(outputDir, '.vscode', 'mcp.json');
 }

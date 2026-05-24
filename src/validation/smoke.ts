@@ -100,8 +100,7 @@ function checkSkillTemplateContracts(): SmokeCheck {
     };
   }
 
-  const templateFiles = fs.readdirSync(templatesDir)
-    .filter((name) => name.endsWith('.md'));
+  const templateFiles = fs.readdirSync(templatesDir).filter((name) => name.endsWith('.md'));
 
   const invalid: string[] = [];
   for (const templateFile of templateFiles) {
@@ -131,8 +130,7 @@ function checkAgentTemplateContracts(): SmokeCheck {
     };
   }
 
-  const templateFiles = fs.readdirSync(templatesDir)
-    .filter((name) => name.endsWith('.md'));
+  const templateFiles = fs.readdirSync(templatesDir).filter((name) => name.endsWith('.md'));
 
   const invalid: string[] = [];
   for (const templateFile of templateFiles) {

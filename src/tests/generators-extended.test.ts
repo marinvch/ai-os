@@ -47,7 +47,9 @@ function minimalStack(overrides: Partial<DetectedStack> = {}): DetectedStack {
 
 describe('generateWorkflows', () => {
   let tmp: string;
-  beforeEach(() => { tmp = mkTmp(); });
+  beforeEach(() => {
+    tmp = mkTmp();
+  });
   afterEach(() => rmTmp(tmp));
 
   it('generates update-check workflow by default', async () => {
@@ -104,7 +106,9 @@ describe('generateWorkflows', () => {
 
 describe('writeMcpServerConfig', () => {
   let tmp: string;
-  beforeEach(() => { tmp = mkTmp(); });
+  beforeEach(() => {
+    tmp = mkTmp();
+  });
   afterEach(() => rmTmp(tmp));
 
   it('creates .vscode/mcp.json with ai-os server entry', async () => {
@@ -143,14 +147,16 @@ describe('writeMcpServerConfig', () => {
 
 describe('generateMcpJson', () => {
   let tmp: string;
-  beforeEach(() => { tmp = mkTmp(); });
+  beforeEach(() => {
+    tmp = mkTmp();
+  });
   afterEach(() => rmTmp(tmp));
 
   it('returns tools.json in managed files list', async () => {
     const { generateMcpJson } = await import('../generators/mcp.js');
     const stack = minimalStack();
     const files = generateMcpJson(stack, tmp);
-    expect(files.some(f => f.endsWith('tools.json'))).toBe(true);
+    expect(files.some((f) => f.endsWith('tools.json'))).toBe(true);
   });
 
   it('creates tools.json with activeTools in strict mode (default)', async () => {
@@ -200,11 +206,14 @@ describe('generateMcpJson', () => {
 
 describe('writeIfChanged deleted-file recovery', () => {
   let tmp: string;
-  beforeEach(() => { tmp = mkTmp(); });
+  beforeEach(() => {
+    tmp = mkTmp();
+  });
   afterEach(() => rmTmp(tmp));
 
   it('recreates a deleted file even when manifest hash matches', async () => {
-    const { writeIfChanged, resetHashes, setPrevHashes, getNewHashes } = await import('../generators/utils.js');
+    const { writeIfChanged, resetHashes, setPrevHashes, getNewHashes } =
+      await import('../generators/utils.js');
     resetHashes();
 
     const filePath = path.join(tmp, 'test-file.md');
@@ -232,7 +241,9 @@ describe('writeIfChanged deleted-file recovery', () => {
 
 describe('discoverProjectKeyFiles via agent generation', () => {
   let tmp: string;
-  beforeEach(() => { tmp = mkTmp(); });
+  beforeEach(() => {
+    tmp = mkTmp();
+  });
   afterEach(() => rmTmp(tmp));
 
   it('populates Critical Files with detected entry points instead of placeholder', async () => {
@@ -244,9 +255,14 @@ describe('discoverProjectKeyFiles via agent generation', () => {
     generateAgents(minimalStack({ rootDir: tmp }), tmp, { refreshExisting: false });
 
     const agentFiles = fs.readdirSync(path.join(tmp, '.github', 'agents'));
-    const frameworkExpertFile = agentFiles.find(f => f.includes('expert-') && f.endsWith('.agent.md'));
+    const frameworkExpertFile = agentFiles.find(
+      (f) => f.includes('expert-') && f.endsWith('.agent.md'),
+    );
     expect(frameworkExpertFile).toBeTruthy();
-    const content = fs.readFileSync(path.join(tmp, '.github', 'agents', frameworkExpertFile!), 'utf-8');
+    const content = fs.readFileSync(
+      path.join(tmp, '.github', 'agents', frameworkExpertFile!),
+      'utf-8',
+    );
     // Should have the real file, not the placeholder
     expect(content).toContain('src/generate.ts');
     expect(content).not.toContain('_No items detected yet_');
@@ -257,7 +273,9 @@ describe('discoverProjectKeyFiles via agent generation', () => {
 
 describe('skill routing in copilot-instructions.md', () => {
   let tmp: string;
-  beforeEach(() => { tmp = mkTmp(); });
+  beforeEach(() => {
+    tmp = mkTmp();
+  });
   afterEach(() => rmTmp(tmp));
 
   it('includes Available Skills section when skills are installed', async () => {
@@ -265,13 +283,16 @@ describe('skill routing in copilot-instructions.md', () => {
     // Create a mock skill file
     const skillsDir = path.join(tmp, '.github', 'copilot', 'skills');
     fs.mkdirSync(skillsDir, { recursive: true });
-    fs.writeFileSync(path.join(skillsDir, 'my-skill.md'), [
-      '---',
-      'name: my-skill',
-      'description: Does something useful when user asks about X',
-      '---',
-      '# My Skill',
-    ].join('\n'));
+    fs.writeFileSync(
+      path.join(skillsDir, 'my-skill.md'),
+      [
+        '---',
+        'name: my-skill',
+        'description: Does something useful when user asks about X',
+        '---',
+        '# My Skill',
+      ].join('\n'),
+    );
 
     generateInstructions(minimalStack({ rootDir: tmp }), tmp, { refreshExisting: false });
 
@@ -296,7 +317,9 @@ describe('skill routing in copilot-instructions.md', () => {
 
 describe('user-overridable agent templates (#183)', () => {
   let tmp: string;
-  beforeEach(() => { tmp = mkTmp(); });
+  beforeEach(() => {
+    tmp = mkTmp();
+  });
   afterEach(() => rmTmp(tmp));
 
   it('uses custom override template when present in .github/ai-os/templates/agents/', async () => {
@@ -305,20 +328,23 @@ describe('user-overridable agent templates (#183)', () => {
     // Place a custom override for framework-expert template
     const overrideDir = path.join(tmp, '.github', 'ai-os', 'templates', 'agents');
     fs.mkdirSync(overrideDir, { recursive: true });
-    fs.writeFileSync(path.join(overrideDir, 'framework-expert.md'), [
-      '---',
-      'name: placeholder',
-      'description: placeholder',
-      'argument-hint: "placeholder"',
-      '---',
-      '# Custom Override Template',
-      'CUSTOM_MARKER_FROM_OVERRIDE',
-    ].join('\n'));
+    fs.writeFileSync(
+      path.join(overrideDir, 'framework-expert.md'),
+      [
+        '---',
+        'name: placeholder',
+        'description: placeholder',
+        'argument-hint: "placeholder"',
+        '---',
+        '# Custom Override Template',
+        'CUSTOM_MARKER_FROM_OVERRIDE',
+      ].join('\n'),
+    );
 
     await generateAgents(minimalStack({ rootDir: tmp }), tmp, { refreshExisting: true });
 
     const agentFiles = fs.readdirSync(path.join(tmp, '.github', 'agents'));
-    const expertFile = agentFiles.find(f => f.includes('expert-') && f.endsWith('.agent.md'));
+    const expertFile = agentFiles.find((f) => f.includes('expert-') && f.endsWith('.agent.md'));
     expect(expertFile).toBeTruthy();
     const content = fs.readFileSync(path.join(tmp, '.github', 'agents', expertFile!), 'utf-8');
     expect(content).toContain('CUSTOM_MARKER_FROM_OVERRIDE');
@@ -330,7 +356,7 @@ describe('user-overridable agent templates (#183)', () => {
     await generateAgents(minimalStack({ rootDir: tmp }), tmp, { refreshExisting: true });
 
     const agentFiles = fs.readdirSync(path.join(tmp, '.github', 'agents'));
-    const expertFile = agentFiles.find(f => f.includes('expert-') && f.endsWith('.agent.md'));
+    const expertFile = agentFiles.find((f) => f.includes('expert-') && f.endsWith('.agent.md'));
     expect(expertFile).toBeTruthy();
     const content = fs.readFileSync(path.join(tmp, '.github', 'agents', expertFile!), 'utf-8');
     expect(content).not.toContain('CUSTOM_MARKER_FROM_OVERRIDE');
@@ -344,14 +370,17 @@ describe('user-overridable agent templates (#183)', () => {
 
     const overrideDir = path.join(tmp, '.github', 'ai-os', 'templates', 'agents');
     fs.mkdirSync(overrideDir, { recursive: true });
-    fs.writeFileSync(path.join(overrideDir, 'framework-expert.md'), [
-      '---',
-      'name: placeholder',
-      'description: placeholder',
-      'argument-hint: "placeholder"',
-      '---',
-      '# Custom',
-    ].join('\n'));
+    fs.writeFileSync(
+      path.join(overrideDir, 'framework-expert.md'),
+      [
+        '---',
+        'name: placeholder',
+        'description: placeholder',
+        'argument-hint: "placeholder"',
+        '---',
+        '# Custom',
+      ].join('\n'),
+    );
 
     await generateAgents(minimalStack({ rootDir: tmp }), tmp, { refreshExisting: true });
 

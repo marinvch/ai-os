@@ -103,10 +103,12 @@ describe('isMcpToolDefinition', () => {
   });
 
   it('accepts a tool with required array in inputSchema', () => {
-    expect(isMcpToolDefinition({
-      ...valid,
-      inputSchema: { type: 'object', properties: {}, required: ['query'] },
-    })).toBe(true);
+    expect(
+      isMcpToolDefinition({
+        ...valid,
+        inputSchema: { type: 'object', properties: {}, required: ['query'] },
+      }),
+    ).toBe(true);
   });
 
   it('rejects null', () => {
@@ -133,7 +135,9 @@ describe('isMcpToolDefinition', () => {
   });
 
   it('rejects inputSchema without type=object', () => {
-    expect(isMcpToolDefinition({ ...valid, inputSchema: { type: 'array', properties: {} } })).toBe(false);
+    expect(isMcpToolDefinition({ ...valid, inputSchema: { type: 'array', properties: {} } })).toBe(
+      false,
+    );
   });
 
   it('rejects a plain string', () => {

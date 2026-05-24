@@ -18,26 +18,28 @@ interface PromptEntry {
 
 function buildPrompts(stack: DetectedStack, cwd: string): PromptEntry[] {
   const prompts: PromptEntry[] = [];
-  const frameworks = stack.frameworks.map(f => f.name.toLowerCase());
+  const frameworks = stack.frameworks.map((f) => f.name.toLowerCase());
   const packages = stack.allDependencies;
-  const hasNext = frameworks.some(f => f.includes('next'));
-  const hasNuxt = frameworks.some(f => f.includes('nuxt'));
-  const hasVue = frameworks.some(f => f.includes('vue'));
-  const hasAngular = frameworks.some(f => f.includes('angular'));
-  const hasAstro = frameworks.some(f => f.includes('astro'));
-  const hasNest = frameworks.some(f => f.includes('nest'));
-  const hasExpressLike = frameworks.some(f => ['express', 'fastify', 'hono', 'koa'].some(x => f.includes(x)));
-  const hasFastApi = frameworks.some(f => f.includes('fastapi'));
-  const hasDjango = frameworks.some(f => f.includes('django'));
-  const hasLaravel = frameworks.some(f => f.includes('laravel'));
-  const hasSpring = frameworks.some(f => f.includes('spring'));
-  const hasDotnet = frameworks.some(f => f.includes('.net') || f.includes('asp.net'));
+  const hasNext = frameworks.some((f) => f.includes('next'));
+  const hasNuxt = frameworks.some((f) => f.includes('nuxt'));
+  const hasVue = frameworks.some((f) => f.includes('vue'));
+  const hasAngular = frameworks.some((f) => f.includes('angular'));
+  const hasAstro = frameworks.some((f) => f.includes('astro'));
+  const hasNest = frameworks.some((f) => f.includes('nest'));
+  const hasExpressLike = frameworks.some((f) =>
+    ['express', 'fastify', 'hono', 'koa'].some((x) => f.includes(x)),
+  );
+  const hasFastApi = frameworks.some((f) => f.includes('fastapi'));
+  const hasDjango = frameworks.some((f) => f.includes('django'));
+  const hasLaravel = frameworks.some((f) => f.includes('laravel'));
+  const hasSpring = frameworks.some((f) => f.includes('spring'));
+  const hasDotnet = frameworks.some((f) => f.includes('.net') || f.includes('asp.net'));
   const hasTrpc = packages.includes('@trpc/server') || packages.includes('trpc');
   const hasRtkQuery = packages.includes('@reduxjs/toolkit');
   const hasPrisma = packages.includes('prisma') || packages.includes('@prisma/client');
   const hasStripe = packages.includes('stripe');
   const hasAuth = packages.includes('next-auth') || packages.includes('nextauth');
-  const hasVector = packages.some(p => p.includes('langchain') || p.includes('pgvector'));
+  const hasVector = packages.some((p) => p.includes('langchain') || p.includes('pgvector'));
 
   if (hasNext) {
     prompts.push({
@@ -116,7 +118,8 @@ Requirements:
     prompts.push({
       id: '/new-backend-endpoint',
       title: 'New Backend Endpoint',
-      description: 'Create a typed backend endpoint with validation, auth boundary checks, and service layer',
+      description:
+        'Create a typed backend endpoint with validation, auth boundary checks, and service layer',
       prompt: `Create a new backend endpoint at the path I specify.
 Requirements:
 - Validate input payload and params with Zod or framework-native validation
@@ -145,7 +148,8 @@ Requirements:
     prompts.push({
       id: '/new-django-api',
       title: 'New Django API Endpoint',
-      description: 'Create a Django endpoint with serializer/form validation and scoped query logic',
+      description:
+        'Create a Django endpoint with serializer/form validation and scoped query logic',
       prompt: `Create a new Django API endpoint at the location I specify.
 Requirements:
 - Validate request data with serializers/forms
@@ -159,7 +163,8 @@ Requirements:
     prompts.push({
       id: '/new-laravel-endpoint',
       title: 'New Laravel Endpoint',
-      description: 'Create a new Laravel API endpoint with Form Request validation and service-layer logic',
+      description:
+        'Create a new Laravel API endpoint with Form Request validation and service-layer logic',
       prompt: `Create a new Laravel API endpoint and wire it in routes/api.php.
 Requirements:
 - Use Form Request classes for validation
@@ -471,4 +476,3 @@ export async function generatePrompts(stack: DetectedStack, cwd: string): Promis
 
   return written;
 }
-

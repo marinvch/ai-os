@@ -43,14 +43,12 @@ describe('isAgentRegistry', () => {
             description: 'Stripe expert.',
           },
         ],
-      })
+      }),
     ).toBe(true);
   });
 
   it('returns true for empty agents array', () => {
-    expect(
-      isAgentRegistry({ version: '1', generatedAt: '2026-05-11', agents: [] })
-    ).toBe(true);
+    expect(isAgentRegistry({ version: '1', generatedAt: '2026-05-11', agents: [] })).toBe(true);
   });
 
   it('returns false for null', () => {
@@ -58,15 +56,11 @@ describe('isAgentRegistry', () => {
   });
 
   it('returns false for wrong version', () => {
-    expect(
-      isAgentRegistry({ version: '2', generatedAt: '2026-05-11', agents: [] })
-    ).toBe(false);
+    expect(isAgentRegistry({ version: '2', generatedAt: '2026-05-11', agents: [] })).toBe(false);
   });
 
   it('returns false when agents is not an array', () => {
-    expect(
-      isAgentRegistry({ version: '1', generatedAt: '2026-05-11', agents: {} })
-    ).toBe(false);
+    expect(isAgentRegistry({ version: '1', generatedAt: '2026-05-11', agents: {} })).toBe(false);
   });
 
   it('returns false when an agent entry is missing fields', () => {
@@ -75,7 +69,7 @@ describe('isAgentRegistry', () => {
         version: '1',
         generatedAt: '2026-05-11',
         agents: [{ name: 'Incomplete' }],
-      })
+      }),
     ).toBe(false);
   });
 });

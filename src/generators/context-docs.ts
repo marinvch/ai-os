@@ -8,7 +8,17 @@ import { getToolVersion } from '../updater.js';
 import { writeIfChanged, writeFileAtomic, sanitizeForInstructions } from './utils.js';
 import { MCP_TOOL_DEFINITIONS } from '../mcp-tools.js';
 
-const DEFAULT_AI_OS_CONFIG: Omit<AiOsConfig, 'version' | 'installedAt' | 'projectName' | 'primaryLanguage' | 'primaryFramework' | 'frameworks' | 'packageManager' | 'hasTypeScript'> = {
+const DEFAULT_AI_OS_CONFIG: Omit<
+  AiOsConfig,
+  | 'version'
+  | 'installedAt'
+  | 'projectName'
+  | 'primaryLanguage'
+  | 'primaryFramework'
+  | 'frameworks'
+  | 'packageManager'
+  | 'hasTypeScript'
+> = {
   agentsMd: false,
   pathSpecificInstructions: true,
   recommendations: true,
@@ -51,7 +61,9 @@ export function computeSkillVersions(outputDir: string): Record<string, string> 
       const hash = createHash('sha256').update(content).digest('hex').slice(0, 12);
       versions[file.replace(/\.md$/, '')] = hash;
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
   return versions;
 }
 
@@ -99,17 +111,29 @@ function countMarkdownFiles(dir: string): number {
 
 function detectExistingAiContext(rootDir: string): ExistingAiContextSummary {
   const artifacts: ExistingArtifact[] = [];
-  const categories: ExistingArtifact['category'][] = ['instructions', 'skills', 'prompts', 'agents', 'docs', 'other'];
-  const counts = Object.fromEntries(categories.map(c => [c, 0])) as Record<ExistingArtifact['category'], number>;
+  const categories: ExistingArtifact['category'][] = [
+    'instructions',
+    'skills',
+    'prompts',
+    'agents',
+    'docs',
+    'other',
+  ];
+  const counts = Object.fromEntries(categories.map((c) => [c, 0])) as Record<
+    ExistingArtifact['category'],
+    number
+  >;
 
   const add = (relativePath: string, category: ExistingArtifact['category']): void => {
     artifacts.push({ path: relativePath, category });
     counts[category] += 1;
   };
 
-  if (exists(rootDir, '.github/copilot-instructions.md')) add('.github/copilot-instructions.md', 'instructions');
+  if (exists(rootDir, '.github/copilot-instructions.md'))
+    add('.github/copilot-instructions.md', 'instructions');
   if (exists(rootDir, '.github/instructions')) add('.github/instructions/', 'instructions');
-  if (exists(rootDir, '.github/copilot/prompts.json')) add('.github/copilot/prompts.json', 'prompts');
+  if (exists(rootDir, '.github/copilot/prompts.json'))
+    add('.github/copilot/prompts.json', 'prompts');
 
   const skillsDir = path.join(rootDir, '.github', 'copilot', 'skills');
   const skillsCount = countMarkdownFiles(skillsDir);
@@ -119,13 +143,28 @@ function detectExistingAiContext(rootDir: string): ExistingAiContextSummary {
   const agentsCount = countMarkdownFiles(agentsDir);
   if (agentsCount > 0) add(`.github/agents/ (${agentsCount} files)`, 'agents');
 
-  if (exists(rootDir, '.github/ai-os/context/stack.md')) add('.github/ai-os/context/stack.md', 'docs');
-  if (exists(rootDir, '.github/ai-os/context/architecture.md')) add('.github/ai-os/context/architecture.md', 'docs');
-  if (exists(rootDir, '.github/ai-os/context/conventions.md')) add('.github/ai-os/context/conventions.md', 'docs');
+  if (exists(rootDir, '.github/ai-os/context/stack.md'))
+    add('.github/ai-os/context/stack.md', 'docs');
+  if (exists(rootDir, '.github/ai-os/context/architecture.md'))
+    add('.github/ai-os/context/architecture.md', 'docs');
+  if (exists(rootDir, '.github/ai-os/context/conventions.md'))
+    add('.github/ai-os/context/conventions.md', 'docs');
   // Legacy paths — backward compat detection
-  if (!exists(rootDir, '.github/ai-os/context/stack.md') && exists(rootDir, '.ai-os/context/stack.md')) add('.ai-os/context/stack.md (legacy)', 'docs');
-  if (!exists(rootDir, '.github/ai-os/context/architecture.md') && exists(rootDir, '.ai-os/context/architecture.md')) add('.ai-os/context/architecture.md (legacy)', 'docs');
-  if (!exists(rootDir, '.github/ai-os/context/conventions.md') && exists(rootDir, '.ai-os/context/conventions.md')) add('.ai-os/context/conventions.md (legacy)', 'docs');
+  if (
+    !exists(rootDir, '.github/ai-os/context/stack.md') &&
+    exists(rootDir, '.ai-os/context/stack.md')
+  )
+    add('.ai-os/context/stack.md (legacy)', 'docs');
+  if (
+    !exists(rootDir, '.github/ai-os/context/architecture.md') &&
+    exists(rootDir, '.ai-os/context/architecture.md')
+  )
+    add('.ai-os/context/architecture.md (legacy)', 'docs');
+  if (
+    !exists(rootDir, '.github/ai-os/context/conventions.md') &&
+    exists(rootDir, '.ai-os/context/conventions.md')
+  )
+    add('.ai-os/context/conventions.md (legacy)', 'docs');
   if (exists(rootDir, 'docs/ai/session_memory.md')) add('docs/ai/session_memory.md', 'docs');
 
   if (exists(rootDir, 'AGENTS.md')) add('AGENTS.md', 'other');
@@ -136,7 +175,10 @@ function detectExistingAiContext(rootDir: string): ExistingAiContextSummary {
   return { artifacts, counts };
 }
 
-function generateExistingAiContextDoc(stack: DetectedStack, summary: ExistingAiContextSummary): string {
+function generateExistingAiContextDoc(
+  stack: DetectedStack,
+  summary: ExistingAiContextSummary,
+): string {
   const totalArtifacts = summary.artifacts.length;
   const lines: string[] = [
     `# Existing AI Context — ${sanitizeForInstructions(stack.projectName)}`,
@@ -174,12 +216,20 @@ function generateExistingAiContextDoc(stack: DetectedStack, summary: ExistingAiC
   lines.push('```bash');
   lines.push('bash install.sh --cwd "$PWD" --refresh-existing');
   lines.push('```');
-  lines.push('3. Keep Copilot as the single active target for generated instructions, prompts, and skills.');
-  lines.push('4. Treat `.github/ai-os/context/*.md` files as source-of-truth and update them after architectural changes.');
+  lines.push(
+    '3. Keep Copilot as the single active target for generated instructions, prompts, and skills.',
+  );
+  lines.push(
+    '4. Treat `.github/ai-os/context/*.md` files as source-of-truth and update them after architectural changes.',
+  );
 
   lines.push('', '## Notes', '');
-  lines.push('- This workflow is shell-driven (Git Bash + Node.js) and does not require Python runtime scripts.');
-  lines.push('- Existing files are preserved in safe mode and updated intentionally in refresh mode.');
+  lines.push(
+    '- This workflow is shell-driven (Git Bash + Node.js) and does not require Python runtime scripts.',
+  );
+  lines.push(
+    '- Existing files are preserved in safe mode and updated intentionally in refresh mode.',
+  );
 
   const chartTotal = Math.max(1, totalArtifacts);
   lines.push('', '## Visual Artifact Breakdown', '');
@@ -211,7 +261,9 @@ function generateStackDoc(stack: DetectedStack): string {
   ];
 
   for (const lang of stack.languages) {
-    lines.push(`- **${lang.name}** — ${lang.fileCount} files (${lang.percentage}%) | extensions: ${lang.extensions.map(e => `.${e}`).join(', ')}`);
+    lines.push(
+      `- **${lang.name}** — ${lang.fileCount} files (${lang.percentage}%) | extensions: ${lang.extensions.map((e) => `.${e}`).join(', ')}`,
+    );
   }
 
   lines.push('', '## Frameworks & Libraries', '');
@@ -229,7 +281,8 @@ function generateStackDoc(stack: DetectedStack): string {
   if (stack.patterns.bundler) lines.push(`- **Bundler:** ${stack.patterns.bundler}`);
   if (stack.patterns.linter) lines.push(`- **Linter:** ${stack.patterns.linter}`);
   if (stack.patterns.formatter) lines.push(`- **Formatter:** ${stack.patterns.formatter}`);
-  if (stack.patterns.testFramework) lines.push(`- **Test Framework:** ${stack.patterns.testFramework}`);
+  if (stack.patterns.testFramework)
+    lines.push(`- **Test Framework:** ${stack.patterns.testFramework}`);
   if (stack.patterns.ciCdProvider) lines.push(`- **CI/CD:** ${stack.patterns.ciCdProvider}`);
   lines.push(`- **TypeScript:** ${stack.patterns.hasTypeScript ? 'Yes' : 'No'}`);
   lines.push(`- **Docker:** ${stack.patterns.hasDockerfile ? 'Yes' : 'No'}`);
@@ -243,15 +296,22 @@ function generateStackDoc(stack: DetectedStack): string {
   if (stack.packageProfiles && stack.packageProfiles.length > 1) {
     lines.push('', '## Package Profiles (Per-Package Detection)', '');
     for (const profile of stack.packageProfiles) {
-      const profileFrameworks = profile.frameworks.length > 0
-        ? profile.frameworks.map((fw) => fw.name).join(', ')
-        : 'none detected';
-      const profileLangs = profile.languages.slice(0, 3).map((lang) => `${lang.name} ${lang.percentage}%`).join(', ') || 'none detected';
+      const profileFrameworks =
+        profile.frameworks.length > 0
+          ? profile.frameworks.map((fw) => fw.name).join(', ')
+          : 'none detected';
+      const profileLangs =
+        profile.languages
+          .slice(0, 3)
+          .map((lang) => `${lang.name} ${lang.percentage}%`)
+          .join(', ') || 'none detected';
       lines.push(`- **${profile.name}** at \`${profile.path}\``);
       lines.push(`  - Languages: ${profileLangs}`);
       lines.push(`  - Frameworks: ${profileFrameworks}`);
       lines.push(`  - Package manager: ${profile.patterns.packageManager}`);
-      lines.push(`  - Build/Test: ${profile.patterns.bundler ?? 'n/a'} / ${profile.patterns.testFramework ?? 'n/a'}`);
+      lines.push(
+        `  - Build/Test: ${profile.patterns.bundler ?? 'n/a'} / ${profile.patterns.testFramework ?? 'n/a'}`,
+      );
     }
   }
 
@@ -263,17 +323,29 @@ function generateStackDoc(stack: DetectedStack): string {
   if (detectedParity.length > 0) {
     lines.push('', '## MCP Parity Signals', '');
     lines.push(`- Detected language families for parity checks: ${detectedParity.join(', ')}`);
-    lines.push('- Route discovery, package/build introspection, and env-convention scanning are enabled per detected stack.');
+    lines.push(
+      '- Route discovery, package/build introspection, and env-convention scanning are enabled per detected stack.',
+    );
   }
 
   lines.push('', '## Visual Stack Map', '');
   lines.push('```mermaid');
   lines.push('flowchart LR');
-  lines.push(`  Project["${formatNodeLabel(`Project: ${sanitizeForInstructions(stack.projectName)}`)}"]`);
-  lines.push(`  Lang[\"${formatNodeLabel(`Languages: ${joinOrNone(stack.languages.map((lang) => lang.name))}`)}\"]`);
-  lines.push(`  Fw[\"${formatNodeLabel(`Frameworks: ${joinOrNone(stack.frameworks.map((fw) => fw.name))}`)}\"]`);
-  lines.push(`  Tooling[\"${formatNodeLabel(`Tooling: ${stack.patterns.packageManager}${stack.patterns.testFramework ? `, ${stack.patterns.testFramework}` : ''}`)}\"]`);
-  lines.push(`  Files[\"${formatNodeLabel(`Key files: ${Math.min(stack.keyFiles.length, 6)} shown in table`) }\"]`);
+  lines.push(
+    `  Project["${formatNodeLabel(`Project: ${sanitizeForInstructions(stack.projectName)}`)}"]`,
+  );
+  lines.push(
+    `  Lang[\"${formatNodeLabel(`Languages: ${joinOrNone(stack.languages.map((lang) => lang.name))}`)}\"]`,
+  );
+  lines.push(
+    `  Fw[\"${formatNodeLabel(`Frameworks: ${joinOrNone(stack.frameworks.map((fw) => fw.name))}`)}\"]`,
+  );
+  lines.push(
+    `  Tooling[\"${formatNodeLabel(`Tooling: ${stack.patterns.packageManager}${stack.patterns.testFramework ? `, ${stack.patterns.testFramework}` : ''}`)}\"]`,
+  );
+  lines.push(
+    `  Files[\"${formatNodeLabel(`Key files: ${Math.min(stack.keyFiles.length, 6)} shown in table`)}\"]`,
+  );
   lines.push('  Project --> Lang');
   lines.push('  Project --> Fw');
   lines.push('  Project --> Tooling');
@@ -305,7 +377,9 @@ function generateArchitectureDoc(stack: DetectedStack): string {
   lines.push('', '## Directory Structure', '');
   lines.push('```');
   try {
-    const entries = fs.readdirSync(stack.rootDir).filter(e => !e.startsWith('.') && e !== 'node_modules');
+    const entries = fs
+      .readdirSync(stack.rootDir)
+      .filter((e) => !e.startsWith('.') && e !== 'node_modules');
     for (const entry of entries.slice(0, 20)) {
       const stat = fs.statSync(path.join(stack.rootDir, entry));
       lines.push(stat.isDirectory() ? `${entry}/` : entry);
@@ -339,9 +413,15 @@ function generateArchitectureDoc(stack: DetectedStack): string {
   lines.push('', '## Visual Architecture Overview', '');
   lines.push('```mermaid');
   lines.push('flowchart TD');
-  lines.push(`  Repo["${formatNodeLabel(`Repository: ${sanitizeForInstructions(stack.projectName)}`)}"] --> Detect["Detect stack & patterns"]`);
-  lines.push(`  Detect --> Lang[\"${formatNodeLabel(`Languages: ${joinOrNone(stack.languages.map((lang) => lang.name))}`)}\"]`);
-  lines.push(`  Detect --> Fw[\"${formatNodeLabel(`Frameworks: ${joinOrNone(stack.frameworks.map((fw) => fw.name))}`)}\"]`);
+  lines.push(
+    `  Repo["${formatNodeLabel(`Repository: ${sanitizeForInstructions(stack.projectName)}`)}"] --> Detect["Detect stack & patterns"]`,
+  );
+  lines.push(
+    `  Detect --> Lang[\"${formatNodeLabel(`Languages: ${joinOrNone(stack.languages.map((lang) => lang.name))}`)}\"]`,
+  );
+  lines.push(
+    `  Detect --> Fw[\"${formatNodeLabel(`Frameworks: ${joinOrNone(stack.frameworks.map((fw) => fw.name))}`)}\"]`,
+  );
   lines.push('  Detect --> Ctx["Scan existing AI context"]');
   lines.push('  Detect --> Graph["Build dependency graph"]');
   lines.push('  Detect --> Generate["Generate AI OS artifacts"]');
@@ -436,9 +516,9 @@ function generateContextBudgetDoc(stack: DetectedStack): string {
     '',
     'Consider summarizing or compacting context when:',
     '',
-    '- Context window usage exceeds ~70% of the model\'s limit',
+    "- Context window usage exceeds ~70% of the model's limit",
     '- The same file or section has been re-read more than twice in a session',
-    '- A completed task\'s reasoning chain is no longer needed for the next task',
+    "- A completed task's reasoning chain is no longer needed for the next task",
     '- A long plan has been fully executed and only the outcomes matter',
     '',
     '**How to compact:**',
@@ -629,8 +709,8 @@ interface GenerateContextDocsOptions {
  * One table row per tool with name, description, and required params.
  */
 export function generateMcpToolRefDoc(stack: DetectedStack): string {
-  const active = MCP_TOOL_DEFINITIONS.filter(t => (t.condition ? t.condition(stack) : true));
-  const rows = active.map(tool => {
+  const active = MCP_TOOL_DEFINITIONS.filter((t) => (t.condition ? t.condition(stack) : true));
+  const rows = active.map((tool) => {
     const required = tool.inputSchema.required ?? [];
     const props = Object.entries(tool.inputSchema.properties ?? {});
     const paramList = props
@@ -664,7 +744,11 @@ export function generateMcpToolRefDoc(stack: DetectedStack): string {
 }
 
 /** Returns absolute paths of all managed files. */
-export function generateContextDocs(stack: DetectedStack, outputDir: string, options?: GenerateContextDocsOptions): string[] {
+export function generateContextDocs(
+  stack: DetectedStack,
+  outputDir: string,
+  options?: GenerateContextDocsOptions,
+): string[] {
   const preserveContextFiles = options?.preserveContextFiles ?? false;
   const contextDir = path.join(outputDir, '.github', 'ai-os', 'context');
   fs.mkdirSync(contextDir, { recursive: true });
@@ -672,8 +756,12 @@ export function generateContextDocs(stack: DetectedStack, outputDir: string, opt
   fs.mkdirSync(memoryDir, { recursive: true });
 
   const managed: string[] = [];
-  const track = (p: string) => { managed.push(p); return p; };
-  const shouldPreserve = (absPath: string): boolean => preserveContextFiles && fs.existsSync(absPath);
+  const track = (p: string) => {
+    managed.push(p);
+    return p;
+  };
+  const shouldPreserve = (absPath: string): boolean =>
+    preserveContextFiles && fs.existsSync(absPath);
 
   const existingContext = detectExistingAiContext(outputDir);
 
@@ -695,13 +783,23 @@ export function generateContextDocs(stack: DetectedStack, outputDir: string, opt
   const archPath = track(path.join(contextDir, 'architecture.md'));
   if (!(preserveContextFiles && fs.existsSync(archPath))) {
     const archGenerated = generateArchitectureDoc(stack);
-    writeIfChanged(archPath, fs.existsSync(archPath) ? mergeSections(fs.readFileSync(archPath, 'utf-8'), archGenerated) : archGenerated);
+    writeIfChanged(
+      archPath,
+      fs.existsSync(archPath)
+        ? mergeSections(fs.readFileSync(archPath, 'utf-8'), archGenerated)
+        : archGenerated,
+    );
   }
 
   const convsPath = track(path.join(contextDir, 'conventions.md'));
   if (!(preserveContextFiles && fs.existsSync(convsPath))) {
     const convsGenerated = generateConventionsDoc(stack);
-    writeIfChanged(convsPath, fs.existsSync(convsPath) ? mergeSections(fs.readFileSync(convsPath, 'utf-8'), convsGenerated) : convsGenerated);
+    writeIfChanged(
+      convsPath,
+      fs.existsSync(convsPath)
+        ? mergeSections(fs.readFileSync(convsPath, 'utf-8'), convsGenerated)
+        : convsGenerated,
+    );
   }
 
   writeIfChanged(track(path.join(contextDir, 'memory.md')), generateMemoryDoc(stack));
@@ -743,7 +841,8 @@ export function generateContextDocs(stack: DetectedStack, outputDir: string, opt
       {
         id: 'session-preamble-start-protocol',
         title: 'Session Start Protocol',
-        content: 'On every new conversation, call get_session_context first to reload MUST-ALWAYS rules, build commands, and key file locations. Then call get_repo_memory and get_conventions before starting any task.',
+        content:
+          'On every new conversation, call get_session_context first to reload MUST-ALWAYS rules, build commands, and key file locations. Then call get_repo_memory and get_conventions before starting any task.',
         category: 'conventions',
         tags: 'session,always,startup',
         priority: 'high',
@@ -753,7 +852,8 @@ export function generateContextDocs(stack: DetectedStack, outputDir: string, opt
       {
         id: 'session-preamble-memory-workflow',
         title: 'Memory Workflow — Always-On',
-        content: 'Before implementation: call get_repo_memory with a relevant query. After a substantial task: call remember_repo_fact only for verified durable findings. Never store speculative, duplicate, or transient notes.',
+        content:
+          'Before implementation: call get_repo_memory with a relevant query. After a substantial task: call remember_repo_fact only for verified durable findings. Never store speculative, duplicate, or transient notes.',
         category: 'conventions',
         tags: 'memory,always,session',
         priority: 'high',
@@ -763,24 +863,34 @@ export function generateContextDocs(stack: DetectedStack, outputDir: string, opt
     ];
     writeFileAtomic(
       memoryFilePath,
-      preambleEntries.map(e => JSON.stringify(e)).join('\n') + '\n',
+      preambleEntries.map((e) => JSON.stringify(e)).join('\n') + '\n',
     );
   }
 
   // Build and persist dependency graph for AI impact analysis
   const graph = buildDependencyGraph(outputDir);
-  writeIfChanged(track(path.join(contextDir, 'dependency-graph.json')), JSON.stringify(graph, null, 2));
+  writeIfChanged(
+    track(path.join(contextDir, 'dependency-graph.json')),
+    JSON.stringify(graph, null, 2),
+  );
 
   // Auto-generate MCP tool reference doc (#111)
   const toolRefPath = track(path.join(contextDir, 'mcp-tools.md'));
   writeIfChanged(toolRefPath, generateMcpToolRefDoc(stack));
 
   // Deploy built-in workflow templates to .github/ai-os/workflows/ (first install only)
-  const workflowTemplatesDir = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'templates', 'workflows');
+  const workflowTemplatesDir = path.join(
+    path.dirname(new URL(import.meta.url).pathname),
+    '..',
+    'templates',
+    'workflows',
+  );
   const targetWorkflowsDir = path.join(outputDir, '.github', 'ai-os', 'workflows');
   if (fs.existsSync(workflowTemplatesDir)) {
     fs.mkdirSync(targetWorkflowsDir, { recursive: true });
-    for (const file of fs.readdirSync(workflowTemplatesDir).filter(f => f.endsWith('.yml') || f.endsWith('.yaml'))) {
+    for (const file of fs
+      .readdirSync(workflowTemplatesDir)
+      .filter((f) => f.endsWith('.yml') || f.endsWith('.yaml'))) {
       const dest = track(path.join(targetWorkflowsDir, file));
       if (!fs.existsSync(dest)) {
         // Only deploy on first install — don't overwrite user customizations
@@ -792,21 +902,24 @@ export function generateContextDocs(stack: DetectedStack, outputDir: string, opt
   // Write config.json — preserve user-editable fields across refreshes
   const existingConfig = readAiOsConfig(outputDir);
   const config: AiOsConfig = {
-  // Auto-detected fields (always refreshed)
+    // Auto-detected fields (always refreshed)
     version: getToolVersion(),
     installedAt: new Date().toISOString(),
     projectName: sanitizeForInstructions(stack.projectName),
     primaryLanguage: stack.primaryLanguage.name,
     primaryFramework: stack.primaryFramework?.name ?? null,
-    frameworks: stack.frameworks.map(f => f.name),
+    frameworks: stack.frameworks.map((f) => f.name),
     packageManager: stack.patterns.packageManager,
     hasTypeScript: stack.patterns.hasTypeScript,
     // User-editable fields (preserved from existing config, fall back to defaults)
     agentsMd: existingConfig?.agentsMd ?? DEFAULT_AI_OS_CONFIG.agentsMd,
-    pathSpecificInstructions: existingConfig?.pathSpecificInstructions ?? DEFAULT_AI_OS_CONFIG.pathSpecificInstructions,
+    pathSpecificInstructions:
+      existingConfig?.pathSpecificInstructions ?? DEFAULT_AI_OS_CONFIG.pathSpecificInstructions,
     recommendations: existingConfig?.recommendations ?? DEFAULT_AI_OS_CONFIG.recommendations,
-    sessionContextCard: existingConfig?.sessionContextCard ?? DEFAULT_AI_OS_CONFIG.sessionContextCard,
-    updateCheckEnabled: existingConfig?.updateCheckEnabled ?? DEFAULT_AI_OS_CONFIG.updateCheckEnabled,
+    sessionContextCard:
+      existingConfig?.sessionContextCard ?? DEFAULT_AI_OS_CONFIG.sessionContextCard,
+    updateCheckEnabled:
+      existingConfig?.updateCheckEnabled ?? DEFAULT_AI_OS_CONFIG.updateCheckEnabled,
     skillsStrategy: existingConfig?.skillsStrategy ?? DEFAULT_AI_OS_CONFIG.skillsStrategy,
     agentFlowMode: existingConfig?.agentFlowMode ?? DEFAULT_AI_OS_CONFIG.agentFlowMode,
     persistentRules: existingConfig?.persistentRules ?? DEFAULT_AI_OS_CONFIG.persistentRules,
@@ -830,7 +943,11 @@ export function generateContextDocs(stack: DetectedStack, outputDir: string, opt
 }
 
 /** Generate a compact session context card (≤ 500 tokens). */
-function generateSessionContextCard(stack: DetectedStack, config: AiOsConfig, outputDir?: string): string {
+function generateSessionContextCard(
+  stack: DetectedStack,
+  config: AiOsConfig,
+  outputDir?: string,
+): string {
   const fw = stack.primaryFramework?.name ?? stack.primaryLanguage.name;
   const pm = stack.patterns.packageManager;
   const isNode = ['npm', 'yarn', 'pnpm', 'bun'].includes(pm);
@@ -841,14 +958,40 @@ function generateSessionContextCard(stack: DetectedStack, config: AiOsConfig, ou
     const skillsDir = path.join(outputDir, '.github', 'copilot', 'skills');
     if (!fs.existsSync(skillsDir)) return 0;
     try {
-      return fs.readdirSync(skillsDir).filter(f => f.endsWith('.md')).length;
-    } catch { return 0; }
+      return fs.readdirSync(skillsDir).filter((f) => f.endsWith('.md')).length;
+    } catch {
+      return 0;
+    }
   })();
 
   // Build/test commands based on detected stack
-  const buildCmd = isNode ? `${pm} run build` : pm === 'go' ? 'go build ./...' : pm === 'cargo' ? 'cargo build' : pm === 'maven' ? 'mvn package' : pm === 'gradle' ? './gradlew build' : 'build';
-  const testCmd = isNode ? `${pm} run test` : pm === 'go' ? 'go test ./...' : pm === 'cargo' ? 'cargo test' : pm === 'maven' ? 'mvn test' : pm === 'gradle' ? './gradlew test' : 'test';
-  const lintCmd = stack.patterns.linter ? (isNode ? `${pm} run lint` : stack.patterns.linter) : null;
+  const buildCmd = isNode
+    ? `${pm} run build`
+    : pm === 'go'
+      ? 'go build ./...'
+      : pm === 'cargo'
+        ? 'cargo build'
+        : pm === 'maven'
+          ? 'mvn package'
+          : pm === 'gradle'
+            ? './gradlew build'
+            : 'build';
+  const testCmd = isNode
+    ? `${pm} run test`
+    : pm === 'go'
+      ? 'go test ./...'
+      : pm === 'cargo'
+        ? 'cargo test'
+        : pm === 'maven'
+          ? 'mvn test'
+          : pm === 'gradle'
+            ? './gradlew test'
+            : 'test';
+  const lintCmd = stack.patterns.linter
+    ? isNode
+      ? `${pm} run lint`
+      : stack.patterns.linter
+    : null;
 
   const rules: string[] = [
     `Use ${fw} conventions for all new code`,
@@ -862,9 +1005,11 @@ function generateSessionContextCard(stack: DetectedStack, config: AiOsConfig, ou
   // Add user-defined persistent rules at the top
   const allRules = [...config.persistentRules, ...rules].slice(0, 10);
 
-  const keyFilesRows = stack.keyFiles.slice(0, 6).map(f => `| \`${f}\` | key file |`);
+  const keyFilesRows = stack.keyFiles.slice(0, 6).map((f) => `| \`${f}\` | key file |`);
   if (skillsCount > 0) {
-    keyFilesRows.push(`| \`.github/copilot/skills/\` | ${skillsCount} skill${skillsCount !== 1 ? 's' : ''} installed |`);
+    keyFilesRows.push(
+      `| \`.github/copilot/skills/\` | ${skillsCount} skill${skillsCount !== 1 ? 's' : ''} installed |`,
+    );
   }
   const keyFilesTable = keyFilesRows.join('\n');
 
@@ -875,7 +1020,7 @@ function generateSessionContextCard(stack: DetectedStack, config: AiOsConfig, ou
     '',
     '## MUST-ALWAYS Rules',
     '',
-    ...allRules.map(r => `- ${r}`),
+    ...allRules.map((r) => `- ${r}`),
     '',
     '## Build & Test',
     '',

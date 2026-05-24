@@ -52,12 +52,21 @@ export function parseWorkflowYaml(yaml: string): WorkflowDefinition {
 
     // Top-level fields
     const nameMatch = line.match(/^name:\s*(.+)/);
-    if (nameMatch) { result.name = nameMatch[1].trim().replace(/^['"]|['"]$/g, ''); continue; }
+    if (nameMatch) {
+      result.name = nameMatch[1].trim().replace(/^['"]|['"]$/g, '');
+      continue;
+    }
 
     const descMatch = line.match(/^description:\s*(.+)/);
-    if (descMatch) { result.description = descMatch[1].trim().replace(/^['"]|['"]$/g, ''); continue; }
+    if (descMatch) {
+      result.description = descMatch[1].trim().replace(/^['"]|['"]$/g, '');
+      continue;
+    }
 
-    if (line.match(/^steps:\s*$/)) { inSteps = true; continue; }
+    if (line.match(/^steps:\s*$/)) {
+      inSteps = true;
+      continue;
+    }
 
     if (!inSteps) continue;
 
@@ -67,7 +76,8 @@ export function parseWorkflowYaml(yaml: string): WorkflowDefinition {
       currentStep = {};
       const inline = line.slice(4).trim();
       const inlineAgentMatch = inline.match(/^agent:\s*(.+)/);
-      if (inlineAgentMatch) currentStep.agent = inlineAgentMatch[1].trim().replace(/^['"]|['"]$/g, '');
+      if (inlineAgentMatch)
+        currentStep.agent = inlineAgentMatch[1].trim().replace(/^['"]|['"]$/g, '');
       continue;
     }
 
@@ -75,22 +85,35 @@ export function parseWorkflowYaml(yaml: string): WorkflowDefinition {
 
     // Step fields
     const agentMatch = line.match(/^    agent:\s*(.+)/);
-    if (agentMatch) { currentStep.agent = agentMatch[1].trim().replace(/^['"]|['"]$/g, ''); continue; }
+    if (agentMatch) {
+      currentStep.agent = agentMatch[1].trim().replace(/^['"]|['"]$/g, '');
+      continue;
+    }
 
     const inputMatch = line.match(/^    input:\s*(.+)/);
-    if (inputMatch) { currentStep.input = inputMatch[1].trim().replace(/^['"]|['"]$/g, ''); continue; }
+    if (inputMatch) {
+      currentStep.input = inputMatch[1].trim().replace(/^['"]|['"]$/g, '');
+      continue;
+    }
 
     const outputMatch = line.match(/^    output:\s*(.+)/);
-    if (outputMatch) { currentStep.output = outputMatch[1].trim().replace(/^['"]|['"]$/g, ''); continue; }
+    if (outputMatch) {
+      currentStep.output = outputMatch[1].trim().replace(/^['"]|['"]$/g, '');
+      continue;
+    }
 
     const descStepMatch = line.match(/^    description:\s*(.+)/);
-    if (descStepMatch) { currentStep.description = descStepMatch[1].trim().replace(/^['"]|['"]$/g, ''); continue; }
+    if (descStepMatch) {
+      currentStep.description = descStepMatch[1].trim().replace(/^['"]|['"]$/g, '');
+      continue;
+    }
   }
 
   if (currentStep && currentStep.agent) result.steps!.push(currentStep as WorkflowStep);
 
   if (!result.name) throw new Error('Workflow YAML must have a "name" field');
-  if (!result.steps || result.steps.length === 0) throw new Error('Workflow YAML must have at least one step');
+  if (!result.steps || result.steps.length === 0)
+    throw new Error('Workflow YAML must have at least one step');
 
   return result as WorkflowDefinition;
 }
@@ -103,7 +126,11 @@ export function validateWorkflow(wf: WorkflowDefinition): WorkflowValidationErro
   for (let i = 0; i < wf.steps.length; i++) {
     const step = wf.steps[i];
     if (!step.agent) {
-      errors.push({ step: i, field: 'agent', message: `Step ${i + 1} is missing required "agent" field` });
+      errors.push({
+        step: i,
+        field: 'agent',
+        message: `Step ${i + 1} is missing required "agent" field`,
+      });
     }
     if (step.input && !knownOutputs.has(step.input)) {
       errors.push({
@@ -163,18 +190,25 @@ export function formatRunPlan(plan: WorkflowRunPlan): string {
   if (!plan.dryRun) {
     lines.push('### Execution');
     lines.push('');
-    lines.push('To execute this workflow, invoke each agent in sequence, passing the output of each step as context to the next.');
-    lines.push('Use the `dispatching-parallel-agents` or `executing-plans` skill for multi-agent orchestration.');
+    lines.push(
+      'To execute this workflow, invoke each agent in sequence, passing the output of each step as context to the next.',
+    );
+    lines.push(
+      'Use the `dispatching-parallel-agents` or `executing-plans` skill for multi-agent orchestration.',
+    );
   }
 
-  return lines.filter(l => l !== null).join('\n').replace(/\n{3,}/g, '\n\n');
+  return lines
+    .filter((l) => l !== null)
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n');
 }
 
 /** List all workflow files in a project. */
 export function listWorkflows(cwd: string): string[] {
   const dir = path.join(cwd, '.github', 'ai-os', 'workflows');
   if (!fs.existsSync(dir)) return [];
-  return fs.readdirSync(dir).filter(f => f.endsWith('.yml') || f.endsWith('.yaml'));
+  return fs.readdirSync(dir).filter((f) => f.endsWith('.yml') || f.endsWith('.yaml'));
 }
 
 /** Load and parse a workflow by filename. */

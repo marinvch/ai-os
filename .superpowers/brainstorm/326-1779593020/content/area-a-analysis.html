@@ -1,0 +1,102 @@
+<h2>Area A — Folder Structure Deep Dive</h2>
+<p class="subtitle">What I found vs. what needs to change</p>
+
+<div class="section">
+  <h3>🔍 Findings per Item</h3>
+
+  <div style="display:grid;gap:12px;">
+
+    <div style="background:var(--surface-2,#1e1e2e);padding:14px 16px;border-radius:8px;border-left:3px solid #e17055;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <strong style="font-family:monospace;">analyze/doc/</strong>
+        <span style="font-size:0.75em;background:#e17055;padding:2px 8px;border-radius:4px;">Action needed</span>
+      </div>
+      <p style="margin:8px 0 0;">Contains 5 one-time audit docs (result.md, github-issues.md, senior-dev-checklist.md, etc.). <strong>Not regenerated</strong>. Not gitignored. Added to git history. Clutters root-level navigation for contributors who mistake it for live documentation. These are historical artifacts — the senior-dev-checklist shows 19/19 ✅ complete.</p>
+      <div style="margin-top:8px;font-size:0.8em;color:var(--accent,#a29bfe);">
+        → Propose: Move to <code>docs/audit/</code> and add a clear "historical, not live" header. Or delete since they're fully consumed.
+      </div>
+    </div>
+
+    <div style="background:var(--surface-2,#1e1e2e);padding:14px 16px;border-radius:8px;border-left:3px solid #fdcb6e;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <strong style="font-family:monospace;">skill-creator/</strong>
+        <span style="font-size:0.75em;background:#fdcb6e;color:#000;padding:2px 8px;border-radius:4px;">Clarify purpose</span>
+      </div>
+      <p style="margin:8px 0 0;">Has its own SKILL.md, agents/, scripts/, eval-viewer/ — it's a self-contained <em>meta-tool</em> for building and evaluating skills. Lives at root alongside src/, docs/, which implies it's a product component. But it's actually a contributor/dev tool. No README explains why it's here.</p>
+      <div style="margin-top:8px;font-size:0.8em;color:var(--accent,#a29bfe);">
+        → Propose: Add a SKILL.md intro explaining it's the skill development toolkit. Or move to <code>tools/skill-creator/</code>.
+      </div>
+    </div>
+
+    <div style="background:var(--surface-2,#1e1e2e);padding:14px 16px;border-radius:8px;border-left:3px solid #74b9ff;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <strong style="font-family:monospace;">bundle/generate.js + server.js</strong>
+        <span style="font-size:0.75em;background:#74b9ff;color:#000;padding:2px 8px;border-radius:4px;">Intentional, needs docs</span>
+      </div>
+      <p style="margin:8px 0 0;"><strong>This is intentional</strong> — the bundle must be committed so <code>npx github:marinvch/ai-os</code> works without a build step. But the repo has no explanation of this, making PRs confusing ("why are compiled files being changed?").</p>
+      <div style="margin-top:8px;font-size:0.8em;color:var(--accent,#a29bfe);">
+        → Propose: Add a <code>bundle/README.md</code> explaining why these are committed. Add a note to contributing.md about always running npm run bundle before commit.
+      </div>
+    </div>
+
+    <div style="background:var(--surface-2,#1e1e2e);padding:14px 16px;border-radius:8px;border-left:3px solid #00b894;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <strong style="font-family:monospace;">docs/README-full.md</strong>
+        <span style="font-size:0.75em;background:#00b894;color:#000;padding:2px 8px;border-radius:4px;">Already resolved</span>
+      </div>
+      <p style="margin:8px 0 0;">Already says "archived — kept for historical reference" with links to the real docs. It's a 4-line tombstone file. Safe to delete entirely.</p>
+    </div>
+
+    <div style="background:var(--surface-2,#1e1e2e);padding:14px 16px;border-radius:8px;border-left:3px solid #fdcb6e;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <strong style="font-family:monospace;">docs/superpowers/</strong>
+        <span style="font-size:0.75em;background:#fdcb6e;color:#000;padding:2px 8px;border-radius:4px;">Design artifact noise</span>
+      </div>
+      <p style="margin:8px 0 0;">Contains brainstorming skill output: <code>plans/2026-05-*.md</code> and <code>specs/2026-05-*.md</code>. These are valuable context for contributors understanding design decisions — but they're <em>process artifacts</em>, not product docs. They break the docs/ structure which is otherwise clean (architecture, cli, contributing, mcp-tools, guides).</p>
+      <div style="margin-top:8px;font-size:0.8em;color:var(--accent,#a29bfe);">
+        → Propose: Keep in place but add <code>docs/superpowers/README.md</code> explaining these are design history docs. Or move to <code>.superpowers/</code> (gitignored by default).
+      </div>
+    </div>
+
+    <div style="background:var(--surface-2,#1e1e2e);padding:14px 16px;border-radius:8px;border-left:3px solid #e17055;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <strong style="font-family:monospace;">install.sh vs bootstrap.sh</strong>
+        <span style="font-size:0.75em;background:#e17055;padding:2px 8px;border-radius:4px;">Undocumented distinction</span>
+      </div>
+      <p style="margin:8px 0 0;"><strong>bootstrap.sh</strong> = remote installer — clones AI OS repo to /tmp, then runs install.sh. Used when you do <code>curl url | bash</code> or when you don't have the repo locally. <strong>install.sh</strong> = local installer — runs from inside the cloned repo. The distinction is real and important, but <strong>zero documentation</strong> explains this. First-time contributors are confused about which to use or edit.</p>
+      <div style="margin-top:8px;font-size:0.8em;color:var(--accent,#a29bfe);">
+        → Propose: Add a header comment to both files + docs/contributing.md section explaining the two-script architecture.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="section" style="background:var(--surface-2,#1e1e2e);padding:16px;border-radius:8px;border-left:3px solid #a29bfe;">
+  <h3 style="margin-top:0;">❓ Clarifying question</h3>
+  <p>For the <strong>analyze/doc/</strong> artifacts — these are the original audit that powered all the v0.14–v0.21 work. They're now fully consumed (19/19 items done). What should happen to them?</p>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="delete" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Delete them</h3>
+      <p>They've served their purpose. Remove analyze/ entirely — git history preserves them if ever needed</p>
+    </div>
+  </div>
+  <div class="option" data-choice="move" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Move to docs/audit/</h3>
+      <p>Preserve as historical reference — useful for future contributors to understand design decisions and completed work</p>
+    </div>
+  </div>
+  <div class="option" data-choice="gitignore" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Gitignore analyze/ pattern</h3>
+      <p>Keep the current location but add analyze/ to .gitignore — future audits go there but aren't committed</p>
+    </div>
+  </div>
+</div>

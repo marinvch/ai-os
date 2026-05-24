@@ -28,7 +28,11 @@ describe('searchFiles – shell injection prevention', () => {
     searchFiles(maliciousQuery);
 
     expect(mockSpawnSync).toHaveBeenCalled();
-    const [cmd, args, opts] = mockSpawnSync.mock.calls[0] as [string, string[], Record<string, unknown>];
+    const [cmd, args, opts] = mockSpawnSync.mock.calls[0] as [
+      string,
+      string[],
+      Record<string, unknown>,
+    ];
 
     // Must use npx directly (not sh/bash -c)
     expect(cmd).toBe('npx');
@@ -84,4 +88,3 @@ describe('searchFiles – shell injection prevention', () => {
     expect(result).toBe('No results found');
   });
 });
-

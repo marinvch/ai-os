@@ -15,10 +15,7 @@ describe('updater version resolution', () => {
   it('prefers the tool version when it is newer than the latest published tag', async () => {
     spawnSyncMock.mockReturnValue({
       status: 0,
-      stdout: [
-        'abc123\trefs/tags/v0.8.0',
-        'def456\trefs/tags/v0.9.0',
-      ].join('\n'),
+      stdout: ['abc123\trefs/tags/v0.8.0', 'def456\trefs/tags/v0.9.0'].join('\n'),
     });
 
     const { getLatestResolvableVersion } = await import('../updater.js');
@@ -29,10 +26,7 @@ describe('updater version resolution', () => {
   it('prefers the latest published tag when it is newer than the tool version', async () => {
     spawnSyncMock.mockReturnValue({
       status: 0,
-      stdout: [
-        'abc123\trefs/tags/v0.8.0',
-        'def456\trefs/tags/v0.9.0',
-      ].join('\n'),
+      stdout: ['abc123\trefs/tags/v0.8.0', 'def456\trefs/tags/v0.9.0'].join('\n'),
     });
 
     const { getLatestResolvableVersion } = await import('../updater.js');
@@ -52,7 +46,7 @@ describe('updater version resolution', () => {
       isFirstInstall: false,
     });
 
-    const rendered = logSpy.mock.calls.map(call => String(call[0] ?? '')).join('\n');
+    const rendered = logSpy.mock.calls.map((call) => String(call[0] ?? '')).join('\n');
     expect(rendered).toContain('npx -y "github:marinvch/ai-os#v0.9.0" --refresh-existing');
 
     logSpy.mockRestore();

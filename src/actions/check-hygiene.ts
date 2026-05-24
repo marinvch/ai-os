@@ -31,7 +31,9 @@ export function runCheckHygieneAction(cwd: string, json = false): void {
   if (fs.existsSync(legacyContextDir)) {
     const legacyFiles = fs.readdirSync(legacyContextDir);
     if (legacyFiles.length > 0) {
-      issues.push(`  ⚠  Legacy .ai-os/context/ found with ${legacyFiles.length} file(s) — run --refresh-existing to migrate and prune`);
+      issues.push(
+        `  ⚠  Legacy .ai-os/context/ found with ${legacyFiles.length} file(s) — run --refresh-existing to migrate and prune`,
+      );
     }
   }
 
@@ -49,17 +51,16 @@ export function runCheckHygieneAction(cwd: string, json = false): void {
   // Check for node_modules inside .ai-os/mcp-server/ (Phase F not yet applied)
   const mcpNodeModules = path.join(cwd, '.ai-os', 'mcp-server', 'node_modules');
   if (fs.existsSync(mcpNodeModules)) {
-    issues.push(`  ⚠  node_modules present in .ai-os/mcp-server/ — Phase F (bundle deploy) will eliminate this`);
+    issues.push(
+      `  ⚠  node_modules present in .ai-os/mcp-server/ — Phase F (bundle deploy) will eliminate this`,
+    );
   }
 
   // Check for *.tmp files in ai-os dirs
-  const aiOsDirs = [
-    path.join(cwd, '.github', 'ai-os'),
-    path.join(cwd, '.ai-os'),
-  ];
+  const aiOsDirs = [path.join(cwd, '.github', 'ai-os'), path.join(cwd, '.ai-os')];
   for (const dir of aiOsDirs) {
     if (!fs.existsSync(dir)) continue;
-    const tmpFiles = findFilesRecursive(dir, f => f.endsWith('.tmp'));
+    const tmpFiles = findFilesRecursive(dir, (f) => f.endsWith('.tmp'));
     for (const f of tmpFiles) {
       issues.push(`  ⚠  Orphaned temp file: ${path.relative(cwd, f)}`);
     }
@@ -68,9 +69,11 @@ export function runCheckHygieneAction(cwd: string, json = false): void {
   // Check manifest consistency
   const manifest = readManifest(cwd);
   if (manifest) {
-    const missingFiles = manifest.files.filter(f => !fs.existsSync(path.join(cwd, f)));
+    const missingFiles = manifest.files.filter((f) => !fs.existsSync(path.join(cwd, f)));
     if (missingFiles.length > 0) {
-      issues.push(`  ⚠  ${missingFiles.length} manifest entries point to missing files — run --refresh-existing`);
+      issues.push(
+        `  ⚠  ${missingFiles.length} manifest entries point to missing files — run --refresh-existing`,
+      );
     }
   } else {
     issues.push(`  ⚠  No manifest.json found — run AI OS generation to create one`);

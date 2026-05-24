@@ -24,10 +24,7 @@ function writeFile(filePath: string, content: string): void {
 }
 
 function writeCliMcpConfig(tmpDir: string, server: Record<string, unknown>): void {
-  writeFile(
-    path.join(tmpDir, '.mcp.json'),
-    JSON.stringify({ mcpServers: { 'ai-os': server } }),
-  );
+  writeFile(path.join(tmpDir, '.mcp.json'), JSON.stringify({ mcpServers: { 'ai-os': server } }));
 }
 
 function writeVsCodeMcpConfig(tmpDir: string, server: Record<string, unknown>): void {
@@ -56,7 +53,7 @@ describe('runDoctor', () => {
     const { runDoctor } = await import('../doctor.js');
     const result = runDoctor(tmpDir);
 
-    const names = result.checks.map(c => c.name);
+    const names = result.checks.map((c) => c.name);
     expect(names).toContain('MCP runtime binary present (.ai-os/mcp-server/index.js)');
     expect(names).toContain('MCP runtime healthcheck');
     expect(names).toContain('Copilot CLI MCP config present (.mcp.json)');
@@ -94,14 +91,18 @@ describe('runDoctor', () => {
     const runtimePath = path.join(tmpDir, '.ai-os', 'mcp-server', 'index.js');
     writeFile(runtimePath, '// stub');
     const result = runDoctor(tmpDir);
-    const check = result.checks.find(c => c.name === 'MCP runtime binary present (.ai-os/mcp-server/index.js)');
+    const check = result.checks.find(
+      (c) => c.name === 'MCP runtime binary present (.ai-os/mcp-server/index.js)',
+    );
     expect(check?.passed).toBe(true);
   });
 
   it('fails MCP runtime check when the file is absent', async () => {
     const { runDoctor } = await import('../doctor.js');
     const result = runDoctor(tmpDir);
-    const check = result.checks.find(c => c.name === 'MCP runtime binary present (.ai-os/mcp-server/index.js)');
+    const check = result.checks.find(
+      (c) => c.name === 'MCP runtime binary present (.ai-os/mcp-server/index.js)',
+    );
     expect(check?.passed).toBe(false);
     expect(check?.critical).toBe(true);
     expect(check?.fixCommand).toContain('--refresh-existing');
@@ -111,14 +112,18 @@ describe('runDoctor', () => {
     const { runDoctor } = await import('../doctor.js');
     writeCliMcpConfig(tmpDir, { type: 'stdio', command: 'node', args: [] });
     const result = runDoctor(tmpDir);
-    const check = result.checks.find(c => c.name === 'Copilot CLI MCP config present (.mcp.json)');
+    const check = result.checks.find(
+      (c) => c.name === 'Copilot CLI MCP config present (.mcp.json)',
+    );
     expect(check?.passed).toBe(true);
   });
 
   it('fails Copilot CLI MCP config check when .mcp.json is absent', async () => {
     const { runDoctor } = await import('../doctor.js');
     const result = runDoctor(tmpDir);
-    const check = result.checks.find(c => c.name === 'Copilot CLI MCP config present (.mcp.json)');
+    const check = result.checks.find(
+      (c) => c.name === 'Copilot CLI MCP config present (.mcp.json)',
+    );
     expect(check?.passed).toBe(false);
     expect(check?.critical).toBe(true);
   });
@@ -127,7 +132,7 @@ describe('runDoctor', () => {
     const { runDoctor } = await import('../doctor.js');
     writeCliMcpConfig(tmpDir, { type: 'stdio', command: 'node', args: ['stub.js'] });
     const result = runDoctor(tmpDir);
-    const check = result.checks.find(c => c.name === 'ai-os CLI server entry in MCP config');
+    const check = result.checks.find((c) => c.name === 'ai-os CLI server entry in MCP config');
     expect(check?.passed).toBe(true);
   });
 
@@ -135,7 +140,7 @@ describe('runDoctor', () => {
     const { runDoctor } = await import('../doctor.js');
     writeFile(path.join(tmpDir, '.mcp.json'), JSON.stringify({ mcpServers: {} }));
     const result = runDoctor(tmpDir);
-    const check = result.checks.find(c => c.name === 'ai-os CLI server entry in MCP config');
+    const check = result.checks.find((c) => c.name === 'ai-os CLI server entry in MCP config');
     expect(check?.passed).toBe(false);
     expect(check?.fixCommand).toBeDefined();
   });
@@ -150,7 +155,7 @@ describe('runDoctor', () => {
       args: ['.ai-os/mcp-server/index.js'],
     });
     const result = runDoctor(tmpDir);
-    const check = result.checks.find(c => c.name === 'Copilot CLI MCP command resolves');
+    const check = result.checks.find((c) => c.name === 'Copilot CLI MCP command resolves');
     expect(check?.passed).toBe(true);
   });
 
@@ -162,7 +167,7 @@ describe('runDoctor', () => {
       args: ['.ai-os/mcp-server/index.js'],
     });
     const result = runDoctor(tmpDir);
-    const check = result.checks.find(c => c.name === 'Copilot CLI MCP command resolves');
+    const check = result.checks.find((c) => c.name === 'Copilot CLI MCP command resolves');
     expect(check?.passed).toBe(false);
   });
 
@@ -170,14 +175,18 @@ describe('runDoctor', () => {
     const { runDoctor } = await import('../doctor.js');
     writeVsCodeMcpConfig(tmpDir, { type: 'stdio', command: 'node', args: [] });
     const result = runDoctor(tmpDir);
-    const check = result.checks.find(c => c.name === 'VS Code MCP config present (.vscode/mcp.json)');
+    const check = result.checks.find(
+      (c) => c.name === 'VS Code MCP config present (.vscode/mcp.json)',
+    );
     expect(check?.passed).toBe(true);
   });
 
   it('fails VS Code MCP config check when .vscode/mcp.json is absent', async () => {
     const { runDoctor } = await import('../doctor.js');
     const result = runDoctor(tmpDir);
-    const check = result.checks.find(c => c.name === 'VS Code MCP config present (.vscode/mcp.json)');
+    const check = result.checks.find(
+      (c) => c.name === 'VS Code MCP config present (.vscode/mcp.json)',
+    );
     expect(check?.passed).toBe(false);
     expect(check?.critical).toBe(true);
   });
@@ -186,7 +195,7 @@ describe('runDoctor', () => {
     const { runDoctor } = await import('../doctor.js');
     writeVsCodeMcpConfig(tmpDir, { type: 'stdio', command: 'node', args: ['stub.js'] });
     const result = runDoctor(tmpDir);
-    const check = result.checks.find(c => c.name === 'ai-os VS Code server entry in MCP config');
+    const check = result.checks.find((c) => c.name === 'ai-os VS Code server entry in MCP config');
     expect(check?.passed).toBe(true);
   });
 
@@ -194,7 +203,7 @@ describe('runDoctor', () => {
     const { runDoctor } = await import('../doctor.js');
     writeFile(path.join(tmpDir, '.vscode', 'mcp.json'), JSON.stringify({ servers: {} }));
     const result = runDoctor(tmpDir);
-    const check = result.checks.find(c => c.name === 'ai-os VS Code server entry in MCP config');
+    const check = result.checks.find((c) => c.name === 'ai-os VS Code server entry in MCP config');
     expect(check?.passed).toBe(false);
     expect(check?.fixCommand).toBeDefined();
   });
@@ -209,7 +218,7 @@ describe('runDoctor', () => {
       args: ['${workspaceFolder}/.ai-os/mcp-server/index.js'],
     });
     const result = runDoctor(tmpDir);
-    const check = result.checks.find(c => c.name === 'VS Code MCP command resolves');
+    const check = result.checks.find((c) => c.name === 'VS Code MCP command resolves');
     expect(check?.passed).toBe(true);
   });
 
@@ -221,7 +230,7 @@ describe('runDoctor', () => {
       args: ['${workspaceFolder}/.ai-os/mcp-server/index.js'],
     });
     const result = runDoctor(tmpDir);
-    const check = result.checks.find(c => c.name === 'VS Code MCP command resolves');
+    const check = result.checks.find((c) => c.name === 'VS Code MCP command resolves');
     expect(check?.passed).toBe(false);
   });
 
@@ -230,7 +239,9 @@ describe('runDoctor', () => {
     const configPath = path.join(tmpDir, '.github', 'ai-os', 'config.json');
     writeFile(configPath, JSON.stringify({ version: '0.10.0' }));
     const result = runDoctor(tmpDir);
-    const check = result.checks.find(c => c.name === 'AI OS config present (.github/ai-os/config.json)');
+    const check = result.checks.find(
+      (c) => c.name === 'AI OS config present (.github/ai-os/config.json)',
+    );
     expect(check?.passed).toBe(true);
   });
 
@@ -239,7 +250,9 @@ describe('runDoctor', () => {
     const configPath = path.join(tmpDir, '.github', 'ai-os', 'config.json');
     writeFile(configPath, '{invalid json}');
     const result = runDoctor(tmpDir);
-    const check = result.checks.find(c => c.name === 'AI OS config present (.github/ai-os/config.json)');
+    const check = result.checks.find(
+      (c) => c.name === 'AI OS config present (.github/ai-os/config.json)',
+    );
     expect(check?.passed).toBe(false);
     expect(check?.critical).toBe(false);
   });
@@ -249,7 +262,9 @@ describe('runDoctor', () => {
     const toolsPath = path.join(tmpDir, '.github', 'ai-os', 'tools.json');
     writeFile(toolsPath, JSON.stringify({ activeTools: [] }));
     const result = runDoctor(tmpDir);
-    const check = result.checks.find(c => c.name === 'MCP tools catalog present (.github/ai-os/tools.json)');
+    const check = result.checks.find(
+      (c) => c.name === 'MCP tools catalog present (.github/ai-os/tools.json)',
+    );
     expect(check?.passed).toBe(true);
   });
 
@@ -258,7 +273,7 @@ describe('runDoctor', () => {
     const skillDir = path.join(tmpDir, '.agents', 'skills', 'ai-os-skill-creator');
     fs.mkdirSync(skillDir, { recursive: true });
     const result = runDoctor(tmpDir);
-    const check = result.checks.find(c => c.name === 'AI OS skills deployed');
+    const check = result.checks.find((c) => c.name === 'AI OS skills deployed');
     expect(check?.passed).toBe(true);
   });
 
@@ -267,14 +282,14 @@ describe('runDoctor', () => {
     const skillDir = path.join(tmpDir, '.github', 'copilot', 'skills');
     fs.mkdirSync(skillDir, { recursive: true });
     const result = runDoctor(tmpDir);
-    const check = result.checks.find(c => c.name === 'AI OS skills deployed');
+    const check = result.checks.find((c) => c.name === 'AI OS skills deployed');
     expect(check?.passed).toBe(true);
   });
 
   it('fails skills check when no skill directory exists', async () => {
     const { runDoctor } = await import('../doctor.js');
     const result = runDoctor(tmpDir);
-    const check = result.checks.find(c => c.name === 'AI OS skills deployed');
+    const check = result.checks.find((c) => c.name === 'AI OS skills deployed');
     expect(check?.passed).toBe(false);
     expect(check?.critical).toBe(false);
   });
@@ -342,9 +357,7 @@ describe('printDoctorReport', () => {
     const result = {
       cwd: '/tmp/test',
       toolVersion: '0.10.0',
-      checks: [
-        { name: 'Some check', critical: true, passed: true },
-      ],
+      checks: [{ name: 'Some check', critical: true, passed: true }],
       criticalFailures: 0,
       warnings: 0,
     };

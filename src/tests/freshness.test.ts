@@ -14,7 +14,10 @@ import {
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 function makeTempDir(): string {
-  const dir = path.join(os.tmpdir(), `ai-os-freshness-${Date.now()}-${crypto.randomBytes(8).toString('hex')}`);
+  const dir = path.join(
+    os.tmpdir(),
+    `ai-os-freshness-${Date.now()}-${crypto.randomBytes(8).toString('hex')}`,
+  );
   fs.mkdirSync(dir, { recursive: true });
   return dir;
 }
@@ -30,8 +33,16 @@ function seedAiOsArtifacts(root: string): void {
   writeFile(root, '.github/ai-os/context/architecture.md', '# Architecture\n\noverview');
   writeFile(root, '.github/ai-os/context/stack.md', '# Stack\n\nnodejs');
   writeFile(root, '.github/copilot-instructions.md', '# Instructions\n\nrules');
-  writeFile(root, '.github/ai-os/config.json', JSON.stringify({ version: '0.10.0', installedAt: '2025-01-01T00:00:00Z' }));
-  writeFile(root, '.github/ai-os/tools.json', JSON.stringify({ activeTools: [], availableButInactive: [] }));
+  writeFile(
+    root,
+    '.github/ai-os/config.json',
+    JSON.stringify({ version: '0.10.0', installedAt: '2025-01-01T00:00:00Z' }),
+  );
+  writeFile(
+    root,
+    '.github/ai-os/tools.json',
+    JSON.stringify({ activeTools: [], availableButInactive: [] }),
+  );
   writeFile(root, 'package.json', JSON.stringify({ name: 'test', version: '1.0.0' }));
 }
 
@@ -115,7 +126,11 @@ describe('writeContextSnapshot / loadContextSnapshot', () => {
 
   it('returns null for corrupted snapshot file', () => {
     fs.mkdirSync(path.join(tmpDir, '.github', 'ai-os'), { recursive: true });
-    fs.writeFileSync(path.join(tmpDir, '.github', 'ai-os', 'context-snapshot.json'), '{ invalid json', 'utf-8');
+    fs.writeFileSync(
+      path.join(tmpDir, '.github', 'ai-os', 'context-snapshot.json'),
+      '{ invalid json',
+      'utf-8',
+    );
     const loaded = loadContextSnapshot(tmpDir);
     expect(loaded).toBeNull();
   });
@@ -168,7 +183,11 @@ describe('computeFreshnessReport', () => {
     writeContextSnapshot(tmpDir, snapshot);
 
     // Modify package.json
-    writeFile(tmpDir, 'package.json', JSON.stringify({ name: 'test', version: '2.0.0', dependencies: { react: '^18' } }));
+    writeFile(
+      tmpDir,
+      'package.json',
+      JSON.stringify({ name: 'test', version: '2.0.0', dependencies: { react: '^18' } }),
+    );
 
     const report = computeFreshnessReport(tmpDir);
     expect(report.changedSourceFiles).toContain('package.json');

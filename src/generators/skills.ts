@@ -16,12 +16,21 @@ interface SkillSpec {
 function buildSkillSpecs(stack: DetectedStack, cwd: string): SkillSpec[] {
   const specs: SkillSpec[] = [];
   const projectName = path.basename(cwd);
-  const frameworks = stack.frameworks.map(f => f.name.toLowerCase());
+  const frameworks = stack.frameworks.map((f) => f.name.toLowerCase());
   const packages = stack.allDependencies;
-  const hasExpressLike = frameworks.some(f => ['express', 'fastify', 'hono', 'koa', 'nest'].some(x => f.includes(x)));
-  const hasJavaSpringLike = frameworks.some(f => ['spring', 'quarkus', 'micronaut', 'java'].some(x => f.includes(x)));
+  const hasExpressLike = frameworks.some((f) =>
+    ['express', 'fastify', 'hono', 'koa', 'nest'].some((x) => f.includes(x)),
+  );
+  const hasJavaSpringLike = frameworks.some((f) =>
+    ['spring', 'quarkus', 'micronaut', 'java'].some((x) => f.includes(x)),
+  );
 
-  const templateDir = path.join(resolveTemplatesDir(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1'))), 'skills');
+  const templateDir = path.join(
+    resolveTemplatesDir(
+      path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1')),
+    ),
+    'skills',
+  );
 
   const add = (template: string, output: string, replacements: Record<string, string> = {}) => {
     const templatePath = path.join(templateDir, template);
@@ -35,14 +44,14 @@ function buildSkillSpecs(stack: DetectedStack, cwd: string): SkillSpec[] {
   };
 
   // Next.js
-  if (frameworks.some(f => f.includes('next'))) {
+  if (frameworks.some((f) => f.includes('next'))) {
     add('nextjs.md', 'ai-os-nextjs-patterns.md');
   }
 
   // React (non-Next.js to avoid duplicate)
-  if (frameworks.some(f => f.includes('react')) && !frameworks.some(f => f.includes('next'))) {
+  if (frameworks.some((f) => f.includes('react')) && !frameworks.some((f) => f.includes('next'))) {
     // Stack-conflict check: when Redux Toolkit is present, do not emit "No Redux" guidance.
-    const hasRedux = packages.some(p =>
+    const hasRedux = packages.some((p) =>
       ['redux', '@reduxjs/toolkit', 'react-redux'].includes(p.toLowerCase()),
     );
     const stateManagementComment = hasRedux
@@ -76,7 +85,9 @@ function buildSkillSpecs(stack: DetectedStack, cwd: string): SkillSpec[] {
       : 'src/lib/stripe.ts';
     add('stripe.md', 'ai-os-billing-stripe.md', {
       '{{PLANS_FILE}}': plansFile,
-      '{{STRIPE_LIB_FILE}}': fs.existsSync(path.join(cwd, 'src/lib/stripe.ts')) ? 'src/lib/stripe.ts' : plansFile,
+      '{{STRIPE_LIB_FILE}}': fs.existsSync(path.join(cwd, 'src/lib/stripe.ts'))
+        ? 'src/lib/stripe.ts'
+        : plansFile,
       '{{WEBHOOK_FILE}}': 'src/app/api/webhooks/stripe/route.ts',
     });
   }
@@ -95,7 +106,11 @@ function buildSkillSpecs(stack: DetectedStack, cwd: string): SkillSpec[] {
   }
 
   // pgvector / RAG
-  if (packages.includes('langchain') || packages.includes('@langchain/community') || packages.includes('pgvector')) {
+  if (
+    packages.includes('langchain') ||
+    packages.includes('@langchain/community') ||
+    packages.includes('pgvector')
+  ) {
     add('rag-pgvector.md', 'ai-os-rag-pipeline.md');
   }
 
@@ -105,12 +120,12 @@ function buildSkillSpecs(stack: DetectedStack, cwd: string): SkillSpec[] {
   }
 
   // FastAPI / Django
-  if (frameworks.some(f => f.includes('fastapi') || f.includes('django'))) {
+  if (frameworks.some((f) => f.includes('fastapi') || f.includes('django'))) {
     add('python-fastapi.md', 'ai-os-fastapi-patterns.md');
   }
 
   // Go
-  if (stack.languages.some(l => l.name.toLowerCase() === 'go')) {
+  if (stack.languages.some((l) => l.name.toLowerCase() === 'go')) {
     add('go.md', 'ai-os-go-patterns.md');
   }
 
@@ -120,27 +135,27 @@ function buildSkillSpecs(stack: DetectedStack, cwd: string): SkillSpec[] {
   }
 
   // Remix
-  if (frameworks.some(f => f.includes('remix'))) {
+  if (frameworks.some((f) => f.includes('remix'))) {
     add('remix.md', 'ai-os-remix-patterns.md');
   }
 
   // SolidJS
-  if (frameworks.some(f => f.includes('solid'))) {
+  if (frameworks.some((f) => f.includes('solid'))) {
     add('solid.md', 'ai-os-solid-patterns.md');
   }
 
   // Bun
-  if (frameworks.some(f => f === 'bun') || packages.includes('bun')) {
+  if (frameworks.some((f) => f === 'bun') || packages.includes('bun')) {
     add('bun.md', 'ai-os-bun-patterns.md');
   }
 
   // Deno
-  if (frameworks.some(f => f === 'deno')) {
+  if (frameworks.some((f) => f === 'deno')) {
     add('deno.md', 'ai-os-deno-patterns.md');
   }
 
   // WordPress
-  if (frameworks.some(f => f.toLowerCase().includes('wordpress'))) {
+  if (frameworks.some((f) => f.toLowerCase().includes('wordpress'))) {
     add('wordpress.md', 'ai-os-wordpress-patterns.md');
   }
 
@@ -164,7 +179,9 @@ async function generateSkillsWithOptions(
     // In creator-only mode we intentionally avoid generating stack-based predefined
     // skills. During refresh we prune existing ai-os-* predefined skills.
     if (options.refreshExisting && fs.existsSync(skillsDir)) {
-      const onDisk = fs.readdirSync(skillsDir).filter(f => f.startsWith('ai-os-') && f.endsWith('.md'));
+      const onDisk = fs
+        .readdirSync(skillsDir)
+        .filter((f) => f.startsWith('ai-os-') && f.endsWith('.md'));
       for (const stale of onDisk) {
         fs.rmSync(path.join(skillsDir, stale));
         console.log(`  🗑️  Pruned predefined skill (creator-only mode): ${stale}`);
@@ -206,8 +223,10 @@ async function generateSkillsWithOptions(
   // #7 — prune stale ai-os- prefixed skill files that are no longer generated
   //      for this stack (e.g. a framework was removed).
   if (options.refreshExisting && fs.existsSync(skillsDir)) {
-    const currentSet = new Set(generatedPaths.map(p => path.basename(p)));
-    const onDisk = fs.readdirSync(skillsDir).filter(f => f.startsWith('ai-os-') && f.endsWith('.md'));
+    const currentSet = new Set(generatedPaths.map((p) => path.basename(p)));
+    const onDisk = fs
+      .readdirSync(skillsDir)
+      .filter((f) => f.startsWith('ai-os-') && f.endsWith('.md'));
     for (const stale of onDisk) {
       if (!currentSet.has(stale)) {
         fs.rmSync(path.join(skillsDir, stale));

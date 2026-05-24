@@ -38,20 +38,29 @@ export interface StackRecommendation {
 export const DEPENDENCY_RECOMMENDATIONS: Record<string, StackRecommendation> = {
   prisma: {
     trigger: 'prisma',
-    mcp: { package: 'prisma/mcp-server', description: 'Official Prisma MCP server for schema-aware DB queries' },
+    mcp: {
+      package: 'prisma/mcp-server',
+      description: 'Official Prisma MCP server for schema-aware DB queries',
+    },
     vscode: ['Prisma.prisma'],
     skills: ['prisma'],
   },
   '@prisma/client': {
     trigger: '@prisma/client',
-    mcp: { package: 'prisma/mcp-server', description: 'Official Prisma MCP server for schema-aware DB queries' },
+    mcp: {
+      package: 'prisma/mcp-server',
+      description: 'Official Prisma MCP server for schema-aware DB queries',
+    },
     vscode: ['Prisma.prisma'],
     skills: ['prisma'],
   },
   stripe: {
     trigger: 'stripe',
     skills: ['stripe'],
-    copilotExtension: { name: 'Stripe Copilot Extension', url: 'https://marketplace.visualstudio.com/items?itemName=Stripe.stripe-vscode' },
+    copilotExtension: {
+      name: 'Stripe Copilot Extension',
+      url: 'https://marketplace.visualstudio.com/items?itemName=Stripe.stripe-vscode',
+    },
     vscode: ['Stripe.stripe-vscode'],
   },
   '@trpc/server': {
@@ -67,7 +76,7 @@ export const DEPENDENCY_RECOMMENDATIONS: Record<string, StackRecommendation> = {
     skills: ['nextjs', 'vercel-react-best-practices', 'context7'],
     skillSources: {
       'vercel-react-best-practices': 'vercel-labs/agent-skills',
-      'context7': 'intellectronica/agent-skills',
+      context7: 'intellectronica/agent-skills',
     },
     vscode: ['bradlc.vscode-tailwindcss'],
   },
@@ -76,7 +85,7 @@ export const DEPENDENCY_RECOMMENDATIONS: Record<string, StackRecommendation> = {
     skills: ['nextjs', 'vercel-react-best-practices', 'context7'],
     skillSources: {
       'vercel-react-best-practices': 'vercel-labs/agent-skills',
-      'context7': 'intellectronica/agent-skills',
+      context7: 'intellectronica/agent-skills',
     },
     vscode: ['bradlc.vscode-tailwindcss'],
   },
@@ -85,7 +94,7 @@ export const DEPENDENCY_RECOMMENDATIONS: Record<string, StackRecommendation> = {
     skills: ['react', 'vercel-react-best-practices', 'context7'],
     skillSources: {
       'vercel-react-best-practices': 'vercel-labs/agent-skills',
-      'context7': 'intellectronica/agent-skills',
+      context7: 'intellectronica/agent-skills',
     },
     vscode: ['dsznajder.es7-react-js-snippets', 'burkeholland.simple-react-snippets'],
   },
@@ -99,16 +108,16 @@ export const DEPENDENCY_RECOMMENDATIONS: Record<string, StackRecommendation> = {
     vscode: ['Vue.volar'],
     skills: ['context7'],
   },
-  'express': {
+  express: {
     trigger: 'express',
     skills: ['express'],
   },
-  'fastapi': {
+  fastapi: {
     trigger: 'fastapi',
     skills: ['python-fastapi', 'context7'],
     vscode: ['ms-python.python'],
   },
-  'django': {
+  django: {
     trigger: 'django',
     vscode: ['ms-python.python', 'batisteo.vscode-django'],
     skills: ['context7'],
@@ -141,29 +150,29 @@ export const FRAMEWORK_RECOMMENDATIONS: Record<string, StackRecommendation> = {
     skills: ['nextjs', 'vercel-react-best-practices', 'context7'],
     skillSources: {
       'vercel-react-best-practices': 'vercel-labs/agent-skills',
-      'context7': 'intellectronica/agent-skills',
+      context7: 'intellectronica/agent-skills',
     },
     vscode: ['dsznajder.es7-react-js-snippets', 'bradlc.vscode-tailwindcss'],
   },
-  'React': {
+  React: {
     trigger: 'React',
     skills: ['react', 'vercel-react-best-practices', 'context7'],
     skillSources: {
       'vercel-react-best-practices': 'vercel-labs/agent-skills',
-      'context7': 'intellectronica/agent-skills',
+      context7: 'intellectronica/agent-skills',
     },
     vscode: ['dsznajder.es7-react-js-snippets'],
   },
-  'Express': {
+  Express: {
     trigger: 'Express',
     skills: ['express'],
   },
-  'NestJS': {
+  NestJS: {
     trigger: 'NestJS',
     vscode: ['nrwl.angular-console'],
     skills: ['context7'],
   },
-  'FastAPI': {
+  FastAPI: {
     trigger: 'FastAPI',
     skills: ['python-fastapi', 'context7'],
     vscode: ['ms-python.python'],
@@ -173,79 +182,82 @@ export const FRAMEWORK_RECOMMENDATIONS: Record<string, StackRecommendation> = {
     skills: ['java-spring', 'context7'],
     vscode: ['vscjava.vscode-java-pack', 'redhat.java'],
   },
-  'Astro': {
+  Astro: {
     trigger: 'Astro',
     vscode: ['astro-build.astro-vscode'],
     skills: ['context7'],
   },
-  'SvelteKit': {
+  SvelteKit: {
     trigger: 'SvelteKit',
     vscode: ['svelte.svelte-vscode'],
     skills: ['context7'],
   },
-  'Svelte': {
+  Svelte: {
     trigger: 'Svelte',
     vscode: ['svelte.svelte-vscode'],
   },
-  'Nuxt': {
+  Nuxt: {
     trigger: 'Nuxt',
     vscode: ['Vue.volar'],
     skills: ['context7'],
   },
-  'Vue': {
+  Vue: {
     trigger: 'Vue',
     vscode: ['Vue.volar'],
   },
-  'WordPress': {
+  WordPress: {
     trigger: 'WordPress',
     vscode: ['wongjn.php-sniffer', 'bmewburn.vscode-intelephense-client'],
     skills: ['wordpress', 'context7'],
     skillSources: {
-      'context7': 'intellectronica/agent-skills',
+      context7: 'intellectronica/agent-skills',
     },
-    copilotExtension: { name: 'WordPress Agent Skills', url: 'https://github.com/WordPress/agent-skills' },
+    copilotExtension: {
+      name: 'WordPress Agent Skills',
+      url: 'https://github.com/WordPress/agent-skills',
+    },
   },
-  'Laravel': {
+  Laravel: {
     trigger: 'Laravel',
     vscode: ['bmewburn.vscode-intelephense-client', 'onecentlin.laravel5-snippets'],
     skills: ['context7'],
     skillSources: {
-      'context7': 'intellectronica/agent-skills',
+      context7: 'intellectronica/agent-skills',
     },
   },
 };
 
 /** Language name → recommendation */
 export const LANGUAGE_RECOMMENDATIONS: Record<string, StackRecommendation> = {
-  'TypeScript': {
+  TypeScript: {
     trigger: 'TypeScript',
     vscode: ['ms-vscode.vscode-typescript-next'],
   },
-  'Go': {
+  Go: {
     trigger: 'Go',
     vscode: ['golang.go'],
     skills: ['context7'],
   },
-  'Rust': {
+  Rust: {
     trigger: 'Rust',
     vscode: ['rust-lang.rust-analyzer'],
     skills: ['context7'],
   },
-  'Python': {
+  Python: {
     trigger: 'Python',
     vscode: ['ms-python.python', 'ms-python.black-formatter'],
     skills: ['context7'],
   },
-  'Java': {
+  Java: {
     trigger: 'Java',
     vscode: ['vscjava.vscode-java-pack'],
     skills: ['context7'],
   },
-  'Ruby': {
+  Ruby: {
     trigger: 'Ruby',
     vscode: ['Shopify.ruby-lsp'],
   },
-  'PHP': {
+  PHP: {
     trigger: 'PHP',
     vscode: ['bmewburn.vscode-intelephense-client'],
   },
@@ -258,7 +270,7 @@ export const UNIVERSAL_RECOMMENDATIONS: StackRecommendation[] = [
     skills: ['find-skills', 'context7'],
     skillSources: {
       'find-skills': 'vercel-labs/skills',
-      'context7': 'intellectronica/agent-skills',
+      context7: 'intellectronica/agent-skills',
     },
   },
   {
@@ -280,7 +292,7 @@ export const UNIVERSAL_RECOMMENDATIONS: StackRecommendation[] = [
       'writing-skills',
     ],
     skillSources: {
-      'brainstorming': 'obra/superpowers',
+      brainstorming: 'obra/superpowers',
       'writing-plans': 'obra/superpowers',
       'executing-plans': 'obra/superpowers',
       'test-driven-development': 'obra/superpowers',
@@ -297,14 +309,27 @@ export const UNIVERSAL_RECOMMENDATIONS: StackRecommendation[] = [
     },
     pluginInstall: {
       name: 'Superpowers',
-      description: 'Agentic software development methodology: design → plan → TDD → parallel execution → review. Works across Claude Code, GitHub Copilot CLI, Codex, Cursor, and more.',
+      description:
+        'Agentic software development methodology: design → plan → TDD → parallel execution → review. Works across Claude Code, GitHub Copilot CLI, Codex, Cursor, and more.',
       skillSource: 'obra/superpowers',
       steps: [
-        { harness: 'Claude Code (official marketplace)', command: '/plugin install superpowers@claude-plugins-official' },
-        { harness: 'GitHub Copilot CLI — step 1 (register marketplace)', command: 'copilot plugin marketplace add obra/superpowers-marketplace' },
-        { harness: 'GitHub Copilot CLI — step 2 (install plugin)', command: 'copilot plugin install superpowers@superpowers-marketplace' },
+        {
+          harness: 'Claude Code (official marketplace)',
+          command: '/plugin install superpowers@claude-plugins-official',
+        },
+        {
+          harness: 'GitHub Copilot CLI — step 1 (register marketplace)',
+          command: 'copilot plugin marketplace add obra/superpowers-marketplace',
+        },
+        {
+          harness: 'GitHub Copilot CLI — step 2 (install plugin)',
+          command: 'copilot plugin install superpowers@superpowers-marketplace',
+        },
         { harness: 'Cursor', command: '/add-plugin superpowers' },
-        { harness: 'Gemini CLI', command: 'gemini extensions install https://github.com/obra/superpowers' },
+        {
+          harness: 'Gemini CLI',
+          command: 'gemini extensions install https://github.com/obra/superpowers',
+        },
       ],
     },
   },

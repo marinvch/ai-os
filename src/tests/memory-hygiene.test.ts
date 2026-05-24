@@ -41,8 +41,9 @@ describe('memory hygiene — near-duplicate detection', () => {
       createdAt: thirtyDaysAgo,
       updatedAt: thirtyDaysAgo,
       title: 'Build command',
-    // Jaccard similarity: 13 shared words / 15 union words ≈ 0.867, above default 0.85 threshold
-      content: 'Use npm run build to compile TypeScript sources and generate the distribution bundle output',
+      // Jaccard similarity: 13 shared words / 15 union words ≈ 0.867, above default 0.85 threshold
+      content:
+        'Use npm run build to compile TypeScript sources and generate the distribution bundle output',
       category: 'build',
       tags: [],
       status: 'active',
@@ -54,7 +55,8 @@ describe('memory hygiene — near-duplicate detection', () => {
       createdAt: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(), // newer
       updatedAt: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(),
       title: 'Build command',
-      content: 'Use npm run build to compile TypeScript sources and generate the distribution bundle outputs',
+      content:
+        'Use npm run build to compile TypeScript sources and generate the distribution bundle outputs',
       category: 'build',
       tags: [],
       status: 'active',
@@ -359,18 +361,25 @@ describe('memory hygiene — version-family supersession', () => {
       category: 'build',
       tags: [],
       status: 'active',
-      fingerprint: 'build::ai os refreshed to v0.13.0::refreshed to version 0.13.0 with new context docs.',
+      fingerprint:
+        'build::ai os refreshed to v0.13.0::refreshed to version 0.13.0 with new context docs.',
     };
     tempRoot = createTempMemoryRoot([oldEntry]);
     process.env['AI_OS_ROOT'] = tempRoot;
 
     const { rememberRepoFact } = await import('../mcp-server/utils.js');
-    const result = rememberRepoFact('AI OS refreshed to v0.16.0', 'Refreshed to version 0.16.0.', 'build');
+    const result = rememberRepoFact(
+      'AI OS refreshed to v0.16.0',
+      'Refreshed to version 0.16.0.',
+      'build',
+    );
 
     expect(result).toContain('superseding older version');
 
     const entries = readMemoryFile(tempRoot);
-    const staleEntry = entries.find((e) => (e as { id: string }).id === 'ver-old') as { status: string; staleReason: string } | undefined;
+    const staleEntry = entries.find((e) => (e as { id: string }).id === 'ver-old') as
+      | { status: string; staleReason: string }
+      | undefined;
     expect(staleEntry?.status).toBe('stale');
     expect(staleEntry?.staleReason).toBe('superseded-by-newer-version');
   });

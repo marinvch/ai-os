@@ -17,8 +17,20 @@ const MAX_OUTPUT_BYTES = 8 * 1024;
 const MAX_FILE_BYTES = 32 * 1024;
 
 const BLOCKED_DIRS = new Set([
-  'node_modules', '.git', 'dist', 'build', 'out', '.next', '.nuxt',
-  '__pycache__', '.venv', 'venv', 'target', 'vendor', '.cache', '.gradle',
+  'node_modules',
+  '.git',
+  'dist',
+  'build',
+  'out',
+  '.next',
+  '.nuxt',
+  '__pycache__',
+  '.venv',
+  'venv',
+  'target',
+  'vendor',
+  '.cache',
+  '.gradle',
 ]);
 
 /** Resolve a user-supplied path and verify it is within ROOT (no path traversal). */
@@ -74,13 +86,14 @@ export function listDirectory(dirPath: string): string {
     return `Error: not a directory: ${target}`;
   }
   try {
-    const entries = fs.readdirSync(resolved, { withFileTypes: true })
-      .filter(e => !BLOCKED_DIRS.has(e.name))
+    const entries = fs
+      .readdirSync(resolved, { withFileTypes: true })
+      .filter((e) => !BLOCKED_DIRS.has(e.name))
       .sort((a, b) => {
         if (a.isDirectory() !== b.isDirectory()) return a.isDirectory() ? -1 : 1;
         return a.name.localeCompare(b.name);
       });
-    const lines = entries.map(e => {
+    const lines = entries.map((e) => {
       if (e.isDirectory()) return `${e.name}/  [dir]`;
       try {
         const stat = fs.statSync(path.join(resolved, e.name));
@@ -124,13 +137,17 @@ function runScript(scriptName: string): string {
   let cmd: string;
   let args: string[];
   if (pm === 'bun') {
-    cmd = 'bun'; args = ['run', scriptName];
+    cmd = 'bun';
+    args = ['run', scriptName];
   } else if (pm === 'pnpm') {
-    cmd = 'pnpm'; args = ['run', scriptName];
+    cmd = 'pnpm';
+    args = ['run', scriptName];
   } else if (pm === 'yarn') {
-    cmd = 'yarn'; args = [scriptName];
+    cmd = 'yarn';
+    args = [scriptName];
   } else {
-    cmd = 'npm'; args = ['run', scriptName];
+    cmd = 'npm';
+    args = ['run', scriptName];
   }
   try {
     const result = spawnSync(cmd, args, {

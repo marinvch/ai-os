@@ -2,7 +2,7 @@
 import { main } from './cli/dispatch.js';
 import { AiOsError, formatError } from './errors.js';
 
-main().catch(err => {
+main().catch((err) => {
   if (err instanceof AiOsError) {
     console.error(formatError(err));
     // Exit 2 for known recoverable errors (user can fix with suggested command)

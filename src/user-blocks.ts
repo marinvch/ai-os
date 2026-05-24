@@ -28,7 +28,7 @@
 // ── Marker constants ─────────────────────────────────────────────────────────
 
 export const USER_BLOCK_START_PREFIX = '<!-- AI-OS:USER_BLOCK:START';
-export const USER_BLOCK_END_PREFIX   = '<!-- AI-OS:USER_BLOCK:END';
+export const USER_BLOCK_END_PREFIX = '<!-- AI-OS:USER_BLOCK:END';
 
 /** Pattern that matches a complete user block (start marker, content, end marker). */
 const BLOCK_GLOBAL_RE =
@@ -80,15 +80,15 @@ export function extractUserBlocks(content: string): Map<string, UserBlock> {
   let match: RegExpExecArray | null;
 
   while ((match = BLOCK_GLOBAL_RE.exec(content)) !== null) {
-    const id           = match[1];
+    const id = match[1];
     const innerContent = match[2];
-    const fullMatch    = match[0];
+    const fullMatch = match[0];
 
     if (blocks.has(id)) continue; // first occurrence wins
 
     // Determine the anchor using a named helper to keep the loop body readable.
     const beforeContent = content.slice(0, match.index);
-    const anchorBefore  = extractAnchorLine(beforeContent.split('\n'));
+    const anchorBefore = extractAnchorLine(beforeContent.split('\n'));
 
     blocks.set(id, { id, fullMatch, innerContent, anchorBefore });
   }
@@ -104,10 +104,8 @@ export function extractUserBlocks(content: string): Map<string, UserBlock> {
  * that empty segment to reach the real anchor.
  */
 function extractAnchorLine(beforeLines: string[]): string {
-  const last      = beforeLines[beforeLines.length - 1] ?? '';
-  const candidate = last.trimEnd() === ''
-    ? (beforeLines[beforeLines.length - 2] ?? '')
-    : last;
+  const last = beforeLines[beforeLines.length - 1] ?? '';
+  const candidate = last.trimEnd() === '' ? (beforeLines[beforeLines.length - 2] ?? '') : last;
   return candidate.trimEnd();
 }
 
@@ -124,13 +122,13 @@ export function mergeUserBlocks(generated: string, previous: string): MergeResul
     return { content: generated, preserved: [], conflicts: [] };
   }
 
-  const preserved: string[]      = [];
+  const preserved: string[] = [];
   const conflicts: ConflictReport[] = [];
   let result = generated;
 
   for (const [id, block] of userBlocks) {
     const startMarker = `<!-- AI-OS:USER_BLOCK:START id="${id}" -->`;
-    const endMarker   = `<!-- AI-OS:USER_BLOCK:END id="${id}" -->`;
+    const endMarker = `<!-- AI-OS:USER_BLOCK:END id="${id}" -->`;
 
     // ── Strategy 1: ID-match ─────────────────────────────────────────────────
     if (result.includes(startMarker) && result.includes(endMarker)) {

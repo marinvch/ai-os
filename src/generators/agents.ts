@@ -1,7 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import type { DetectedStack, AiOsConfig } from '../types.js';
-import { writeIfChanged, applyFallbacks, resolveTemplatesDir, sanitizeForInstructions } from './utils.js';
+import {
+  writeIfChanged,
+  applyFallbacks,
+  resolveTemplatesDir,
+  sanitizeForInstructions,
+} from './utils.js';
 import { enforceAgentContract } from '../validation/agent-contract.js';
 
 const AGENTS_DIR = '.github/agents';
@@ -19,7 +24,7 @@ interface AgentSpec {
 
 function toBulletList(items: string[]): string {
   if (items.length === 0) return '- _No items detected yet_';
-  return items.map(item => `- ${item}`).join('\n');
+  return items.map((item) => `- ${item}`).join('\n');
 }
 
 /**
@@ -55,15 +60,24 @@ function discoverProjectKeyFiles(cwd: string, stack: DetectedStack, limit = 6): 
 
   // 2. Common single-file entry points
   const entryPoints = [
-    'src/index.ts', 'src/index.js',
-    'src/main.ts', 'src/main.js',
-    'src/generate.ts', 'src/generate.js',
-    'src/app.ts', 'src/app.js',
-    'src/cli.ts', 'src/cli.js',
-    'src/server.ts', 'src/server.js',
-    'index.ts', 'index.js',
-    'main.ts', 'main.js',
-    'app.ts', 'app.js',
+    'src/index.ts',
+    'src/index.js',
+    'src/main.ts',
+    'src/main.js',
+    'src/generate.ts',
+    'src/generate.js',
+    'src/app.ts',
+    'src/app.js',
+    'src/cli.ts',
+    'src/cli.js',
+    'src/server.ts',
+    'src/server.js',
+    'index.ts',
+    'index.js',
+    'main.ts',
+    'main.js',
+    'app.ts',
+    'app.js',
   ];
   for (const f of entryPoints) {
     if (exists(f) && !found.includes(f)) found.push(f);
@@ -74,9 +88,10 @@ function discoverProjectKeyFiles(cwd: string, stack: DetectedStack, limit = 6): 
   const srcDir = path.join(cwd, 'src');
   if (fs.existsSync(srcDir)) {
     try {
-      const subDirs = fs.readdirSync(srcDir, { withFileTypes: true })
-        .filter(d => d.isDirectory())
-        .map(d => d.name)
+      const subDirs = fs
+        .readdirSync(srcDir, { withFileTypes: true })
+        .filter((d) => d.isDirectory())
+        .map((d) => d.name)
         .slice(0, 10);
       for (const sub of subDirs) {
         const barrel = `src/${sub}/index.ts`;
@@ -85,13 +100,15 @@ function discoverProjectKeyFiles(cwd: string, stack: DetectedStack, limit = 6): 
           if (found.length >= limit) return found;
         }
       }
-    } catch { /* ignore scan errors */ }
+    } catch {
+      /* ignore scan errors */
+    }
   }
 
   // 4. Fall back to stack-detected key files (excluding docs/lock files)
   const skipPatterns = ['.lock', '.json', 'Dockerfile', 'README', '.yml', '.yaml', '.env'];
   for (const f of stack.keyFiles) {
-    if (!skipPatterns.some(p => f.toLowerCase().includes(p.toLowerCase()))) {
+    if (!skipPatterns.some((p) => f.toLowerCase().includes(p.toLowerCase()))) {
       if (!found.includes(f)) found.push(f);
     }
     if (found.length >= limit) return found;
@@ -101,15 +118,17 @@ function discoverProjectKeyFiles(cwd: string, stack: DetectedStack, limit = 6): 
 }
 
 function buildFrameworkRules(stack: DetectedStack): string {
-  const frameworkNames = stack.frameworks.map(f => f.name.toLowerCase());
+  const frameworkNames = stack.frameworks.map((f) => f.name.toLowerCase());
   const rules: string[] = [];
 
-  if (frameworkNames.some(name => name.includes('next'))) {
-    rules.push('- Keep Server Components as default and isolate client-only code behind `\'use client\'` boundaries');
+  if (frameworkNames.some((name) => name.includes('next'))) {
+    rules.push(
+      "- Keep Server Components as default and isolate client-only code behind `'use client'` boundaries",
+    );
     rules.push('- Route handlers should validate input and return typed JSON responses');
   }
 
-  if (frameworkNames.some(name => name.includes('react'))) {
+  if (frameworkNames.some((name) => name.includes('react'))) {
     rules.push('- Keep components focused; extract data and business logic to hooks/util modules');
   }
 
@@ -118,7 +137,9 @@ function buildFrameworkRules(stack: DetectedStack): string {
   }
 
   if (rules.length === 0) {
-    rules.push('- Follow conventions from `.github/ai-os/context/conventions.md` for naming, structure, and safety checks');
+    rules.push(
+      '- Follow conventions from `.github/ai-os/context/conventions.md` for naming, structure, and safety checks',
+    );
   }
 
   return rules.join('\n');
@@ -127,17 +148,26 @@ function buildFrameworkRules(stack: DetectedStack): string {
 function buildAgentSpecs(stack: DetectedStack, cwd: string): AgentSpec[] {
   const specs: AgentSpec[] = [];
   const projectName = sanitizeForInstructions(path.basename(cwd));
-  const frameworks = stack.frameworks.map(f => f.name);
+  const frameworks = stack.frameworks.map((f) => f.name);
   const packages = stack.allDependencies;
   const primaryLang = sanitizeForInstructions(stack.languages[0]?.name ?? 'TypeScript');
-  const hasPrisma = packages.some(p => p.includes('prisma'));
-  const hasAuth = packages.some(p => ['next-auth', 'nextauth', 'passport', 'django.contrib.auth', 'flask-login'].some(a => p.toLowerCase().includes(a)));
-  const hasStripe = packages.some(p => p.toLowerCase().includes('stripe'));
-  const hasNextjs = frameworks.some(f => f.toLowerCase().includes('next'));
-  const hasReact = frameworks.some(f => ['react', 'next', 'remix', 'gatsby'].some(k => f.toLowerCase().includes(k)));
+  const hasPrisma = packages.some((p) => p.includes('prisma'));
+  const hasAuth = packages.some((p) =>
+    ['next-auth', 'nextauth', 'passport', 'django.contrib.auth', 'flask-login'].some((a) =>
+      p.toLowerCase().includes(a),
+    ),
+  );
+  const hasStripe = packages.some((p) => p.toLowerCase().includes('stripe'));
+  const hasNextjs = frameworks.some((f) => f.toLowerCase().includes('next'));
+  const hasReact = frameworks.some((f) =>
+    ['react', 'next', 'remix', 'gatsby'].some((k) => f.toLowerCase().includes(k)),
+  );
   const primaryFramework = sanitizeForInstructions(frameworks[0] ?? primaryLang);
   const frameworkLabel = hasNextjs ? 'Next.js' : primaryFramework;
-  const frameworkList = frameworks.length > 0 ? frameworks.map(f => sanitizeForInstructions(f)).join(', ') : primaryLang;
+  const frameworkList =
+    frameworks.length > 0
+      ? frameworks.map((f) => sanitizeForInstructions(f)).join(', ')
+      : primaryLang;
 
   const stackSummary = [
     `Primary language: ${primaryLang}`,
@@ -147,8 +177,12 @@ function buildAgentSpecs(stack: DetectedStack, cwd: string): AgentSpec[] {
   ];
 
   const keyFiles = discoverProjectKeyFiles(cwd, stack);
-  const keyFilesList = toBulletList(keyFiles.map(file => `\`${file}\``));
-  const keyEntryPoints = toBulletList((keyFiles.slice(0, 4).length > 0 ? keyFiles.slice(0, 4) : ['src/']).map(file => `\`${file}\``));
+  const keyFilesList = toBulletList(keyFiles.map((file) => `\`${file}\``));
+  const keyEntryPoints = toBulletList(
+    (keyFiles.slice(0, 4).length > 0 ? keyFiles.slice(0, 4) : ['src/']).map(
+      (file) => `\`${file}\``,
+    ),
+  );
 
   const runtimeDir = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1'));
   const templateDir = path.join(resolveTemplatesDir(runtimeDir), 'agents');
@@ -190,7 +224,10 @@ function buildAgentSpecs(stack: DetectedStack, cwd: string): AgentSpec[] {
       '{{CONVENTIONS_FILE}}': '.github/ai-os/context/conventions.md',
       '{{ARCHITECTURE_FILE}}': '.github/ai-os/context/architecture.md',
       '{{STACK_FILE}}': '.github/ai-os/context/stack.md',
-      '{{BUILD_COMMAND}}': stack.patterns.packageManager === 'npm' ? 'npm run build' : `${stack.patterns.packageManager} build`,
+      '{{BUILD_COMMAND}}':
+        stack.patterns.packageManager === 'npm'
+          ? 'npm run build'
+          : `${stack.patterns.packageManager} build`,
       '{{FRAMEWORK_RULES}}': buildFrameworkRules(stack),
     },
   });
@@ -236,7 +273,8 @@ function buildAgentSpecs(stack: DetectedStack, cwd: string): AgentSpec[] {
 
   // 5. Auth expert — if auth detected
   if (hasAuth) {
-    const authProvider = hasAuth && packages.some(p => p.includes('next-auth')) ? 'NextAuth.js' : 'Auth';
+    const authProvider =
+      hasAuth && packages.some((p) => p.includes('next-auth')) ? 'NextAuth.js' : 'Auth';
     const authFile = 'src/app/api/auth/[...nextauth]/authOptions.ts';
     specs.push({
       templateFile: path.join(templateDir, 'auth-expert.md'),
@@ -292,7 +330,8 @@ function buildAgentSpecs(stack: DetectedStack, cwd: string): AgentSpec[] {
     outputFile: 'architecture-migration.agent.md',
     name: 'Architecture Migration',
     description: `Three-phase guide for ${projectName} architecture migrations: audit legacy AI guidance, gate on phased migration status, and drive post-change context replacement.`,
-    argumentHint: 'Describe the migration: "from X to Y" (e.g., "from session auth to JWT", "from REST to tRPC")',
+    argumentHint:
+      'Describe the migration: "from X to Y" (e.g., "from session auth to JWT", "from REST to tRPC")',
     replacements: {
       '{{PROJECT_NAME}}': projectName,
       '{{STACK_SUMMARY}}': toBulletList(stackSummary),
@@ -322,14 +361,17 @@ export function scanExistingAgents(cwd: string): ExistingAgentScan {
   const agentsDir = path.join(cwd, AGENTS_DIR);
   if (!fs.existsSync(agentsDir)) return { userDefined: [], aiOsGenerated: [] };
 
-  const files = fs.readdirSync(agentsDir).filter(f => f.endsWith('.md') || f.endsWith('.agent.md'));
+  const files = fs
+    .readdirSync(agentsDir)
+    .filter((f) => f.endsWith('.md') || f.endsWith('.agent.md'));
   const userDefined: string[] = [];
   const aiOsGenerated: string[] = [];
 
   for (const file of files) {
     const content = fs.readFileSync(path.join(agentsDir, file), 'utf-8');
     // ai-os generated agents always contain one of the known template marker patterns
-    const isAiOs = content.includes('ai-os/context/architecture.md') ||
+    const isAiOs =
+      content.includes('ai-os/context/architecture.md') ||
       content.includes('ai-os/context/conventions.md') ||
       content.includes('ai-os/context/stack.md');
     if (isAiOs) {
@@ -345,10 +387,13 @@ export function scanExistingAgents(cwd: string): ExistingAgentScan {
 function buildSequentialAgentSpecs(stack: DetectedStack, cwd: string): AgentSpec[] {
   const specs: AgentSpec[] = [];
   const projectName = sanitizeForInstructions(path.basename(cwd));
-  const frameworks = stack.frameworks.map(f => f.name);
+  const frameworks = stack.frameworks.map((f) => f.name);
   const primaryLang = sanitizeForInstructions(stack.languages[0]?.name ?? 'TypeScript');
   const frameworkLabel = sanitizeForInstructions(frameworks[0] ?? primaryLang);
-  const frameworkList = frameworks.length > 0 ? frameworks.map(f => sanitizeForInstructions(f)).join(', ') : primaryLang;
+  const frameworkList =
+    frameworks.length > 0
+      ? frameworks.map((f) => sanitizeForInstructions(f)).join(', ')
+      : primaryLang;
 
   const runtimeDir = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1'));
   const templateDir = path.join(resolveTemplatesDir(runtimeDir), 'agents');
@@ -361,41 +406,63 @@ function buildSequentialAgentSpecs(stack: DetectedStack, cwd: string): AgentSpec
   ];
 
   const discoveredKeyFiles = discoverProjectKeyFiles(cwd, stack);
-  const keyFilesList = discoveredKeyFiles.length > 0
-    ? discoveredKeyFiles.map(f => `- \`${f}\``).join('\n')
-    : '- _No key files detected yet_';
+  const keyFilesList =
+    discoveredKeyFiles.length > 0
+      ? discoveredKeyFiles.map((f) => `- \`${f}\``).join('\n')
+      : '- _No key files detected yet_';
 
-  const buildCmd = stack.patterns.packageManager === 'npm' ? 'npm run build'
-    : stack.patterns.packageManager === 'pnpm' ? 'pnpm build'
-      : stack.patterns.packageManager === 'yarn' ? 'yarn build'
-        : stack.patterns.packageManager === 'bun' ? 'bun run build'
-          : stack.patterns.packageManager === 'maven' ? 'mvn compile'
-            : stack.patterns.packageManager === 'gradle' ? 'gradle build'
-              : stack.patterns.packageManager === 'go' ? 'go build ./...'
-                : stack.patterns.packageManager === 'cargo' ? 'cargo build'
-                  : 'npm run build';
+  const buildCmd =
+    stack.patterns.packageManager === 'npm'
+      ? 'npm run build'
+      : stack.patterns.packageManager === 'pnpm'
+        ? 'pnpm build'
+        : stack.patterns.packageManager === 'yarn'
+          ? 'yarn build'
+          : stack.patterns.packageManager === 'bun'
+            ? 'bun run build'
+            : stack.patterns.packageManager === 'maven'
+              ? 'mvn compile'
+              : stack.patterns.packageManager === 'gradle'
+                ? 'gradle build'
+                : stack.patterns.packageManager === 'go'
+                  ? 'go build ./...'
+                  : stack.patterns.packageManager === 'cargo'
+                    ? 'cargo build'
+                    : 'npm run build';
 
-  const testCmd = stack.buildCommands?.test ?? (
-    stack.patterns.packageManager === 'npm' ? 'npm test'
-      : stack.patterns.packageManager === 'pnpm' ? 'pnpm test'
-        : stack.patterns.packageManager === 'yarn' ? 'yarn test'
-          : stack.patterns.packageManager === 'bun' ? 'bun test'
-            : stack.patterns.packageManager === 'maven' ? 'mvn test'
-              : stack.patterns.packageManager === 'gradle' ? 'gradle test'
-                : stack.patterns.packageManager === 'go' ? 'go test ./...'
-                  : stack.patterns.packageManager === 'cargo' ? 'cargo test'
-                    : 'npm test'
-  );
+  const testCmd =
+    stack.buildCommands?.test ??
+    (stack.patterns.packageManager === 'npm'
+      ? 'npm test'
+      : stack.patterns.packageManager === 'pnpm'
+        ? 'pnpm test'
+        : stack.patterns.packageManager === 'yarn'
+          ? 'yarn test'
+          : stack.patterns.packageManager === 'bun'
+            ? 'bun test'
+            : stack.patterns.packageManager === 'maven'
+              ? 'mvn test'
+              : stack.patterns.packageManager === 'gradle'
+                ? 'gradle test'
+                : stack.patterns.packageManager === 'go'
+                  ? 'go test ./...'
+                  : stack.patterns.packageManager === 'cargo'
+                    ? 'cargo test'
+                    : 'npm test');
 
-  const regenerateCmd = stack.patterns.packageManager === 'npm' ? 'npx ai-os'
-    : stack.patterns.packageManager === 'pnpm' ? 'pnpm dlx ai-os'
-      : stack.patterns.packageManager === 'bun' ? 'bunx ai-os'
-        : 'npx ai-os';
+  const regenerateCmd =
+    stack.patterns.packageManager === 'npm'
+      ? 'npx ai-os'
+      : stack.patterns.packageManager === 'pnpm'
+        ? 'pnpm dlx ai-os'
+        : stack.patterns.packageManager === 'bun'
+          ? 'bunx ai-os'
+          : 'npx ai-os';
 
   const commonReplacements = {
     '{{PROJECT_NAME}}': projectName,
     '{{FRAMEWORK}}': frameworkLabel,
-    '{{STACK_SUMMARY}}': stackSummary.map(s => `- ${s}`).join('\n'),
+    '{{STACK_SUMMARY}}': stackSummary.map((s) => `- ${s}`).join('\n'),
     '{{KEY_FILES_LIST}}': keyFilesList,
     '{{FRAMEWORK_RULES}}': buildFrameworkRules(stack),
     '{{BUILD_COMMAND}}': buildCmd,
@@ -408,7 +475,8 @@ function buildSequentialAgentSpecs(stack: DetectedStack, cwd: string): AgentSpec
     outputFile: 'feature-enhancement-advisor.agent.md',
     name: `${projectName} — Feature Enhancement Advisor`,
     description: `Scan ${projectName} for improvement opportunities and expansion ideas. Use when you want prioritized enhancements, gap analysis, roadmap proposals, and concrete implementation recommendations for this repository only.`,
-    argumentHint: 'Describe scope (e.g. reliability, DX, CI/CD, security, performance) and depth (quick/medium/deep).',
+    argumentHint:
+      'Describe scope (e.g. reliability, DX, CI/CD, security, performance) and depth (quick/medium/deep).',
     replacements: commonReplacements,
   });
 
@@ -417,7 +485,8 @@ function buildSequentialAgentSpecs(stack: DetectedStack, cwd: string): AgentSpec
     outputFile: 'idea-validator.agent.md',
     name: `${projectName} — Idea Validator`,
     description: `Validates enhancement recommendations from the Feature Enhancement Advisor against actual codebase reality. Use after the Enhancement Advisor produces a report — before any implementation begins.`,
-    argumentHint: 'Paste the Enhancement Advisor numbered report here, or describe the finding(s) to validate.',
+    argumentHint:
+      'Paste the Enhancement Advisor numbered report here, or describe the finding(s) to validate.',
     replacements: commonReplacements,
   });
 
@@ -426,7 +495,8 @@ function buildSequentialAgentSpecs(stack: DetectedStack, cwd: string): AgentSpec
     outputFile: 'implementation-agent.agent.md',
     name: `${projectName} — Implementation Agent`,
     description: `Executes the Approved Work Order produced by the Idea Validator. Implements changes in dependency-safe sequence. Use only after the Idea Validator has produced a verified Approved Work Order.`,
-    argumentHint: 'Paste the Approved Work Order from the Idea Validator, or name a specific item to implement.',
+    argumentHint:
+      'Paste the Approved Work Order from the Idea Validator, or name a specific item to implement.',
     replacements: commonReplacements,
   });
 
@@ -483,7 +553,8 @@ async function generateAgentsWithOptions(
     const outputPath = path.join(agentsDir, spec.outputFile);
 
     // Skip existing files in safe mode OR when preserveExistingAgents is true (safe refresh).
-    if (fs.existsSync(outputPath) && (!options.refreshExisting || options.preserveExistingAgents)) continue;
+    if (fs.existsSync(outputPath) && (!options.refreshExisting || options.preserveExistingAgents))
+      continue;
 
     // In safe mode, skip conceptually equivalent existing agents.
     if (!options.refreshExisting) {
@@ -492,8 +563,11 @@ async function generateAgentsWithOptions(
       if (sequentialFlowFiles.has(spec.outputFile)) {
         // no-op
       } else {
-      const baseKeywords = spec.outputFile.replace('.agent.md', '').split('-').filter(w => w.length > 3);
-      if (conceptCovered(baseKeywords)) continue;
+        const baseKeywords = spec.outputFile
+          .replace('.agent.md', '')
+          .split('-')
+          .filter((w) => w.length > 3);
+        if (conceptCovered(baseKeywords)) continue;
       }
     }
 
@@ -504,10 +578,19 @@ async function generateAgentsWithOptions(
 
     // #183 — user override: check .github/ai-os/templates/agents/<template-base>.md first
     const templateBase = path.basename(spec.templateFile);
-    const userOverridePath = path.join(cwd, '.github', 'ai-os', 'templates', 'agents', templateBase);
+    const userOverridePath = path.join(
+      cwd,
+      '.github',
+      'ai-os',
+      'templates',
+      'agents',
+      templateBase,
+    );
     const resolvedTemplate = fs.existsSync(userOverridePath) ? userOverridePath : spec.templateFile;
     if (resolvedTemplate !== spec.templateFile) {
-      console.log(`  🔧 Using override template for ${spec.outputFile}: ${path.relative(cwd, resolvedTemplate)}`);
+      console.log(
+        `  🔧 Using override template for ${spec.outputFile}: ${path.relative(cwd, resolvedTemplate)}`,
+      );
     }
 
     let content = fs.readFileSync(resolvedTemplate, 'utf-8');
@@ -529,7 +612,9 @@ async function generateAgentsWithOptions(
     //      raw template syntax into the output file.
     const unresolved = content.match(/\{\{[^}]+\}\}/g);
     if (unresolved && unresolved.length > 0) {
-      console.warn(`  ⚠ Unresolved placeholders in ${spec.outputFile}: ${Array.from(new Set(unresolved)).join(', ')} — removing`);
+      console.warn(
+        `  ⚠ Unresolved placeholders in ${spec.outputFile}: ${Array.from(new Set(unresolved)).join(', ')} — removing`,
+      );
       content = applyFallbacks(content);
     }
 

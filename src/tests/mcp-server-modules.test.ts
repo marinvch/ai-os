@@ -1,7 +1,22 @@
 import { describe, it, expect } from 'vitest';
-import { getRepoMemory, rememberRepoFact, getMemoryGuidelines, pruneMemory, syncHostedMemory } from '../mcp-server/memory.js';
-import { getActivePlan, upsertActivePlan, appendCheckpoint, resetSessionState } from '../mcp-server/session.js';
-import { getEnvVars, getFileSummary, getPrismaSchema } from '../mcp-server/project-introspection.js';
+import {
+  getRepoMemory,
+  rememberRepoFact,
+  getMemoryGuidelines,
+  pruneMemory,
+  syncHostedMemory,
+} from '../mcp-server/memory.js';
+import {
+  getActivePlan,
+  upsertActivePlan,
+  appendCheckpoint,
+  resetSessionState,
+} from '../mcp-server/session.js';
+import {
+  getEnvVars,
+  getFileSummary,
+  getPrismaSchema,
+} from '../mcp-server/project-introspection.js';
 import { searchFiles, buildFileTree } from '../mcp-server/search.js';
 import { getContextFreshness } from '../mcp-server/freshness-bridge.js';
 import { getRecommendations, suggestImprovements } from '../mcp-server/recommendations-bridge.js';

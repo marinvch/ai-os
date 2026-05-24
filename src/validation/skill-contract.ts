@@ -23,7 +23,9 @@ function hasSection(content: string, sectionName: string): boolean {
 }
 
 export function validateSkillContract(content: string): SkillContractValidationResult {
-  const missingSections = REQUIRED_SKILL_SECTIONS.filter((section) => !hasSection(content, section));
+  const missingSections = REQUIRED_SKILL_SECTIONS.filter(
+    (section) => !hasSection(content, section),
+  );
   return {
     valid: missingSections.length === 0,
     missingSections,
@@ -32,7 +34,11 @@ export function validateSkillContract(content: string): SkillContractValidationR
 
 function normalizeSkillName(skillName?: string): string {
   if (!skillName) return 'this area';
-  return skillName.replace(/^ai-os-/, '').replace(/-patterns|-flow|-pipeline|-api|-billing/g, '').replace(/-/g, ' ').trim();
+  return skillName
+    .replace(/^ai-os-/, '')
+    .replace(/-patterns|-flow|-pipeline|-api|-billing/g, '')
+    .replace(/-/g, ' ')
+    .trim();
 }
 
 export function enforceSkillContract(content: string, context: SkillContractContext = {}): string {
@@ -44,11 +50,7 @@ export function enforceSkillContract(content: string, context: SkillContractCont
 
   for (const section of missing) {
     if (section === 'Overview') {
-      sectionsToAppend.push(
-        '## Overview',
-        '',
-        `Guidance patterns for ${domain} in this project.`,
-      );
+      sectionsToAppend.push('## Overview', '', `Guidance patterns for ${domain} in this project.`);
       continue;
     }
 

@@ -21,7 +21,7 @@ export function formatStackSummary(stack: DetectedStack): string {
   const lines: string[] = [];
   lines.push(`  Primary language : ${stack.primaryLanguage.name}`);
   if (stack.frameworks.length > 0) {
-    lines.push(`  Frameworks       : ${stack.frameworks.map(f => f.name).join(', ')}`);
+    lines.push(`  Frameworks       : ${stack.frameworks.map((f) => f.name).join(', ')}`);
   } else {
     lines.push('  Frameworks       : No frameworks detected');
   }
@@ -64,10 +64,21 @@ export async function runWizardLogic(stack: DetectedStack, ask: AskFn): Promise<
 
   let profile: InstallProfile = 'standard';
   while (true) {
-    const raw = (await ask('  Profile [minimal/standard/full] (default: standard): ')).trim().toLowerCase();
-    if (raw === '' || raw === 'standard') { profile = 'standard'; break; }
-    if (raw === 'minimal') { profile = 'minimal'; break; }
-    if (raw === 'full') { profile = 'full'; break; }
+    const raw = (await ask('  Profile [minimal/standard/full] (default: standard): '))
+      .trim()
+      .toLowerCase();
+    if (raw === '' || raw === 'standard') {
+      profile = 'standard';
+      break;
+    }
+    if (raw === 'minimal') {
+      profile = 'minimal';
+      break;
+    }
+    if (raw === 'full') {
+      profile = 'full';
+      break;
+    }
     console.log('  Please enter: minimal, standard, or full');
   }
 
@@ -105,7 +116,7 @@ export async function runWizardLogic(stack: DetectedStack, ask: AskFn): Promise<
 /** Production entry point — wires readline and delegates to runWizardLogic. */
 export async function runInitWizard(stack: DetectedStack, _cwd: string): Promise<InitResult> {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  const ask: AskFn = prompt => new Promise(resolve => rl.question(prompt, resolve));
+  const ask: AskFn = (prompt) => new Promise((resolve) => rl.question(prompt, resolve));
   try {
     return await runWizardLogic(stack, ask);
   } finally {

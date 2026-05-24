@@ -113,7 +113,8 @@ function hashDirectory(dirPath: string): { count: number; hash: string } {
     for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
       const full = path.join(dir, entry.name);
       if (entry.isDirectory()) {
-        if (['node_modules', '.git', 'dist', 'build', 'coverage', '.ai-os'].includes(entry.name)) continue;
+        if (['node_modules', '.git', 'dist', 'build', 'coverage', '.ai-os'].includes(entry.name))
+          continue;
         walk(full);
       } else if (entry.isFile()) {
         hashes.push(`${full}:${hashFile(full)}`);
@@ -197,7 +198,9 @@ export function computeFreshnessReport(rootDir: string): FreshnessReport {
       const config = JSON.parse(fs.readFileSync(configPath, 'utf-8')) as { installedAt?: string };
       lastGeneratedAt = config.installedAt ?? null;
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 
   if (!snapshot) {
     return {
@@ -271,29 +274,35 @@ export function computeFreshnessReport(rootDir: string): FreshnessReport {
   if (staleArtifacts.length > 0 && changedSourceFiles.length > 0) {
     recommendations.push(
       `Source changes detected in: ${changedSourceFiles.join(', ')}. ` +
-      `Re-run \`${refreshCmd}\` to rebuild context artifacts.`,
+        `Re-run \`${refreshCmd}\` to rebuild context artifacts.`,
     );
   } else if (staleArtifacts.length > 0) {
     recommendations.push(
       `Context artifacts have drifted from the last generation snapshot. ` +
-      `Run \`${refreshCmd}\` to synchronize them.`,
+        `Run \`${refreshCmd}\` to synchronize them.`,
     );
   } else if (changedSourceFiles.length > 0) {
     recommendations.push(
       `Source files changed (${changedSourceFiles.join(', ')}) but context artifacts are intact. ` +
-      `Verify that conventions and architecture docs still reflect the updated code, ` +
-      `then run \`${refreshCmd} --regenerate-context\` if needed.`,
+        `Verify that conventions and architecture docs still reflect the updated code, ` +
+        `then run \`${refreshCmd} --regenerate-context\` if needed.`,
     );
   }
 
-  if (staleArtifacts.some(a => a.includes('conventions'))) {
-    recommendations.push('`conventions.md` is stale — run `get_conventions` and verify coding rules are still accurate.');
+  if (staleArtifacts.some((a) => a.includes('conventions'))) {
+    recommendations.push(
+      '`conventions.md` is stale — run `get_conventions` and verify coding rules are still accurate.',
+    );
   }
-  if (staleArtifacts.some(a => a.includes('architecture'))) {
-    recommendations.push('`architecture.md` is stale — review system design docs and re-run generation.');
+  if (staleArtifacts.some((a) => a.includes('architecture'))) {
+    recommendations.push(
+      '`architecture.md` is stale — review system design docs and re-run generation.',
+    );
   }
-  if (staleArtifacts.some(a => a.includes('copilot-instructions'))) {
-    recommendations.push('`copilot-instructions.md` has changed — check persistent rules in `config.json` are still aligned.');
+  if (staleArtifacts.some((a) => a.includes('copilot-instructions'))) {
+    recommendations.push(
+      '`copilot-instructions.md` has changed — check persistent rules in `config.json` are still aligned.',
+    );
   }
 
   if (status === 'fresh' && recommendations.length === 0) {

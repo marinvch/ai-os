@@ -40,38 +40,98 @@ function detectFromPackageJson(rootDir: string): DetectedFramework[] {
   const frameworks: DetectedFramework[] = [];
 
   if (deps['next']) {
-    frameworks.push({ name: 'Next.js', category: 'fullstack', version: deps['next'], template: 'nextjs' });
+    frameworks.push({
+      name: 'Next.js',
+      category: 'fullstack',
+      version: deps['next'],
+      template: 'nextjs',
+    });
   } else if (deps['@remix-run/react'] || deps['@remix-run/node']) {
     const version = deps['@remix-run/react'] ?? deps['@remix-run/node'];
     frameworks.push({ name: 'Remix', category: 'fullstack', version, template: 'remix' });
   } else if (deps['@nuxt/core'] || deps['nuxt']) {
-    frameworks.push({ name: 'Nuxt.js', category: 'fullstack', version: deps['nuxt'], template: 'nuxt' });
+    frameworks.push({
+      name: 'Nuxt.js',
+      category: 'fullstack',
+      version: deps['nuxt'],
+      template: 'nuxt',
+    });
   } else if (deps['react']) {
     if (deps['vite'] || deps['@vitejs/plugin-react']) {
-      frameworks.push({ name: 'React (Vite)', category: 'frontend', version: deps['react'], template: 'react' });
+      frameworks.push({
+        name: 'React (Vite)',
+        category: 'frontend',
+        version: deps['react'],
+        template: 'react',
+      });
     } else {
-      frameworks.push({ name: 'React', category: 'frontend', version: deps['react'], template: 'react' });
+      frameworks.push({
+        name: 'React',
+        category: 'frontend',
+        version: deps['react'],
+        template: 'react',
+      });
     }
   } else if (deps['solid-js']) {
-    frameworks.push({ name: 'SolidJS', category: 'frontend', version: deps['solid-js'], template: 'solid' });
+    frameworks.push({
+      name: 'SolidJS',
+      category: 'frontend',
+      version: deps['solid-js'],
+      template: 'solid',
+    });
   } else if (deps['vue']) {
-    frameworks.push({ name: 'Vue.js', category: 'frontend', version: deps['vue'], template: 'vue' });
+    frameworks.push({
+      name: 'Vue.js',
+      category: 'frontend',
+      version: deps['vue'],
+      template: 'vue',
+    });
   } else if (deps['@sveltejs/kit']) {
-    frameworks.push({ name: 'SvelteKit', category: 'fullstack', version: deps['@sveltejs/kit'], template: 'sveltekit' });
+    frameworks.push({
+      name: 'SvelteKit',
+      category: 'fullstack',
+      version: deps['@sveltejs/kit'],
+      template: 'sveltekit',
+    });
   } else if (deps['svelte']) {
     frameworks.push({ name: 'Svelte', category: 'frontend', template: 'svelte' });
   } else if (deps['@angular/core']) {
-    frameworks.push({ name: 'Angular', category: 'frontend', version: deps['@angular/core'], template: 'angular' });
+    frameworks.push({
+      name: 'Angular',
+      category: 'frontend',
+      version: deps['@angular/core'],
+      template: 'angular',
+    });
   } else if (deps['astro']) {
-    frameworks.push({ name: 'Astro', category: 'fullstack', version: deps['astro'], template: 'astro' });
+    frameworks.push({
+      name: 'Astro',
+      category: 'fullstack',
+      version: deps['astro'],
+      template: 'astro',
+    });
   }
 
   if (deps['@nestjs/core']) {
-    frameworks.push({ name: 'NestJS', category: 'backend', version: deps['@nestjs/core'], template: 'nestjs' });
+    frameworks.push({
+      name: 'NestJS',
+      category: 'backend',
+      version: deps['@nestjs/core'],
+      template: 'nestjs',
+    });
   } else if (deps['express']) {
-    frameworks.push({ name: 'Express', category: 'backend', version: deps['express'], template: 'express' });
+    frameworks.push({
+      name: 'Express',
+      category: 'backend',
+      version: deps['express'],
+      template: 'express',
+    });
   } else if (deps['fastify']) {
-    frameworks.push({ name: 'Fastify', category: 'backend', version: deps['fastify'], template: 'fastify' });
+    frameworks.push({
+      name: 'Fastify',
+      category: 'backend',
+      version: deps['fastify'],
+      template: 'fastify',
+    });
   } else if (deps['hono']) {
     frameworks.push({ name: 'Hono', category: 'backend', version: deps['hono'], template: 'hono' });
   } else if (deps['koa']) {
@@ -89,7 +149,12 @@ function detectFromPackageJson(rootDir: string): DetectedFramework[] {
   }
 
   if (deps['react-native']) {
-    frameworks.push({ name: 'React Native', category: 'mobile', version: deps['react-native'], template: 'react-native' });
+    frameworks.push({
+      name: 'React Native',
+      category: 'mobile',
+      version: deps['react-native'],
+      template: 'react-native',
+    });
   } else if (deps['expo']) {
     frameworks.push({ name: 'Expo', category: 'mobile', version: deps['expo'], template: 'expo' });
   }
@@ -99,7 +164,10 @@ function detectFromPackageJson(rootDir: string): DetectedFramework[] {
 
 function detectFromPython(rootDir: string): DetectedFramework[] {
   const files = ['requirements.txt', 'pyproject.toml', 'Pipfile', 'setup.py', 'setup.cfg'];
-  const content = files.map(f => readFile(path.join(rootDir, f))).join('\n').toLowerCase();
+  const content = files
+    .map((f) => readFile(path.join(rootDir, f)))
+    .join('\n')
+    .toLowerCase();
 
   if (!content) return [];
 
@@ -158,7 +226,8 @@ function detectFromRust(rootDir: string): DetectedFramework[] {
 
 function detectFromJava(rootDir: string): DetectedFramework[] {
   const pomXml = readFile(path.join(rootDir, 'pom.xml'));
-  const buildGradle = readFile(path.join(rootDir, 'build.gradle')) + readFile(path.join(rootDir, 'build.gradle.kts'));
+  const buildGradle =
+    readFile(path.join(rootDir, 'build.gradle')) + readFile(path.join(rootDir, 'build.gradle.kts'));
   const content = pomXml + buildGradle;
 
   if (!content) return [];
@@ -177,8 +246,8 @@ function detectFromJava(rootDir: string): DetectedFramework[] {
 
 function detectFromDotnet(rootDir: string): DetectedFramework[] {
   const entries = fs.readdirSync(rootDir);
-  const csproj = entries.find(e => e.endsWith('.csproj'));
-  const sln = entries.find(e => e.endsWith('.sln'));
+  const csproj = entries.find((e) => e.endsWith('.csproj'));
+  const sln = entries.find((e) => e.endsWith('.sln'));
 
   if (!csproj && !sln) return [];
 
@@ -217,7 +286,9 @@ function detectFromPhp(rootDir: string): DetectedFramework[] {
     return [{ name: 'WordPress', category: 'fullstack', template: 'php-wordpress' }];
   }
 
-  const composer = readJson<{ require?: Record<string, string> }>(path.join(rootDir, 'composer.json'));
+  const composer = readJson<{ require?: Record<string, string> }>(
+    path.join(rootDir, 'composer.json'),
+  );
   if (!composer) return [];
 
   const reqs = { ...composer.require };
@@ -252,7 +323,7 @@ function detectBun(rootDir: string): DetectedFramework[] {
 
 function detectDeno(rootDir: string): DetectedFramework[] {
   const denoFiles = ['deno.json', 'deno.jsonc', 'deno.lock', 'import_map.json'];
-  if (denoFiles.some(f => fs.existsSync(path.join(rootDir, f)))) {
+  if (denoFiles.some((f) => fs.existsSync(path.join(rootDir, f)))) {
     return [{ name: 'Deno', category: 'backend', template: 'deno' }];
   }
   return [];
@@ -274,7 +345,7 @@ export function detectFrameworks(rootDir: string): DetectedFramework[] {
 
   // Deduplicate by name
   const seen = new Set<string>();
-  return frameworks.filter(f => {
+  return frameworks.filter((f) => {
     if (seen.has(f.name)) return false;
     seen.add(f.name);
     return true;
