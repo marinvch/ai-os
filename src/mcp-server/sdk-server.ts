@@ -10,6 +10,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
+import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import {
@@ -546,6 +547,97 @@ export function createSdkServer(): McpServer {
       const plan = buildWorkflowRunPlan(wf, dryRun);
       return formatRunPlan(plan);
     }),
+  );
+
+  // ── Resources ─────────────────────────────────────────────────────────────
+  // Expose ai-os context docs as MCP resources (ai-os://context/* scheme).
+  // VS Code surfaces these in the Copilot resource picker (@-mention, #file, etc.).
+
+  interface ContextResourceDef {
+    id: string;
+    uri: string;
+    title: string;
+    description: string;
+    mimeType: string;
+    /** Path relative to .github/ai-os/ (undefined = session context card special case). */
+    aiOsPath?: string;
+  }
+
+  const contextResources: ContextResourceDef[] = [
+    {
+      id: 'architecture',
+      uri: 'ai-os://context/architecture',
+      title: 'Architecture Overview',
+      description: 'High-level architecture, module boundaries, and key design decisions.',
+      mimeType: 'text/markdown',
+      aiOsPath: 'context/architecture.md',
+    },
+    {
+      id: 'conventions',
+      uri: 'ai-os://context/conventions',
+      title: 'Coding Conventions',
+      description: 'Naming rules, file structure, testing patterns, and forbidden practices.',
+      mimeType: 'text/markdown',
+      aiOsPath: 'context/conventions.md',
+    },
+    {
+      id: 'stack',
+      uri: 'ai-os://context/stack',
+      title: 'Tech Stack',
+      description: 'Complete dependency inventory: languages, frameworks, build tools, and test setup.',
+      mimeType: 'text/markdown',
+      aiOsPath: 'context/stack.md',
+    },
+    {
+      id: 'memory',
+      uri: 'ai-os://context/memory',
+      title: 'Repository Memory',
+      description: 'Durable architectural decisions, pitfalls, and conventions stored across sessions.',
+      mimeType: 'application/x-ndjson',
+      aiOsPath: 'memory/memory.jsonl',
+    },
+    {
+      id: 'mcp-tools',
+      uri: 'ai-os://context/mcp-tools',
+      title: 'MCP Tools Reference',
+      description: 'Full reference for all AI OS MCP tools with usage guidance and when-to-call notes.',
+      mimeType: 'text/markdown',
+      aiOsPath: 'context/mcp-tools.md',
+    },
+  ];
+
+  for (const res of contextResources) {
+    const { id, uri, title, description, mimeType, aiOsPath } = res;
+    server.registerResource(
+      id,
+      uri,
+      { title, description, mimeType },
+      (u) => {
+        const text = readAiOsFile(aiOsPath!) || `Resource not found: ${uri}`;
+        return { contents: [{ uri: u.href, mimeType, text }] };
+      },
+    );
+  }
+
+  // Session context card lives at .github/COPILOT_CONTEXT.md (outside .github/ai-os/).
+  server.registerResource(
+    'session-context',
+    'ai-os://context/session',
+    {
+      title: 'Session Context Card',
+      description: 'MUST-ALWAYS rules, build/test commands, and key file locations. Load at every session start.',
+      mimeType: 'text/markdown',
+    },
+    (u) => {
+      const filePath = path.join(getProjectRoot(), '.github', 'COPILOT_CONTEXT.md');
+      let text: string;
+      try {
+        text = fs.readFileSync(filePath, 'utf-8');
+      } catch {
+        text = 'Session context file not found.';
+      }
+      return { contents: [{ uri: u.href, mimeType: 'text/markdown', text }] };
+    },
   );
 
   // ── Prompts ────────────────────────────────────────────────────────────────
