@@ -200,6 +200,21 @@ export interface AiOsConfig {
    * 'vscode' is always included. Others produce companion files.
    */
   editorTargets?: Array<'vscode' | 'cursor' | 'jetbrains' | 'neovim' | 'all'>;
+  /**
+   * Org/team-level context sharing: GitHub repo containing shared instruction
+   * fragments that will be fetched and merged into this repo's context on refresh.
+   *
+   * Format: "owner/repo" (e.g., "acme-org/ai-os-context")
+   *
+   * Expected files in the org repo (tried in order):
+   *   conventions/shared.md
+   *   instructions/shared.md
+   *
+   * The fetched content is written to .github/ai-os/context/org-context.md
+   * tagged with <!-- [org] --> markers and must not be edited manually.
+   * Default: undefined (opt-in, no network access without this field).
+   */
+  orgContextRepo?: string;
 }
 
 /** Runtime type guard for AiOsConfig JSON artifacts. */
