@@ -166,6 +166,12 @@ export interface AiOsConfig {
    */
   promptQualityPack?: boolean;
   /**
+   * Generate git hook scripts in .githooks/ and configure git to use them.
+   * The pre-push hook warns if AI OS context has drifted since the last refresh.
+   * Default: false (opt-in).
+   */
+  gitHooks?: boolean;
+  /**
    * Skill version tracking: maps skill name to SHA-256 content hash.
    * Populated by --refresh-existing. Checked by --doctor and detect_drift.
    */

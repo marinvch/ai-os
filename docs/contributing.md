@@ -55,10 +55,22 @@ All new features should have test coverage in `src/tests/`.
 ## Adding a New Generator
 
 1. Create your generator function in `src/generators/`
-2. Import and call it from `src/generate.ts`
-3. Add entries to the manifest via `writeManifest()`
+2. Import and call it from `src/actions/apply.ts`
+3. Add the returned files to `allManagedAbs` so the manifest tracks them
 4. Add tests in `src/tests/generators-extended.test.ts` or a new test file
 5. Run `npm run build && npm test` to verify
+
+## Git Hooks (Opt-In)
+
+AI OS can install a non-blocking `pre-push` hook that warns when AI OS context has drifted. Enable it by setting `"gitHooks": true` in `.github/ai-os/config.json`, then running:
+
+```bash
+npx -y github:marinvch/ai-os --refresh-existing
+# And in the target repo, activate the hooks directory once:
+git config core.hooksPath .githooks
+```
+
+The hook script is written to `.githooks/pre-push`. It emits a drift warning but never blocks the push.
 
 ## Template System (Two-Layer Architecture)
 
