@@ -59,12 +59,16 @@ export default tseslint.config(
       'no-empty': ['error', { allowEmptyCatch: false }],
     },
   },
-  // Allow console.* only in CLI surface and MCP server entry points
+  // Allow console.* in CLI surface, MCP server entry points, and action files
   {
     files: [
       'src/cli/**/*.ts',
       'src/generate.ts',
       'src/mcp-server/index.ts',
+      'src/actions/apply.ts',
+      'src/actions/apply-output.ts',
+      'src/actions/apply-prune.ts',
+      'src/actions/mcp-runtime.ts',
     ],
     rules: {
       'no-console': 'off',
@@ -76,6 +80,10 @@ export default tseslint.config(
       'src/cli/**/*.ts',
       'src/generate.ts',
       'src/mcp-server/index.ts',
+      'src/actions/apply.ts',
+      'src/actions/apply-output.ts',
+      'src/actions/apply-prune.ts',
+      'src/actions/mcp-runtime.ts',
     ],
     rules: {
       'no-console': ['warn', { allow: ['warn', 'error'] }],
